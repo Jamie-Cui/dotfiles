@@ -4,4 +4,7 @@ size = 17
 [window]
 startup_mode = "Maximized"
 decorations = "None"
-opacity = 1'
+opacity = 1
+
+[shell]
+program = "/opt/homebrew/bin/fish"
