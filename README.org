@@ -17,3 +17,23 @@ it is recommended to **symlink** dotfiles to home folder (or whatever it should 
 + xnip
 + orbstack
 
+ * shell options
+
+   fish with oh-my-fish
+
+   1. see: https://stackoverflow.com/a/70203456
+
+   #+begin_src bash
+     curl https://raw.githubusercontent.com/oh-my-fish/oh-my-fish/master/bin/install | fish
+   #+end_src
+
+   in ~~/.config/fish/config.fish）~, add
+   #+begin_src
+function proxy
+  set -xg ALL_PROXY http://localhost:ports
+end
+​
+function noproxy
+  set -e ALL_PROXY
+end
+   #+end_src
