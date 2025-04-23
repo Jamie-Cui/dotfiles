@@ -146,10 +146,9 @@ outer.right =      0
 # alt-shift-equal = 'resize smart +50'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#workspace
-# alt-1 = 'workspace 1'
-# alt-2 = 'workspace 2'
-# alt-3 = 'workspace 3'
-# alt-4 = 'workspace 4'
+cmd-1 = 'exec-and-forget open -a /Applications/Firefox.app'
+cmd-2 = 'exec-and-forget open -a /Users/jamie/Desktop/emacs/nextstep/Emacs.app'
+cmd-3 = 'exec-and-forget open -a /Applications/Alacritty.app'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#move-node-to-workspace
 # alt-shift-1 = 'move-node-to-workspace 1 --focus-follows-window'
