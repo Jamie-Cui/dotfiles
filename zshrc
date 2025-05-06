@@ -158,3 +158,17 @@ vterm_prompt_end() {
 }
 setopt PROMPT_SUBST
 PROMPT=$PROMPT'%{$(vterm_prompt_end)%}'
+
+function set_proxy {
+    export https_proxy=http://127.0.0.1:1087
+    export http_proxy=http://127.0.0.1:1087
+    export all_proxy=socks5://127.0.0.1:1081
+}
+
+function unset_proxy {
+    unset https_proxy
+    unset http_proxy
+    unset all_proxy
+}
+
+export PATH=$PATH:/opt/homebrew/bin/
