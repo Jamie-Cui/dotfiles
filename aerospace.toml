@@ -148,9 +148,10 @@ outer.right =      0
 # See: https://nikitabobko.github.io/AeroSpace/commands#workspace
 cmd-1 = 'exec-and-forget open -a /Applications/Firefox.app'
 cmd-2 = 'exec-and-forget open -a /Users/jamie/Desktop/emacs/nextstep/Emacs.app'
-cmd-3 = 'exec-and-forget open -a /Applications/Skim.app'
-cmd-4 = 'exec-and-forget open -a /Applications/Zotero.app'
-cmd-5 = 'exec-and-forget open -a /Applications/Alacritty.app'
+cmd-3 = 'exec-and-forget open -a /Applications/Alacritty.app'
+# cmd-4 = 'exec-and-forget open -a /Applications/Alacritty.app'
+# cmd-3 = 'exec-and-forget open -a /Applications/Skim.app'
+# cmd-4 = 'exec-and-forget open -a /Applications/Zotero.app'
 
 # See: https://nikitabobko.github.io/AeroSpace/commandsk#move-node-to-workspace
 # alt-shift-1 = 'move-node-to-workspace 1 --focus-follows-window'

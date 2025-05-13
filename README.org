@@ -29,11 +29,11 @@ it is recommended to **symlink** dotfiles to home folder (or whatever it should 
 
    in ~~/.config/fish/config.fish）~, add
    #+begin_src
-function proxy
-  set -xg ALL_PROXY http://localhost:ports
-end
-​
-function noproxy
-  set -e ALL_PROXY
-end
+    function proxy
+    set -xg ALL_PROXY http://localhost:ports
+    end
+    ​
+    function noproxy
+    set -e ALL_PROXY
+    end
    #+end_src
