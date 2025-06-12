@@ -12,7 +12,7 @@ FILENAME=${TIMESTAMP}\_$1
 # please config the following
 DOCKER_NAME="sz-benchmark-32"
 REMOTE_MACHINE="test"
-REMOTE_TMP_PATH="/home/shanzhu.cjm/benchmark/bin/tmp/${FILENAME}"
+REMOTE_TMP_PATH="/home/jamiecui/benchmark/bin/tmp/${FILENAME}"
 
 RELATIVE_PATH=$(git rev-parse --show-prefix)
 ROOT_PATH=$(git rev-parse --show-toplevel)
