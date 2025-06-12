@@ -4,14 +4,12 @@ my personal dot files
 
 it is recommended to *symlink* dotfiles to home folder (or whatever it should be)
 
-* the macos *tooling* apps that i like
+* the macos apps that i like
 
 + hidden-bar, an ultra-light MacOS utility that helps hide menu bar icons: https://github.com/dwarvesf/hidden
 + areospace, an i3-like tiling window manager for, macOS: https://github.com/nikitabobko/AeroSpace
 + alfred, the ultimate launcher in macos.
 + runcat, a cat living in the menubar: https://apps.apple.com/us/app/runcat/id1429033973?mt=12
-+ swiftquit, automatic quitting of macOS apps when closing their windows: https://github.com/onebadidea/swiftquit
-  make sure to explicitly list the apps that you want to close, e.g. chrome or firefox
 + magnet
 + xnip
 + orbstack
