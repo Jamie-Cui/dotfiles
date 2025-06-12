@@ -2,7 +2,7 @@
 
 my personal dot files
 
-it is recommended to **symlink** dotfiles to home folder (or whatever it should be)
+it is recommended to *symlink* dotfiles to home folder (or whatever it should be)
 
 * the macos *tooling* apps that i like
 
@@ -12,28 +12,6 @@ it is recommended to **symlink** dotfiles to home folder (or whatever it should 
 + runcat, a cat living in the menubar: https://apps.apple.com/us/app/runcat/id1429033973?mt=12
 + swiftquit, automatic quitting of macOS apps when closing their windows: https://github.com/onebadidea/swiftquit
   make sure to explicitly list the apps that you want to close, e.g. chrome or firefox
-
 + magnet
 + xnip
 + orbstack
-
- * shell options
-
-   fish with oh-my-fish
-
-   1. see: https://stackoverflow.com/a/70203456
-
-   #+begin_src bash
-     curl https://raw.githubusercontent.com/oh-my-fish/oh-my-fish/master/bin/install | fish
-   #+end_src
-
-   in ~~/.config/fish/config.fish）~, add
-   #+begin_src
-    function proxy
-    set -xg ALL_PROXY http://localhost:ports
-    end
-    ​
-    function noproxy
-    set -e ALL_PROXY
-    end
-   #+end_src
