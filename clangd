@@ -1,3 +1,5 @@
 CompileFlags:
-  Add: -Wno-unknown-warning-option
+  Add: -Wno-unknown-warning-option -isystem /usr/include/c++/12
   Remove: [-m*, -f*]
+Diagnostics:
+  UnusedIncludes: None
