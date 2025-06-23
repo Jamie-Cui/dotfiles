@@ -1,5 +1,11 @@
-CompileFlags:
-  Add: -Wno-unknown-warning-option -isystem /usr/include/c++/12
+CompileFlags: 
+  Add: [
+  -Wno-unknown-warning-option,
+  -I/usr/include/c++/12,
+  -I/usr/include/c++/12/aarch64-centos-linux,
+  -xc++-header,
+  ]
   Remove: [-m*, -f*]
+
 Diagnostics:
   UnusedIncludes: None
