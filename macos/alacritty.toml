@@ -1,0 +1,43 @@
+[general]
+working_directory = "$HOME"
+
+[terminal.shell]
+program = '/bin/bash'
+
+[env]
+TERM = "xterm-256color"
+
+[window]
+padding.x = 20
+padding.y = 20
+
+# decorations = "none"
+startup_mode = "Maximized"
+
+opacity = 1
+blur = true 
+
+option_as_alt = "Both"
+
+# dimensions.columns = 130
+# dimensions.lines = 42
+# position.x = 250
+# position.y = 20
+
+[font]
+normal.family = "Maple Mono NF CN"
+size = 14
+
+[cursor]
+style.blinking = "On"
+
+[terminal]
+
+[keyboard]
+
+# For Mac
+bindings = [
+  { key = "n", mods = "Command", action = "CreateNewWindow" },
+  { key = "c", mods = "Command", action = "Copy" },
+  { key = "v", mods = "Command", action = "Paste" }
+]
