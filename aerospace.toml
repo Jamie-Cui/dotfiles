@@ -19,12 +19,12 @@ start-at-login = true
 accordion-padding = 0
 
 # Possible values: tiles|accordion
-default-root-container-layout = 'accordion'
+default-root-container-layout = 'tiles'
 
 # Possible values: horizontal|vertical|auto
 # 'auto' means: wide monitor (anything wider than high) gets horizontal orientation,
 #               tall monitor (anything higher than wide) gets vertical orientation
-default-root-container-orientation = 'horizontal'
+default-root-container-orientation = 'auto'
 
 # Mouse follows focus when focused monitor changes
 # Drop it from your config, if you don't like this behavior
@@ -45,29 +45,7 @@ automatically-unhide-macos-hidden-apps = false
 # if.workspace = 'workspace-name'
 # if.during-aerospace-startup = true
 # check-further-callbacks = true
-# run = ['layout floating', 'move-node-to-workspace S']  # The callback itself
-
-[[on-window-detected]]
-if.window-title-regex-substring = '钉钉'
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-name-regex-substring = 'wechat'
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-name-regex-substring = 'bitwarden'
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-name-regex-substring = 'finder'
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-name-regex-substring = 'mail'
-run = 'layout floating'
-
-# Possible values: (qwerty|dvorak)
+# run = ['layout floating', 'move-node-to-works
 # See https://nikitabobko.github.io/AeroSpace/guide#key-mapping
 [key-mapping]
 preset = 'qwerty'

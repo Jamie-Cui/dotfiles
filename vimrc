@@ -16,6 +16,9 @@ filetype plugin indent on
 nnoremap <SPACE> <Nop>
 let mapleader=" "
 
+" I perfer C-g over C-c
+inoremap <C-g> <C-c>
+
 " Security
 set modelines=0
 
