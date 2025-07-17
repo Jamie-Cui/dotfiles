@@ -1,15 +1,15 @@
-[general]
-working_directory = "$HOME"
+# [general]
+# working_directory = "$HOME"
 
-[terminal.shell]
-program = '/bin/bash'
+# [terminal.shell]
+# program = "/bin/bash"
 
 [env]
 TERM = "xterm-256color"
 
 [window]
-padding.x = 20
-padding.y = 20
+padding.x = 0
+padding.y = 0
 
 # decorations = "none"
 startup_mode = "Maximized"
@@ -19,14 +19,9 @@ blur = true
 
 option_as_alt = "Both"
 
-# dimensions.columns = 130
-# dimensions.lines = 42
-# position.x = 250
-# position.y = 20
-
 [font]
 normal.family = "Maple Mono NF CN"
-size = 14
+size = 20
 
 [cursor]
 style.blinking = "On"
