@@ -13,3 +13,10 @@ it is recommended to *symlink* dotfiles to home folder (or whatever it should be
 + magnet
 + xnip
 + orbstack
+
+* setup proxy
+
+#+begin_src bash
+git config --global http.proxy http://proxyUsername:proxyPassword@proxy.server.com:port
+git config --global --unset http.proxy
+#+end_src
