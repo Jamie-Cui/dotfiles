@@ -11,7 +11,7 @@ TERM = "xterm-256color"
 padding.x = 0
 padding.y = 0
 
-# decorations = "none"
+decorations = "none"
 startup_mode = "Maximized"
 
 opacity = 1
@@ -21,7 +21,7 @@ option_as_alt = "Both"
 
 [font]
 normal.family = "Maple Mono NF CN"
-size = 20
+size = 14
 
 [cursor]
 style.blinking = "On"
@@ -34,5 +34,5 @@ style.blinking = "On"
 bindings = [
   { key = "n", mods = "Command", action = "CreateNewWindow" },
   { key = "c", mods = "Command", action = "Copy" },
-  { key = "v", mods = "Command", action = "Paste" }
+  { key = "v", mods = "Command", action = "Paste" },
 ]
