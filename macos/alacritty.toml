@@ -31,8 +31,8 @@ style.blinking = "On"
 [keyboard]
 
 # For Mac
-bindings = [
-  { key = "n", mods = "Command", action = "CreateNewWindow" },
-  { key = "c", mods = "Command", action = "Copy" },
-  { key = "v", mods = "Command", action = "Paste" },
-]
+# bindings = [
+#   { key = "n", mods = "Command", action = "CreateNewWindow" },
+#   { key = "c", mods = "Command", action = "Copy" },
+#   { key = "v", mods = "Command", action = "Paste" },
+# ]
