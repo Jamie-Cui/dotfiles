@@ -1,0 +1,44 @@
+[general]
+# working_directory = "C:\\"
+
+[terminal]
+shell.program = 'powershell'
+
+[env]
+TERM = "xterm-256color"
+
+[window]
+padding.x = 20
+padding.y = 20
+
+# decorations = "none"
+startup_mode = "Maximized"
+
+opacity = 1
+blur = true 
+
+option_as_alt = "Both"
+
+# dimensions.columns = 130
+# dimensions.lines = 42
+# position.x = 250
+# position.y = 20
+
+[font]
+normal.family = "Maple Mono NF CN"
+size = 14
+
+[cursor]
+style.blinking = "On"
+
+[selection]
+save_to_clipboard = true
+
+[keyboard]
+
+# For windows
+# bindings = [
+#   { key = "n", mods = "Alt", action = "CreateNewWindow" },
+#   { key = "c", mods = "Alt", action = "Copy" },
+#   { key = "v", mods = "Alt", action = "Paste" }
+# ]
