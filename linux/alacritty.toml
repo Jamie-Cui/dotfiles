@@ -32,7 +32,12 @@ style.blinking = "On"
 
 # For Mac
 bindings = [
-  { key = "n", mods = "Alt", action = "CreateNewWindow" },
-  { key = "c", mods = "Alt", action = "Copy" },
-  { key = "v", mods = "Alt", action = "Paste" }
+    { key = "Slash", mods = "Control", chars = "\u001f" },
+    # see: http://www.leonerd.org.uk/hacks/fixterms  /
+    # \u001b = ESC (Escape)
+    # [ = Control Sequence Introducer
+    # 59;5u = Key/Modifier Payload
+    # 59 = key code for ; (ascii 0x3B = decimal 59)
+    # 5 = control with +
+    { key = "Semicolon", mods = "Control", chars = "\u001b[59;5u" },
 ]
