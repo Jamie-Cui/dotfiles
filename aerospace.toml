@@ -32,10 +32,10 @@ automatically-unhide-macos-hidden-apps = false
 [mode.main.binding]
 
 # toggle tiling / floating
-alt-t = 'layout floating tiling'
+# alt-shift-t = 'layout floating tiling'
 
 # [caution] restart i3 inplace 
-alt-shift-r = 'reload-config'
+# alt-shift-r = 'reload-config'
 
 # [caution] exit i3 (logs you out of your X session)
 # alt-shift-q = 'reload-config'
