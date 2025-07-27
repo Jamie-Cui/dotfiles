@@ -21,7 +21,7 @@ option_as_alt = "Both"
 
 [font]
 normal.family = "Maple Mono NF CN"
-size = 14
+size = 20
 
 [cursor]
 style.blinking = "On"
