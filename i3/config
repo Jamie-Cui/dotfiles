@@ -7,6 +7,7 @@
 #
 # Please see https://i3wm.org/docs/userguide.html for a complete reference!
 
+
 # windows/option key in normal keyboard
 set $mod Mod4 
 
@@ -65,19 +66,22 @@ workspace_layout tabbed
 floating_modifier $mod
 
 # start dmenu (a program launcher)
-bindsym Mod1+space exec --no-startup-id i3-dmenu-desktop
+# bindsym $meta+space exec --no-startup-id i3-dmenu-desktop
+#
+# sudo apt install rofi (much better launcher)
+bindsym $meta+space exec rofi -show run -font "Maple Mono NF CN 24"
 
 # toggle tiling / floating
-bindsym $mod+t floating toggle
+bindsym $mod+Shift+Return floating toggle
 
 # show window in scratchpad
-bindsym $mod+plus scratchpad show
+bindsym $mod+Shift+plus scratchpad show
 
 # hide window in scratchpad
-bindsym $mod+minus move scratchpad
+bindsym $mod+shift+minus move scratchpad
 
-for_window [title="^WINDOW_TITLE$"] mark "STATWIN", move scratchpad
-bindsym $mod+s [con_mark="^STATWIN$"] fullscreen enable, scratchpad show
+# Switch workspaces with option-tab
+bindsym $meta+Tab focus next
 
 # [caution] reload the configuration file
 bindsym $mod+Shift+c reload
@@ -86,7 +90,10 @@ bindsym $mod+Shift+c reload
 bindsym $mod+Shift+r restart
 
 # [caution] exit i3 (logs you out of your X session)
-bindsym $mod+Shift+q exec "i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -B 'Yes, exit i3' 'i3-msg exit'"
+bindsym $mod+Shift+e exec "i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -B 'Yes, exit i3' 'i3-msg exit'"
+
+# kill focused window
+bindsym $mod+Shift+q kill
 
 # ----------------------------------------------
 # Workspace settings
@@ -108,9 +115,6 @@ bindsym $mod+Shift+q exec "i3-nagbar -t warning -m 'You pressed the exit shortcu
 # ----------------------------------------------
 # I like meta key ....
 # ----------------------------------------------
-
-# kill focused window
-bindsym $meta+q kill
 
 # switch to applications
 bindsym $meta+1 [class="(?i)Firefox"] focus
