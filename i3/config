@@ -69,7 +69,8 @@ floating_modifier $mod
 # bindsym $meta+space exec --no-startup-id i3-dmenu-desktop
 #
 # sudo apt install rofi (much better launcher)
-bindsym $meta+space exec rofi -show run -font "Maple Mono NF CN 24"
+# if you dont use i3, you can bind ubuntu system custom keyshort cut to this command
+bindsym $meta+space exec rofi -show drun -font "Maple Mono NF CN 24"
 
 # toggle tiling / floating
 bindsym $mod+Shift+Return floating toggle
