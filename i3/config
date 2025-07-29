@@ -7,12 +7,19 @@
 #
 # Please see https://i3wm.org/docs/userguide.html for a complete reference!
 
+# magic keyboard
+# Mod1 = option
+# Mod4 = meta
 
-# windows/option key in normal keyboard
-set $mod Mod4 
+set $mod Mod1
+set $meta Mod4
 
-# alt/command key in normal keyboard
-set $meta Mod1
+# normal keyboard
+# Mod1 = alt
+# Mod4 = windows
+
+# set $mod Mod4
+# set $meta Mod1
 
 # Font for window titles. Will also be used by the bar unless a different font
 # is used in the bar {} block below.
