@@ -4,6 +4,16 @@ my personal dot files
 
 it is recommended to *symlink* dotfiles to home folder (or whatever it should be)
 
+* Window Manager?
+
+Since Gnu Emacs could almost do everthing, It's built-in browser is a true pain-in-the-ass. Therefore I decide to rely on window manager like i3 on linux, aerospace on macos, to help me switch between emacs and browser.
+
+My definion: Command Key / Alt Key (whichever key is next to the space key) = meta
+My definion: Option Key / Windows Key (whichever key is next to the meta key) = super
+
+- meta + 1 : visit browser
+- meta + 2 : visit emacs/alacrity(for tty-emacs)
+
 * the macos apps that i like
 
 + hidden-bar, an ultra-light MacOS utility that helps hide menu bar icons: https://github.com/dwarvesf/hidden

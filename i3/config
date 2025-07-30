@@ -134,7 +134,8 @@ bindsym $meta+3 [class="(?i)Alacritty"] focus
 # ----------------------------------------------
 
 # set floating applications
-for_window [class = "v2rayN"] floating enable, resize set 320, 320
+for_window [class = "v2rayN"] floating enable
+for_window [class = "wechat"] floating enable
 
 # ----------------------------------------------
 # Bar
