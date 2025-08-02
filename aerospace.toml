@@ -16,38 +16,22 @@ on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
 automatically-unhide-macos-hidden-apps = false
 
 # ----------------------------------------------
-# Generic $mod related bindings ...
+# key bindings (windows, linux, and mac)
 # ----------------------------------------------
-# All possible keys:
-# - Letters.        a, b, c, ..., z
-# - Numbers.        0, 1, 2, ..., 9
-# - Keypad numbers. keypad0, keypad1, keypad2, ..., keypad9
-# - F-keys.         f1, f2, ..., f20
-# - Special keys.   minus, equal, period, comma, slash, backslash, quote, semicolon, backtick,
-#                   leftSquareBracket, rightSquareBracket, space, enter, esc, backspace, tab
-# - Keypad special. keypadClear, keypadDecimalMark, keypadDivide, keypadEnter, keypadEqual,
-#                   keypadMinus, keypadMultiply, keypadPlus
-# - Arrows.         left, down, up, right
-
 [mode.main.binding]
-
-# toggle tiling / floating
-# alt-shift-t = 'layout floating tiling'
-
-# [caution] restart i3 inplace 
-# alt-shift-r = 'reload-config'
-
-# [caution] exit i3 (logs you out of your X session)
-# alt-shift-q = 'reload-config'
-
-# ----------------------------------------------
-# I like meta key ....
-# ----------------------------------------------
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#workspace
 cmd-1 = 'exec-and-forget open -a /Applications/Firefox.app'
 cmd-2 = 'exec-and-forget open -a /Users/jamie/Desktop/emacs/nextstep/Emacs.app'
 cmd-3 = 'exec-and-forget open -a /Applications/Alacritty.app'
+
+# NOTE meta-space default to alfred, no configuration need
+# NOTE meta-tab default just works, no configuration need
+
+alt-shift-r = 'reload-config'
+
+# FIXME (last review: 2025-08-02) aerospace does not support that
+# alt-shift-enter = floating toggle
 
 # ----------------------------------------------
 # Special Apps
@@ -59,10 +43,6 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-name-regex-substring = 'bitwarden'
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-name-regex-substring = 'finder'
 run = 'layout floating'
 
 # See https://nikitabobko.github.io/AeroSpace/guide#key-mapping

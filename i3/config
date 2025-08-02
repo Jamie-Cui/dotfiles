@@ -8,18 +8,15 @@
 # Please see https://i3wm.org/docs/userguide.html for a complete reference!
 
 # magic keyboard
-# Mod1 = option
-# Mod4 = meta
-
-set $mod Mod1
+set $super Mod1
 set $meta Mod4
 
 # normal keyboard
-# Mod1 = alt
-# Mod4 = windows
+# set $super Mod4 
+# set $meta Mod1 
 
-# set $mod Mod4
-# set $meta Mod1
+# Use Mouse+$super to drag floating windows to their wanted position
+floating_modifier $super
 
 # Font for window titles. Will also be used by the bar unless a different font
 # is used in the bar {} block below.
@@ -38,9 +35,6 @@ exec --no-startup-id setxkbmap -option ctrl:nocaps
 
 # Adjust keyboard rate
 exec --no-startup-id xset r rate 200 15
-
-# The combination of xss-lock, nm-applet and pactl is a popular choice, so
-# they are included here as an example. Modify as you see fit.
 
 # xss-lock grabs a logind suspend inhibit lock and will use i3lock to lock the
 # screen before suspend. Use loginctl lock-session to lock your screen.
@@ -69,73 +63,34 @@ workspace_layout tabbed
 for_window [class="^.*"] border pixel 0
 for_window [class=".*"] title_format "%title"
 
-# FIXME: audio not working
-
 # ----------------------------------------------
-# Generic $mod related bindings ...
+# key bindings (windows, linux, and mac)
 # ----------------------------------------------
 
-# Use Mouse+$mod to drag floating windows to their wanted position
-floating_modifier $mod
-
-# start dmenu (a program launcher)
-# bindsym $meta+space exec --no-startup-id i3-dmenu-desktop
-#
-# sudo apt install rofi (much better launcher)
-# if you dont use i3, you can bind ubuntu system custom keyshort cut to this command
-bindsym $meta+space exec rofi -show drun -font "Maple Mono NF CN 24"
-# $meta+space exec rofi -show drun -font "Maple Mono NF CN 24"
-# bindsym $meta+space exec --no-startup-id rofi -show drun -modi "drun,run,ssh" -matching fuzzy -p "Search:" -run-shell-command "xdg-open 'https://www.google.com/search?q={cmd}'"
-
-# toggle tiling / floating
-bindsym $mod+Shift+Return floating toggle
-
-# show window in scratchpad
-bindsym $mod+Shift+plus scratchpad show
-
-# hide window in scratchpad
-bindsym $mod+shift+minus move scratchpad
-
-# Switch workspaces with option-tab
-bindsym $meta+Tab focus next
-
-# [caution] reload the configuration file
-bindsym $mod+Shift+c reload
-
-# [caution] restart i3 inplace (preserves your layout/session, can be used to upgrade i3)
-bindsym $mod+Shift+r restart
-
-# [caution] exit i3 (logs you out of your X session)
-bindsym $mod+Shift+e exec "i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -B 'Yes, exit i3' 'i3-msg exit'"
-
-# kill focused window
-bindsym $mod+Shift+q kill
-
-# ----------------------------------------------
-# Workspace settings
-# ----------------------------------------------
-
-# set $ws1 "1-firefox"
-# set $ws2 "2-emacs"
-# set $ws3 "3-alacritty"
-
-# assign [class="(?i)Firefox"] → $ws1 # case insensitive
-# for_window [class="(?i)Firefox"] focus
-
-# assign [class="(?i)Emacs"] → $ws2 # case insensitive
-# for_window [class="(?i)Emacs"] focus
-
-# assign [class="(?i)Alacritty"] → $ws3 # case insensitive
-# for_window [class="(?i)Alacritty"] focus
-
-# ----------------------------------------------
-# I like meta key ....
-# ----------------------------------------------
-
-# switch to applications
 bindsym $meta+1 [class="(?i)Firefox"] focus
 bindsym $meta+2 [class="(?i)Emacs"] focus
 bindsym $meta+3 [class="(?i)Alacritty"] focus
+
+bindsym $meta+space exec rofi -show drun -font "Maple Mono NF CN 24"
+bindsym $meta+Tab focus next 
+
+# [caution] kill focused window
+bindsym $super+Shift+q kill 
+
+# [caution] exit i3 (logs you out of your X session)
+bindsym $super+Shift+e exec "i3-nagbar -t warning -m 'You pressed the exit shortcut. Do you really want to exit i3? This will end your X session.' -B 'Yes, exit i3' 'i3-msg exit'"
+
+# [caution] restart i3 inplace (preserves your layout/session, can be used to upgrade i3)
+bindsym $super+Shift+r restart
+
+# hide window in scratchpad
+bindsym $super+shift+minus move scratchpad
+
+# show window in scratchpad
+bindsym $super+Shift+plus scratchpad show
+
+# toggle tiling / floating
+bindsym $super+Shift+Return floating toggle
 
 # ----------------------------------------------
 # Special Apps
@@ -143,6 +98,9 @@ bindsym $meta+3 [class="(?i)Alacritty"] focus
 
 # set floating applications
 for_window [class = "wechat"] floating enable
+for_window [class = "WemeetApp"] floating enable
+# TODO linux dingtalk?
+# for_window [class = "dingtalk"] floating enable
 
 # ----------------------------------------------
 # Bar
@@ -165,13 +123,3 @@ bar {
     position bottom     
     status_command i3blocks
 }
-
-
-# ----------------------------------------------
-# Auto-start applications
-# ----------------------------------------------
-
-# exec firefox 
-# exec emacs
-# exec alacritty
-

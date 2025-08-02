@@ -4,29 +4,62 @@ my personal dot files
 
 it is recommended to *symlink* dotfiles to home folder (or whatever it should be)
 
-* Window Manager?
+** key bindings (windows, linux, and mac)
 
 Since Gnu Emacs could almost do everthing, It's built-in browser is a true pain-in-the-ass. Therefore I decide to rely on window manager like i3 on linux, aerospace on macos, to help me switch between emacs and browser.
 
 My definion: Command Key / Alt Key (whichever key is next to the space key) = meta
 My definion: Option Key / Windows Key (whichever key is next to the meta key) = super
 
-- meta + 1 : visit browser
-- meta + 2 : visit emacs/alacrity(for tty-emacs)
+- meta + 1 : visit browser (firefox)
+- meta + 2 : visit emacs
+- meta + 3 : visit alacritty
+- meta + space : application launcher (would be nicer if it can do browser search)
+- meta + tab : switch applications
 
-* the macos apps that i like
+- super + shift + q : kill current application
+- super + shift + e : exit window manager
+- super + shift + r : restart/reload window manager config
+- super + shift + - : minimize/hide current app
+- super + shift + + : maximuze/show current app
+- super + shift + enter : toggle float window and max screen
 
-+ hidden-bar, an ultra-light MacOS utility that helps hide menu bar icons: https://github.com/dwarvesf/hidden
-+ areospace, an i3-like tiling window manager for, macOS: https://github.com/nikitabobko/AeroSpace
-+ alfred, the ultimate launcher in macos.
-+ runcat, a cat living in the menubar: https://apps.apple.com/us/app/runcat/id1429033973?mt=12
-+ magnet
-+ xnip
-+ orbstack
+floating applications:
+- wechat
+- wemeetapp (tencent meeting)
+- dingtalk (dingding) 
 
-* setup proxy
+** macos apps
+
+- hidden-bar, an ultra-light MacOS utility that helps hide menu bar icons: https://github.com/dwarvesf/hidden
+- areospace, an i3-like tiling window manager for, macOS: https://github.com/nikitabobko/AeroSpace
+- alfred, the ultimate launcher in macos: https://www.alfredapp.com/
+- xnip, Handy Screenshot App for Mac: https://xnipapp.com/
+- stat, macOS system monitor in your menu bar: https://github.com/exelban/stats
+
+** setup proxy
+
+If you use your proxy at: 127.0.0.1:1087
 
 #+begin_src bash
-git config --global http.proxy http://proxyUsername:proxyPassword@proxy.server.com:port
+git config --global http.proxy http://127.0.0.1:1087
 git config --global --unset http.proxy
+
+npm config set proxy http://127.0.0.1:1087
+npm config delete proxy
 #+end_src
+
+#+begin_src bash
+function set_proxy {
+    export https_proxy=http://127.0.0.1:1087
+    export http_proxy=http://127.0.0.1:1087
+    export all_proxy=socks5://127.0.0.1:1081
+}
+
+function unset_proxy {
+    unset https_proxy
+    unset http_proxy
+    unset all_proxy
+}
+#+end_src
+
