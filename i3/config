@@ -63,6 +63,12 @@ bindsym XF86AudioMicMute exec --no-startup-id pactl set-source-mute @DEFAULT_SOU
 # Default to tabbed layout
 workspace_layout tabbed
 
+# Disable title bar (at the top)
+# default_border pixel 0
+# default_floating_pixel border 0
+for_window [class="^.*"] border pixel 0
+for_window [class=".*"] title_format "%title"
+
 # FIXME: audio not working
 
 # ----------------------------------------------
@@ -78,6 +84,8 @@ floating_modifier $mod
 # sudo apt install rofi (much better launcher)
 # if you dont use i3, you can bind ubuntu system custom keyshort cut to this command
 bindsym $meta+space exec rofi -show drun -font "Maple Mono NF CN 24"
+# $meta+space exec rofi -show drun -font "Maple Mono NF CN 24"
+# bindsym $meta+space exec --no-startup-id rofi -show drun -modi "drun,run,ssh" -matching fuzzy -p "Search:" -run-shell-command "xdg-open 'https://www.google.com/search?q={cmd}'"
 
 # toggle tiling / floating
 bindsym $mod+Shift+Return floating toggle
