@@ -41,10 +41,6 @@ alt-shift-r = 'reload-config'
 if.app-name-regex-substring = 'wechat'
 run = 'layout floating'
 
-[[on-window-detected]]
-if.app-name-regex-substring = 'bitwarden'
-run = 'layout floating'
-
 # See https://nikitabobko.github.io/AeroSpace/guide#key-mapping
 [key-mapping]
 preset = 'qwerty'

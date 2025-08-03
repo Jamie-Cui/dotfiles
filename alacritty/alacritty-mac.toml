@@ -1,9 +1,3 @@
-# [general]
-# working_directory = "$HOME"
-
-# [terminal.shell]
-# program = "/bin/bash"
-
 [env]
 TERM = "xterm-256color"
 
@@ -26,11 +20,7 @@ size = 20
 [cursor]
 style.blinking = "On"
 
-[terminal]
-
 [keyboard]
-
-# For Mac
 bindings = [
     { key = "Slash", mods = "Control", chars = "\u001f" },
     # see: http://www.leonerd.org.uk/hacks/fixterms  /

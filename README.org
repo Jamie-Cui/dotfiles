@@ -1,8 +1,9 @@
+#+title: dotfiles
+#+startup: content
+
 * dotfiles
 
-my personal dot files
-
-it is recommended to *symlink* dotfiles to home folder (or whatever it should be)
+My personal dot files. It is recommended to *symlink* dotfiles to home folder (or whatever it should be).
 
 ** key bindings (windows, linux, and mac)
 
@@ -38,6 +39,7 @@ floating applications:
 - stat, macOS system monitor in your menu bar: https://github.com/exelban/stats
 
 ** macos key tweak
+
 #+begin_src bash
 # ubuntu
 gsettings set org.gnome.desktop.peripherals.keyboard repeat-interval 15
@@ -54,7 +56,7 @@ open ~/Library/Preferences/.GlobalPreferences.plist
 
 ** setup proxy
 
-If you use your proxy at: 127.0.0.1:1087
+If you use your proxy at: ~127.0.0.1:1087~
 
 #+begin_src bash
 git config --global http.proxy http://127.0.0.1:1087
