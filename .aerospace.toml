@@ -22,7 +22,7 @@ automatically-unhide-macos-hidden-apps = false
 
 # See: https://nikitabobko.github.io/AeroSpace/commands#workspace
 cmd-1 = 'exec-and-forget open -a /Applications/Firefox.app'
-cmd-2 = 'exec-and-forget open -a /Users/jamie/Desktop/emacs/nextstep/Emacs.app'
+cmd-2 = 'exec-and-forget open -a /Users/jamie/opt/emacs/nextstep/Emacs.app'
 cmd-3 = 'exec-and-forget open -a /Applications/Alacritty.app'
 
 # NOTE meta-space default to alfred, no configuration need

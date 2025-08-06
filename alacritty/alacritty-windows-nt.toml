@@ -8,13 +8,13 @@ shell.program = 'powershell'
 TERM = "xterm-256color"
 
 [window]
-padding.x = 20
-padding.y = 20
+padding.x = 00
+padding.y = 00
 
 # decorations = "none"
 startup_mode = "Maximized"
 
-opacity = 1
+opacity = 0.8
 blur = true 
 
 option_as_alt = "Both"
