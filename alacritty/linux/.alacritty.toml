@@ -1,8 +1,8 @@
 # [general]
 # working_directory = "$HOME"
 
-# [terminal.shell]
-# program = "/bin/bash"
+[terminal.shell]
+program = "/bin/zsh"
 
 [env]
 TERM = "xterm-256color"
@@ -11,17 +11,17 @@ TERM = "xterm-256color"
 padding.x = 0
 padding.y = 0
 
-# decorations = "none"
+decorations = "none"
 startup_mode = "Maximized"
 
-opacity = 0.8
+opacity = 0.95
 blur = true 
 
 option_as_alt = "Both"
 
 [font]
 normal.family = "Maple Mono NF CN"
-size = 14
+size = 16
 
 [cursor]
 style.blinking = "On"
@@ -32,6 +32,7 @@ style.blinking = "On"
 
 # For Mac
 bindings = [
+    { key = "N", mods = "Super|Shift", action = "CreateNewWindow"},
     { key = "Slash", mods = "Control", chars = "\u001f" },
     # see: http://www.leonerd.org.uk/hacks/fixterms  /
     # \u001b = ESC (Escape)
