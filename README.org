@@ -78,5 +78,8 @@ function unset_proxy {
     unset http_proxy
     unset all_proxy
 }
+
+alias et='tmux attach -t emacs-session || tmux new -s emacs-session "emacs -nw"'
+alias emacs='emacs -nw'
 #+end_src
 
