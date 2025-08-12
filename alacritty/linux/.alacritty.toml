@@ -32,7 +32,7 @@ style.blinking = "On"
 
 # For Mac
 bindings = [
-    { key = "N", mods = "Super|Shift", action = "CreateNewWindow"},
+    { key = "N", mods = "Alt|Shift", action = "CreateNewWindow"},
     { key = "Slash", mods = "Control", chars = "\u001f" },
     # see: http://www.leonerd.org.uk/hacks/fixterms  /
     # \u001b = ESC (Escape)
