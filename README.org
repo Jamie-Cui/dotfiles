@@ -1,6 +1,3 @@
-#+title: dotfiles
-#+startup: content
-
 * dotfiles
 
 My personal dot files. It is recommended to *symlink* dotfiles to home folder (or whatever it should be).
