@@ -35,7 +35,7 @@ floating applications:
 - xnip, Handy Screenshot App for Mac: https://xnipapp.com/
 - stat, macOS system monitor in your menu bar: https://github.com/exelban/stats
 
-** macos key tweak
+** key repeat and delay tweak
 
 #+begin_src bash
 # ubuntu
