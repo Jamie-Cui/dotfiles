@@ -80,3 +80,16 @@ alias et='tmux attach -t emacs-session || tmux new -s emacs-session "emacs -nw"'
 alias emacs='emacs -nw'
 #+end_src
 
+#+begin_src config
+Host github.com
+  port 22
+  User git
+  HostName github.com
+  PreferredAuthentications publickey
+  IdentityFile ~/.ssh/id_ed25519
+
+  # 10808 is local socks listening port number, find it in your v2ray / clash setting (through GUI, preferrably)
+  ProxyCommand socat - socks4:127.0.0.1:%h:%p,socksport=10808
+#+end_src
+
+
