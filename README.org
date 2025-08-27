@@ -89,7 +89,7 @@ Host github.com
   IdentityFile ~/.ssh/id_ed25519
 
   # 10808 is local socks listening port number, find it in your v2ray / clash setting (through GUI, preferrably)
-  ProxyCommand socat - socks4:127.0.0.1:%h:%p,socksport=10808
+  ProxyCommand socat - socks5:127.0.0.1:%h:%p,socksport=10808
 #+end_src
 
 
