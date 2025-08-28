@@ -64,16 +64,31 @@ npm config delete proxy
 #+end_src
 
 #+begin_src bash
-function set_proxy {
-    export https_proxy=http://127.0.0.1:1087
-    export http_proxy=http://127.0.0.1:1087
-    export all_proxy=socks5://127.0.0.1:1081
+export MY_PROXY=http://127.0.0.1:1087
+
+function set-proxy() {
+        export {http,https,ftp}_proxy=$MY_PROXY
+        export {HTTP,HTTPS,FTP}_PROXY=$MY_PROXY
+        export NO_PROXY=127.0.0.1
+        git config --global http.proxy $MY_PROXY 
+        git config --global https.proxy $MY_PROXY
+        show-proxy
 }
 
-function unset_proxy {
-    unset https_proxy
-    unset http_proxy
-    unset all_proxy
+function unset-proxy() {
+        unset {http,https,ftp}_proxy
+        unset {HTTP,HTTPS,FTP}_PROXY
+        unset NO_PROXY
+        git config --global --unset http.proxy
+        git config --global --unset https.proxy
+}
+
+function show-proxy() {
+        echo "[env] http_proxy: $HTTP_PROXY"
+        echo "[env] https_proxy: $HTTP_PROXY"
+        echo "[env] no_proxy: $NO_PROXY"
+        echo "[git] http.proxy:" $(git config --global --get http.proxy)
+        echo "[git] https.proxy:" $(git config --global --get https.proxy)
 }
 
 alias et='tmux attach -t emacs-session || tmux new -s emacs-session "emacs -nw"'
