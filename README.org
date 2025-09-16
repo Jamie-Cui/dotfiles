@@ -107,4 +107,19 @@ Host github.com
   ProxyCommand socat - socks5:127.0.0.1:%h:%p,socksport=10808
 #+end_src
 
+or, if you see ~Connection closed by UNKNOWN port 65535~ erros.
+see: https://bannirui.github.io/2024/01/24/%E4%BB%A3%E7%90%86git%E7%9A%84ssh%E5%8D%8F%E8%AE%AE/
+
+#+begin_src 
+Host github.com
+  port 443
+  User git
+  HostName ssh.github.com
+  PreferredAuthentications publickey
+  IdentityFile ~/.ssh/id_ed25519
+
+  # 10808 is local socks listening port number, find it in your v2ray / clash setting (through GUI, preferrably)
+  ProxyCommand socat - socks4:127.0.0.1:%h:%p,socksport=10808
+#+end_src
+
 
