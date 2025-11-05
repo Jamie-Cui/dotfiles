@@ -122,4 +122,21 @@ Host github.com
   ProxyCommand socat - socks4:127.0.0.1:%h:%p,socksport=10808
 #+end_src
 
+** flameshot
+
+https://github.com/flameshot-org/flameshot/issues/3326#issuecomment-2840309622
+
+#+begin_src bash
+xdotool exec flameshot gui --pin
+#+end_src
+
+** gnome shell extension
+
+*** dash to dock
+
+https://extensions.gnome.org/extension/307/dash-to-dock/
+
+*** system monitor
+
+https://extensions.gnome.org/extension/6807/system-monitor/
 
