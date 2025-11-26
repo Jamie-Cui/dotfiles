@@ -5,6 +5,9 @@
 # this file and re-run i3-config-wizard(1).
 #
 
+# input method (ibus)
+exec_always --no-startup-id fcitx5
+
 # i3 config file (v4)
 #
 # Please see https://i3wm.org/docs/userguide.html for a complete reference!
@@ -43,6 +46,12 @@ bindsym XF86AudioMicMute exec --no-startup-id pactl set-source-mute @DEFAULT_SOU
 
 # Use Mouse+$mod to drag floating windows to their wanted position
 floating_modifier $mod
+
+# REVIEW toggle input method
+# GTK_IM_MODULE=fcitx
+# QT_IM_MODULE=fcitx
+# XMODIFIERS=@im=fcitx
+bindsym Control+space exec --no-startup-id fcitx-remote -t
 
 # REVIEW start a terminal
 bindsym $mod+Return exec kitty
