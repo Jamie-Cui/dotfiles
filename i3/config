@@ -109,7 +109,7 @@ bindsym $mod+a focus parent
 #bindsym $mod+d focus child
 
 # REVIEW rofi
-bindsym $mod+space exec rofi -show drun
+bindsym $mod+space exec rofi -show drun -run-command "$HOME/opt/dotfiles/scripts/rofi-drun.sh {cmd}"
 
 # Define names for default workspaces for which we configure key bindings later on.
 # We use variables to avoid repeating the names in multiple places.
