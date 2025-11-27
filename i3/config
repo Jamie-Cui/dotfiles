@@ -66,7 +66,7 @@ floating_modifier $mod
 bindsym $meta+Tab focus right
 
 # REVIEW rofi (Mod1 = Meta)
-bindsym $meta+space exec rofi -show drun -run-command "$HOME/opt/dotfiles/scripts/rofi-drun.sh {cmd}"
+bindsym $meta+space exec rofi -show drun -run-command "$HOME/opt/dotfiles/scripts/rofi-drun.sh {cmd}" -font "monospace 16"
 
 # ------------------------------------------------------------------------------------------------------
 # Meta key binding end
