@@ -104,12 +104,10 @@ bindsym $mod+Shift+0 move container to workspace number $ws10
 # QT_IM_MODULE=fcitx
 # XMODIFIERS=@im=fcitx
 # imsettings-switch fcitx5
-bindsym Control+space exec --no-startup-id fcitx-remote -t
-
+bindsym Control+space exec --no-startup-id fcitx5-remote -t
 
 # REVIEW start a terminal
 bindsym $mod+Return exec kitty
-
 
 # kill focused window
 bindsym $mod+Shift+q kill
