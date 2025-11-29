@@ -14,6 +14,9 @@ exec_always --no-startup-id systemctl --user start dunst.service
 # REVIEW capslock is another ctrl
 exec_always --no-startup-id setxkbmap -option ctrl:nocaps
 
+# REVIEW change default layout
+workspace_layout tabbed
+
 # i3 config file (v4)
 #
 # Please see https://i3wm.org/docs/userguide.html for a complete reference!
