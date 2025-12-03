@@ -140,3 +140,22 @@ https://extensions.gnome.org/extension/307/dash-to-dock/
 
 https://extensions.gnome.org/extension/6807/system-monitor/
 
+** setup input method to ibus
+
+#+begin_src bash :results verbatim :dir ~
+sudo dnf install ibus-rime
+#+end_src
+
+#+begin_src bash :results verbatim :dir ~
+pip install PyGObject # may not necessary
+ibus-setup
+#+end_src
+
+#+begin_src bash :results verbatim :dir ~
+# put the following into your $HOME/.bashrc or $HOME/.zshrc or 
+export GTK_IM_MODULE=ibus
+export XMODIFIERS=@im=ibus
+export QT_IM_MODULE=ibus
+#+end_src
+
+
