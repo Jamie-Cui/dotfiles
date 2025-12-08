@@ -18,11 +18,12 @@ exec_always --no-startup-id setxkbmap -option ctrl:nocaps
 # REVIEW fix mouse issue
 exec_always --no-startup-id picom --xrender-sync --xrender-sync-fence
 
-# REVIEW force dpt setting
-exec_always --no-startup-id xrandr --dpi 120
+# REVIEW force dpt setting (NO NEED anymore)
+# 27 inch 4k display approx 163 dpi (you may google this or ask llm)
+# exec_always --no-startup-id xrandr --dpi 163 --rate 60
 
-# default to tab
-workspace_layout tabbed
+# default to stacked/tabbed/default/stacking
+workspace_layout default
 
 # i3 config file (v4)
 #
