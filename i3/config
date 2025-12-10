@@ -18,6 +18,9 @@ exec_always --no-startup-id setxkbmap -option ctrl:nocaps
 # REVIEW fix mouse issue
 exec_always --no-startup-id picom --xrender-sync --xrender-sync-fence
 
+# set floating applications
+for_window [class = "wechat"] floating enable
+
 # REVIEW force dpt setting (NO NEED anymore)
 # 27 inch 4k display approx 163 dpi (you may google this or ask llm)
 # exec_always --no-startup-id xrandr --dpi 163 --rate 60
