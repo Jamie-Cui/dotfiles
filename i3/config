@@ -20,6 +20,7 @@ exec_always --no-startup-id picom --xrender-sync --xrender-sync-fence
 
 # set floating applications
 for_window [class = "wechat"] floating enable
+for_window [class = "dingtalk"] floating enable
 
 # REVIEW force dpt setting (NO NEED anymore)
 # 27 inch 4k display approx 163 dpi (you may google this or ask llm)
