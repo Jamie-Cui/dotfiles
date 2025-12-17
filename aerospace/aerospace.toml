@@ -1,0 +1,83 @@
+after-startup-command = ['exec-and-forget sketchybar']
+
+# Notify Sketchybar about workspace change
+exec-on-workspace-change = [
+  '/bin/bash',
+  '-c',
+  'sketchybar --trigger aerospace_workspace_change FOCUSED_WORKSPACE=$AEROSPACE_FOCUSED_WORKSPACE PREV_WORKSPACE=$AEROSPACE_PREV_WORKSPACE',
+]
+
+# Start AeroSpace at login
+start-at-login = true
+
+accordion-padding = 0
+default-root-container-layout = 'tiles'
+default-root-container-orientation = 'auto'
+# on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
+automatically-unhide-macos-hidden-apps = false
+
+# ----------------------------------------------
+# key bindings (windows, linux, and mac)
+# ----------------------------------------------
+[mode.main.binding]
+
+# DEPRECATED See: https://nikitabobko.github.io/AeroSpace/commands#workspace
+# cmd-1 = 'exec-and-forget open -a /Applications/Firefox.app'
+# cmd-2 = 'exec-and-forget open -a /Users/jamie/opt/emacs/nextstep/Emacs.app'
+# cmd-3 = 'exec-and-forget open -a /Applications/kitty.app'
+
+# meta-space default to alfred, no configuration need
+# meta-tab default just works, no configuration need
+
+# Reload config
+alt-shift-r = 'reload-config'
+
+alt-h = 'focus left'
+alt-j = 'focus down'
+alt-k = 'focus up'
+alt-l = 'focus right'
+
+alt-shift-h = 'move left'
+alt-shift-j = 'move down'
+alt-shift-k = 'move up'
+alt-shift-l = 'move right'
+
+# 3 workspace should be enough
+cmd-1 = 'workspace 1'
+cmd-2 = 'workspace 2'
+cmd-3 = 'workspace 3'
+
+cmd-shift-1 = 'move-node-to-workspace 1'
+cmd-shift-2 = 'move-node-to-workspace 2'
+cmd-shift-3 = 'move-node-to-workspace 3'
+
+# FIXME (last review: 2025-08-02) aerospace does not support that
+# alt-shift-enter = floating toggle
+
+# ----------------------------------------------
+# Special Apps
+# ----------------------------------------------
+
+[[on-window-detected]]
+if.app-name-regex-substring = 'wechat'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-name-regex-substring = 'dingtalk'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-name-regex-substring = 'finder'
+run = 'layout floating'
+
+# See https://nikitabobko.github.io/AeroSpace/guide#key-mapping
+[key-mapping]
+preset = 'qwerty'
+
+[gaps]
+inner.horizontal = 0
+inner.vertical =   0
+outer.left =       10
+outer.bottom =     10
+outer.top =        30
+outer.right =      10

@@ -2,6 +2,7 @@
 
 My personal dot files. It is recommended to *symlink* dotfiles to home folder (or whatever it should be).
 
+
 ** key bindings (windows, linux, and mac)
 
 Since Gnu Emacs could almost do everthing, It's built-in browser is a true pain-in-the-ass. Therefore I decide to rely on window manager like i3 on linux, aerospace on macos, to help me switch between emacs and browser.
@@ -9,18 +10,26 @@ Since Gnu Emacs could almost do everthing, It's built-in browser is a true pain-
 My definion: Command Key / Alt Key (whichever key is next to the space key) = meta
 My definion: Option Key / Windows Key (whichever key is next to the meta key) = super
 
-- meta + 1 : visit browser (firefox)
-- meta + 2 : visit emacs
-- meta + 3 : visit alacritty
-- meta + space : application launcher (would be nicer if it can do browser search)
-- meta + tab : switch applications
+- meta + 1 : switch to workspace 1
+- meta + 2 : switch to workspace 2
+- meta + 3 : switch to workspace 3
+- meta + shift + 1 : move to workspace 1
+- meta + shift + 2 : move to workspace 2
+- meta + shift + 3 : move to workspace 3
 
-- super + shift + q : kill current application
-- super + shift + e : exit window manager
-- super + shift + r : restart/reload window manager config
-- super + shift + - : minimize/hide current app
-- super + shift + + : maximuze/show current app
-- super + shift + enter : toggle float window and max screen
+- alt/opt + h : focus left
+- alt/opt + j : focus down
+- alt/opt + k : focus up
+- alt/opt + l : focus right
+- alt/opt + shift + h : move focus to left
+- alt/opt + shift + j : move focus to down
+- alt/opt + shift + k : move focus to up
+- alt/opt + shift + l : move focus to right
+
+- alt/opt + shift + r : reload window manager config
+
+- meta + space : application launcher 
+- meta + tab : switch applications
 
 floating applications:
 - wechat
@@ -29,11 +38,19 @@ floating applications:
 
 ** macos apps
 
-- hidden-bar, an ultra-light MacOS utility that helps hide menu bar icons: https://github.com/dwarvesf/hidden
-- areospace, an i3-like tiling window manager for, macOS: https://github.com/nikitabobko/AeroSpace
-- alfred, the ultimate launcher in macos: https://www.alfredapp.com/
-- xnip, Handy Screenshot App for Mac: https://xnipapp.com/
-- stat, macOS system monitor in your menu bar: https://github.com/exelban/stats
+additionally download font icons from: 
+https://github.com/kvndrsslr/sketchybar-app-font/releases
+
+#+begin_src bash
+brew tap FelixKratz/formulae
+
+brew install --cask nikitabobko/tap/aerospace
+brew install --cask font-sketchybar-app-font
+brew install sketchybar
+
+brew services start sketchybar
+#+end_src
+
 
 ** key repeat and delay tweak
 

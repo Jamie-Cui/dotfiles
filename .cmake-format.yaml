@@ -4,6 +4,7 @@
 # pip install cmake-format --upgrade
 #
 
+
 # How wide to allow formatted cmake files
 line_width: 80
 
