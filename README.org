@@ -2,7 +2,6 @@
 
 My personal dot files. It is recommended to *symlink* dotfiles to home folder (or whatever it should be).
 
-
 ** key bindings (windows, linux, and mac)
 
 Since Gnu Emacs could almost do everthing, It's built-in browser is a true pain-in-the-ass. Therefore I decide to rely on window manager like i3 on linux, aerospace on macos, to help me switch between emacs and browser.
@@ -36,6 +35,16 @@ floating applications:
 - wemeetapp (tencent meeting)
 - dingtalk (dingding) 
 
+** linux apps
+
+- window manager: i3blocks
+- screenshot: i3blocks
+- screenshot: i3blocks
+
+#+begin_src bash :results verbatim :dir ~
+sudo dnf install -y i3blocks flameshot sysstat
+#+end_src
+
 ** macos apps
 
 additionally download font icons from: 
@@ -50,7 +59,6 @@ brew install sketchybar
 
 brew services start sketchybar
 #+end_src
-
 
 ** key repeat and delay tweak
 
