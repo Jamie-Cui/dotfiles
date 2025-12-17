@@ -75,9 +75,9 @@ run = 'layout floating'
 preset = 'qwerty'
 
 [gaps]
-inner.horizontal = 10
-inner.vertical =   10
-outer.left =       10
+inner.horizontal = 3
+inner.vertical =   3
+outer.left =       5
 outer.bottom =     0
 outer.top =        30
-outer.right =      10
+outer.right =      5

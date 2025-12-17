@@ -1,3 +1,6 @@
+# NOTE reload config
+# brew services restart sketchybar
+# 
 # A simple sketchybar config for aerospace users to get started with
 # Not too different from the base starting config!
 
@@ -87,7 +90,7 @@ for mid in $(aerospace list-monitors | cut -c1); do
 done
 
 sketchybar --add item space_separator left \
-  --set space_separator icon=" " \
+  --set space_separator icon="λ" \
   icon.padding_left=4 \
   label.drawing=off \
   background.drawing=off \
@@ -99,6 +102,7 @@ sketchybar --add item front_app left \
   --set front_app icon.drawing=off \
   script="$PLUGIN_DIR/front_app.sh" \
   --subscribe front_app front_app_switched
+
 
 ##### Adding Right Items #####
 # In the same way as the left items we can add items to the right side.
@@ -123,6 +127,14 @@ sketchybar --add item clock right \
   label.font="Maple Mono NL NF CN:Italic:13.0" \
   icon.color=0x44FFFFFF \
   label.color=0x44FFFFFF
+
+sketchybar --add item cpu right \
+           --set cpu update_freq=3 \
+                     script="$PLUGIN_DIR/cpu.sh"
+
+sketchybar --add item mem right \
+           --set mem update_freq=5 \
+                     script="$PLUGIN_DIR/mem.sh"
 
 ##### Force all scripts to run the first time (never do this in a script) #####
 sketchybar --update
