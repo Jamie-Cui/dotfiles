@@ -40,6 +40,14 @@ floating applications:
 - window manager: i3blocks
 - screenshot: i3blocks
 - screenshot: i3blocks
+- drawing: inkscape
+
+How to use svg2tikz extension for inkscape
+- https://xyz2tex.github.io/svg2tikz/install.html#installing-for-use-with-inkscape
+#+begin_src bash :results verbatim :dir ~
+git clone https://github.com/xyz2tex/svg2tikz
+#+end_src
+
 
 #+begin_src bash :results verbatim :dir ~
 sudo dnf install -y i3blocks flameshot sysstat
