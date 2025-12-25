@@ -44,8 +44,14 @@ label=WIFI:
 interval=1
 
 # Date Time
-#
 [time]
 command=date '+%Y-%m-%d %H:%M:%S'
 interval=1
 color=#91E78B
+
+[volume]
+command=~/.config/i3blocks/volume/volume
+LABEL=VOL 
+interval=once
+signal=10
+
