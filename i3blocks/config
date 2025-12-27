@@ -1,4 +1,4 @@
-separator_block_width=50
+separator_block_width=30
 markup=none
 
 # Guess the weather hourly
@@ -31,11 +31,11 @@ label=SWAP:
 instance=swap
 interval=10
 
-# Query my default IP address only on startup
 [ip]
+# Query my default IP address only on startup
 command=hostname -I | awk '{ print "IP:" $1 }'
 interval=once
-color=#FF0000
+# color=#FF0000
 
 [wifi]
 command=~/.config/i3blocks/wifi/wifi
@@ -43,7 +43,6 @@ INTERFACE=wlp3s0
 label=WIFI:
 interval=1
 
-# Date Time
 [time]
 command=date '+%Y-%m-%d %H:%M:%S'
 interval=1
@@ -51,7 +50,8 @@ color=#91E78B
 
 [volume]
 command=~/.config/i3blocks/volume/volume
-LABEL=VOL 
+LABEL=VOL: 
 interval=once
 signal=10
+min_width=80
 
