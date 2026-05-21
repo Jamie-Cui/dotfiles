@@ -1,0 +1,68 @@
+separator_block_width=30
+markup=none
+
+# Guess the weather hourly
+# [weather]
+# command=curl -Ss 'https://wttr.in?0&T&Q' | cut -c 16- | head -2 | xargs echo
+# interval=3600
+# color=#A4C2F4
+
+# CPU usage
+#
+# The script may be called with -w and -c switches to specify thresholds,
+# see the script for details.
+[cpu_usage]
+command=~/.config/i3blocks/cpu_usage/cpu_usage
+label=CPU:
+interval=10
+# min_width=cpu: 100.00%
+
+# Memory usage
+#
+# The type defaults to "mem" if the instance is not specified.
+[memory]
+command=~/.config/i3blocks/cpu_usage/cpu_usage
+label=MEM:
+interval=10
+
+[memory]
+command=~/.config/i3blocks/cpu_usage/cpu_usage
+label=SWAP:
+instance=swap
+
+interval=10
+
+[disk]
+label=DISK:
+# Command to show available space, formatted by awk
+command=df -h /home | awk 'NR==2 {print $4}'
+interval=30
+
+[ip]
+# Query my default IP address only on startup
+command=hostname -I | awk '{ print "IP:" $1 }'
+interval=once
+# color=#FF0000
+
+# [wifi]
+# command=~/.config/i3blocks/wifi/wifi
+# INTERFACE=wlp3s0
+# label=WIFI:
+# interval=1
+
+[time]
+command=date '+%Y-%m-%d %H:%M:%S'
+interval=1
+color=#91E78B
+
+[volume]
+command=~/.config/i3blocks/volume/volume
+LABEL=VOL:
+interval=once
+signal=10
+min_width=80
+
+[battery]
+command=cat /sys/class/power_supply/macsmc-battery/capacity | awk '{ print $1 "%" }'
+interval=10
+min_width=80

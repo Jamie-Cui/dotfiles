@@ -1,0 +1,37 @@
+.DS_Store
+.projectile-cache.eld
+
+# Compiled
+*.elc
+.agent-shell
+.claude
+
+# Packaging
+.cask/
+.eask/
+.eldev/
+.keg/
+
+# Built distribution
+dist/
+
+# Backup files
+*~
+
+# Undo-tree save-files
+*.~undo-tree
+
+# Generated dotfiles (from .in templates via 'make font')
+kitty/kitty.conf
+gtk-3.0/settings.ini
+gtk-3.0/bookmarks
+gtk-4.0/settings.ini
+i3/config
+hypr/hyprland.conf
+
+# for rime
+rime/build/*
+rime/luna_pinyin.userdb/*
+rime/sync/*
+rime/*.yaml
+!rime/*.custom.yaml

@@ -1,0 +1,10 @@
+# author: Jamie Cui
+patch:
+    schema_list:
+        - schema: luna_pinyin_simp
+    ascii_composer:
+        switch_key:
+            Shift_L: noop
+            Shift_R: noop
+            Control_L: noop
+            Control_R: noop

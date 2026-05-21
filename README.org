@@ -1,0 +1,171 @@
+#+startup: showall
+#+startup: nohideblocks
+
+* dotfiles
+
+My personal dot files. It is recommended to *symlink* dotfiles to home folder (or whatever it should be).
+
+** key bindings (windows, linux, and mac)
+
+Since Gnu Emacs could almost do everthing, It's built-in browser is a true pain-in-the-ass. Therefore I decide to rely on window manager like i3 on linux, aerospace on macos, to help me switch between emacs and browser.
+
+My definion: Command Key / Alt Key (whichever key is next to the space key) = meta
+My definion: Option Key / Windows Key (whichever key is next to the meta key) = super
+
+- meta + (shift) + (1/2/3) : switch(/move) to workspace (1/2/3)
+- alt/opt + (shift) + (h/j/k/l) : focus(/move) to (left/down/up/right)
+- alt/opt + shift + r : reload window manager config
+- alt/opt + q : quit application
+- alt/opt + shift + q : lock screen
+- meta + space : application launcher
+- meta + tab : cycle applications
+
+** linux apps
+
+#+begin_src bash
+sudo dnf install -y @i3-desktop-environment # window manager
+sudo dnf install -y i3blocks # better i3 bar
+sudo dnf install -y flameshot # screenshot
+sudo dnf install -y sysstat # capturing system-wide stats utility (required by i3block config)
+sudo dnf install -y lxappearance # config gtk application apperence
+sudo dnf install -y inkscape # drawing
+#+end_src
+
+** macos apps
+
+#+begin_src bash
+brew install --cask nikitabobko/tap/aerospace # window manager (optional)
+brew install --cask font-sketchybar-app-font # application font (optional)
+brew install --cask flameshot # screenshot
+brew install --cask inkscape # drawing
+brew install --cask kitty # terminal
+brew install --cask stats # task bar status
+brew install --cask hiddenbar # hide icons at task bar
+brew install --cask font-computer-modern # font
+brew install --cask font-fandol # font
+#+end_src
+
+fix v2ray damaged problem:
+#+begin_src bash
+sudo xattr -d com.apple.quarantine /Applications/v2rayN.app
+#+end_src
+
+** key repeat and delay tweak
+
+#+begin_src bash
+# ubuntu
+gsettings set org.gnome.desktop.peripherals.keyboard repeat-interval 15
+gsettings set org.gnome.desktop.peripherals.keyboard delay 200
+
+ibus-setup # trun off emoji shortcut => which defaults to C-;
+
+# macos
+defaults write -g InitialKeyRepeat -int 15 // I think 15 is better, you can set this to 10
+defaults write -g KeyRepeat -int 1
+# or, config those values though GUI
+open ~/Library/Preferences/.GlobalPreferences.plist
+#+end_src
+
+** setup proxy
+
+If you use your proxy at: ~127.0.0.1:1087~
+
+#+begin_src bash
+git config --global http.proxy http://127.0.0.1:1087
+git config --global --unset http.proxy
+
+npm config set proxy http://127.0.0.1:1087
+npm config delete proxy
+#+end_src
+
+#+begin_src bash
+export MY_PROXY=http://127.0.0.1:1087
+
+function set-proxy() {
+        export {http,https,ftp}_proxy=$MY_PROXY
+        export {HTTP,HTTPS,FTP}_PROXY=$MY_PROXY
+        export NO_PROXY=127.0.0.1
+        git config --global http.proxy $MY_PROXY
+        git config --global https.proxy $MY_PROXY
+        show-proxy
+}
+
+function unset-proxy() {
+        unset {http,https,ftp}_proxy
+        unset {HTTP,HTTPS,FTP}_PROXY
+        unset NO_PROXY
+        git config --global --unset http.proxy
+        git config --global --unset https.proxy
+}
+
+function show-proxy() {
+        echo "[env] http_proxy: $HTTP_PROXY"
+        echo "[env] https_proxy: $HTTP_PROXY"
+        echo "[env] no_proxy: $NO_PROXY"
+        echo "[git] http.proxy:" $(git config --global --get http.proxy)
+        echo "[git] https.proxy:" $(git config --global --get https.proxy)
+}
+
+alias et='tmux attach -t emacs-session || tmux new -s emacs-session "emacs -nw"'
+alias emacs='emacs -nw'
+#+end_src
+
+#+begin_src config
+Host github.com
+  port 22
+  User git
+  HostName github.com
+  PreferredAuthentications publickey
+  IdentityFile ~/.ssh/id_ed25519
+
+  # 10808 is local socks listening port number, find it in your v2ray / clash setting (through GUI, preferrably)
+  ProxyCommand socat - socks5:127.0.0.1:%h:%p,socksport=10808
+#+end_src
+
+or, if you see ~Connection closed by UNKNOWN port 65535~ erros.
+see: https://bannirui.github.io/2024/01/24/%E4%BB%A3%E7%90%86git%E7%9A%84ssh%E5%8D%8F%E8%AE%AE/
+
+#+begin_src
+Host github.com
+  port 443
+  User git
+  HostName ssh.github.com
+  PreferredAuthentications publickey
+  IdentityFile ~/.ssh/id_ed25519
+
+  # 10808 is local socks listening port number, find it in your v2ray / clash setting (through GUI, preferrably)
+  ProxyCommand socat - socks4:127.0.0.1:%h:%p,socksport=10808
+#+end_src
+
+** flameshot
+
+https://github.com/flameshot-org/flameshot/issues/3326#issuecomment-2840309622
+
+#+begin_src bash
+xdotool exec flameshot gui --pin
+#+end_src
+
+** setup input method to ibus
+
+#+begin_src bash
+sudo dnf install ibus-rime
+#+end_src
+
+#+begin_src bash
+pip install PyGObject # may not necessary
+ibus-setup # config shortcut
+#+end_src
+
+then setup through (x11)
+#+begin_src
+~/.config/imsettings/xinputrc
+#+end_src
+
+
+** Fix Bluetooth/Kernel Driver Issues (hid_apple)
+Apple Magic Keyboards often require specific kernel modules to work properly over Bluetooth in Linux.
+
+Plug it in: If you are using it wirelessly, try connecting it via the USB cable.
+Reload hid_apple: Sometimes the module needs to be reloaded. Run:
+sudo modprobe -r hid_apple
+sudo modprobe hid_apple

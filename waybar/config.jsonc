@@ -1,0 +1,137 @@
+{
+  "layer": "top",
+  "position": "top",
+  "height": 40,
+  "exclusive": true,
+  "spacing": 0,
+  "modules-left": [
+  "hyprland/workspaces",
+  "cpu",
+  "memory",
+  "disk"
+  ],
+
+  "modules-center": ["clock"],
+
+  "modules-right": [
+    "tray",
+    "bluetooth",
+    "network",
+    "pulseaudio",
+    "backlight",
+    "battery",
+    "custom/lock"
+  ],
+
+  "hyprland/workspaces": {
+    "format": "{name}: {icon}",
+    "format-icons": {
+      "active": "",
+      "default": ""
+    }
+  },
+
+  "bluetooth": {
+    "format": "󰂲",
+    "format-on": "{icon}",
+    "format-off": "{icon}",
+    "format-connected":"{icon}",
+    "format-icons":{
+        "on":"󰂯",
+        "off": "󰂲",
+        "connected": "󰂱",
+        },
+    "on-click": "blueman-manager",
+    "tooltip-format-connected":"{device_enumerate}"
+  },
+
+  "custom/music": {
+    "format": "  {}",
+    "escape": true,
+    "interval": 5,
+    "tooltip": false,
+    "exec": "playerctl metadata --format='{{ artist }} - {{ title }}'",
+    "on-click": "playerctl play-pause",
+    "max-length": 50
+  },
+
+  "clock": {
+    "timezone": "Asia/Shanghai",
+    "tooltip": false,
+    "format": "{:%H:%M:%S  -  %A, %d}",
+    "interval": 1
+  },
+
+  "network": {
+    "format-wifi": "󰤢",
+    "format-ethernet": "󰈀 ",
+    "format-disconnected": "󰤠 ",
+    "interval": 5,
+    "tooltip-format-wifi": "{essid} ({signalStrength}%)",
+    "tooltip-format-ethernet": "{ifname}: {ipaddr}/{cidr}",
+    "tooltip-format-disconnected": "Disconnected",
+ },
+
+  "cpu": {
+    "interval": 1,
+    "format": "  {usage}%",
+    "on-click": "kitty -e htop"
+  },
+
+  "memory": {
+    "interval": 30,
+    "format": "  {percentage}%",
+    "tooltip-format": "{used:0.1f}G/{total:0.1f}G"
+  },
+
+  "disk": {
+    "path": "/",
+    "interval": 30,
+    "format": "󰋊  {percentage_used}%",
+    "tooltip-format": "{used}/{total}"
+  },
+
+  "backlight": {
+        "format": "{icon}  {percent}%",
+        "format-icons": ["","󰃜", "󰃛", "󰃞","󰃝","󰃟","󰃠"],
+        "tooltip": false
+  },
+
+  "pulseaudio": {
+    "format": "{icon}  {volume}%",
+    "format-muted": "",
+    "format-icons": {
+      "default": ["", "", " "]
+    },
+    "on-click": "pavucontrol"
+  },
+
+  "battery": {
+        "bat": "BAT0",
+        "interval":2,
+        "states": {
+            // "good": 95,
+            "warning": 30,
+            "critical": 15
+        },
+        "format": "{icon}  {capacity}%",
+        "format-full": "{icon}  {capacity}%",
+        "format-charging": " {capacity}%",
+        "format-plugged": " {capacity}%",
+        "format-alt": "{icon} {time}",
+        // "format-good": "", // An empty format will hide the module
+        // "format-full": "",
+        "format-icons": ["", "", "", "", ""]
+  },
+
+  "custom/lock": {
+  "tooltip": false,
+  "on-click": "sh -c '(sleep 0s; hyprlock)' & disown",
+  "format" : ""
+  },
+    "tray": {
+        "icon-size": 21,
+        "spacing": 10,
+        "show-passive-items": true // Shows applets that are "inactive"
+    }
+}

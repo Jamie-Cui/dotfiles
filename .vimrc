@@ -1,0 +1,159 @@
+" Don't try to be vi compatible
+set nocompatible
+
+" Helps force plugins to load correctly when it is turned back on below
+filetype off
+
+" TODO: Load plugins here (pathogen or vundle)
+
+" Turn on syntax highlighting
+syntax on
+
+" For plugins to load correctly
+filetype plugin indent on
+
+" Pick a leader key, see: https://stackoverflow.com/a/446293
+nnoremap <SPACE> <Nop>
+let mapleader=" "
+
+" I perfer C-g over C-c
+inoremap <C-g> <C-c>
+
+" Security
+set modelines=0
+
+" Show line numbers
+set number
+
+" Show file stats
+set ruler
+
+" Blink cursor on error instead of beeping (grr)
+set visualbell
+
+" Turn on the Wild menu
+set wildmenu
+
+" Ignore compiled files
+set wildignore=*.o,*~,*.pyc
+if has("win16") || has("win32")
+    set wildignore+=.git\*,.hg\*,.svn\*
+else
+    set wildignore+=*/.git/*,*/.hg/*,*/.svn/*,*/.DS_Store
+endif
+
+" Encoding
+set encoding=utf-8
+
+" Whitespace
+set wrap
+set textwidth=79
+set formatoptions=tcqrn1
+set tabstop=2
+set shiftwidth=2
+set softtabstop=2
+set expandtab
+set noshiftround
+
+" Cursor motion
+set scrolloff=3
+set backspace=indent,eol,start
+set matchpairs+=<:> " use % to jump between pairs
+runtime! macros/matchit.vim
+
+" Move up/down editor lines
+nnoremap j gj
+nnoremap k gk
+
+" Allow hidden buffers
+set hidden
+
+" Rendering
+set ttyfast
+
+" Status bar
+set laststatus=2
+
+" Format the status line
+set statusline=\ %{HasPaste()}%F%m%r%h\ %w\ \ CWD:\ %r%{getcwd()}%h\ \ \ Line:\ %l\ \ Column:\ %c
+
+" Last line
+set showmode
+set showcmd
+
+" Searching
+nnoremap / /\v
+vnoremap / /\v
+set hlsearch
+set incsearch
+set ignorecase
+set smartcase
+set showmatch
+map <leader><space> :let @/=''<cr> " clear search
+
+" Remap help key.
+inoremap <F1> <ESC>:set invfullscreen<CR>a
+nnoremap <F1> :set invfullscreen<CR>
+vnoremap <F1> :set invfullscreen<CR>
+
+" Textmate holdouts
+
+" Formatting
+map <leader>q gqip
+
+" Visualize tabs and newlines
+set listchars=tab:▸\ ,eol:¬
+" Uncomment this to enable by default:
+" set list " To enable by default
+" Or use your leader key + l to toggle on/off
+map <leader>l :set list!<CR> " Toggle tabs and EOL
+
+" Color scheme (terminal)
+set t_Co=256
+set background=dark
+let g:solarized_termcolors=256
+let g:solarized_termtrans=1
+" put https://raw.github.com/altercation/vim-colors-solarized/master/colors/solarized.vim
+" in ~/.vim/colors/ and uncomment:
+" colorscheme solarized
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Helper functions
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+" Returns true if paste mode is enabled
+function! HasPaste()
+    if &paste
+        return 'PASTE MODE  '
+    endif
+    return ''
+endfunction
+
+" Function to toggle comments based on filetype
+function! ToggleComment()
+    " Define comment characters for different languages
+    let l:comment_chars = {
+        \ 'python': '# ',
+        \ 'sh': '# ',
+        \ 'vim': '" ',
+        \ 'javascript': '// ',
+        \ 'cpp': '// ',
+        \ 'c': '// '
+    \ }
+
+    let l:ft = &filetype
+    let l:char = get(l:comment_chars, l:ft, '# ') " Default to # if unknown
+
+    let l:line = getline('.')
+    if l:line =~ '^\s*' . escape(l:char, '/*#')
+        " Uncomment: remove the comment character
+        execute 's/^\(\s*\)' . escape(l:char, '/*#') . '/\1/'
+    else
+        " Comment: add the comment character at the start
+        execute 's/^\(\s*\)/\1' . l:char . '/'
+    endif
+endfunction
+
+" Map Alt-/ to the function in Normal and Visual modes
+nnoremap <M-/> :call ToggleComment()<CR>
+vnoremap <M-/> :call ToggleComment()<CR>

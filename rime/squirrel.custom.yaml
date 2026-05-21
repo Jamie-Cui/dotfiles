@@ -1,0 +1,5 @@
+# author: Jamie Cui
+patch:
+    app_options/org.gnu.Emacs/ascii_mode: false
+    app_options/org.gnu.Emacs/no_inline: false
+    style/candidate_list_layout: linear

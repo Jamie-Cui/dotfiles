@@ -1,0 +1,31 @@
+[global]
+width = 360
+height = (0, 140)
+origin = top-center
+offset = (12, 40)
+padding = 10
+horizontal_padding = 12
+frame_width = 2
+gap_size = 8
+corner_radius = 8
+indicate_hidden = yes
+always_on_top = true
+font = Maple Mono NL NF CN 10
+
+[urgency_low]
+timeout = 5
+
+[urgency_normal]
+timeout = 10
+
+[urgency_critical]
+timeout = 0
+
+[bilive_app_rule]
+appname = "bilive"
+background = "#080b12"
+frame_color = "#ff6fb1"
+timeout = 20
+
+[history]
+history_ignore_transient = no

@@ -1,0 +1,98 @@
+# call the following commands
+#
+# HACK fix mission control
+# defaults write com.apple.dock expose-group-apps -bool true && killall Dock
+#
+# HACK fix dock (additional turn on autohide in settings)
+# defaults write com.apple.dock pinning -string start && killall Dock
+
+config-version = 2
+
+# Start AeroSpace at login
+start-at-login = true
+
+accordion-padding = 0
+default-root-container-layout = 'tiles'
+default-root-container-orientation = 'auto'
+automatically-unhide-macos-hidden-apps = false
+
+[mode.main.binding]
+
+# meta-space default to alfred, no configuration need
+# meta-tab default just works, no configuration need
+
+# Reload config
+alt-shift-r = 'reload-config'
+
+alt-enter = 'exec-and-forget /Applications/kitty.app/Contents/MacOS/kitty --directory /Users/jamie --single-instance --instance-group aerospace'
+
+alt-h = 'focus left'
+alt-j = 'focus down'
+alt-k = 'focus up'
+alt-l = 'focus right'
+
+alt-shift-h = 'move left'
+alt-shift-j = 'move down'
+alt-shift-k = 'move up'
+alt-shift-l = 'move right'
+
+# 3 workspace should be enough
+cmd-1 = 'workspace 1'
+cmd-2 = 'workspace 2'
+cmd-3 = 'workspace 3'
+cmd-4 = 'workspace 4'
+cmd-5 = 'workspace 5'
+cmd-6 = 'workspace 6'
+cmd-7 = 'workspace 7'
+cmd-8 = 'workspace 8'
+cmd-9 = 'workspace 9'
+cmd-0 = 'workspace 0'
+
+cmd-shift-1 = 'move-node-to-workspace 1'
+cmd-shift-2 = 'move-node-to-workspace 2'
+cmd-shift-3 = 'move-node-to-workspace 3'
+cmd-shift-4 = 'move-node-to-workspace 4'
+cmd-shift-5 = 'move-node-to-workspace 5'
+cmd-shift-6 = 'move-node-to-workspace 6'
+cmd-shift-7 = 'move-node-to-workspace 7'
+cmd-shift-8 = 'move-node-to-workspace 8'
+cmd-shift-9 = 'move-node-to-workspace 9'
+cmd-shift-0 = 'move-node-to-workspace 0'
+
+alt-shift-enter = 'layout floating tiling'
+
+[[on-window-detected]]
+if.app-name-regex-substring = 'wechat'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-name-regex-substring = 'dingtalk'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-name-regex-substring = 'preview'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-name-regex-substring = 'finder'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-name-regex-substring = 'feishu'
+run = 'layout floating'
+
+[[on-window-detected]]
+if.app-name-regex-substring = 'mail'
+run = 'layout floating'
+
+# See https://nikitabobko.github.io/AeroSpace/guide#key-mapping
+[key-mapping]
+preset = 'qwerty'
+
+[gaps]
+inner.horizontal = 3
+inner.vertical =   3
+outer.left =       0
+outer.bottom =     0
+outer.top =        0
+outer.right =      0
