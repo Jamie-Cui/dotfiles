@@ -111,7 +111,8 @@
     "path": "/",
     "interval": 30,
     "format": "󰋊  {percentage_used}%",
-    "tooltip-format": "{used}/{total}"
+    "tooltip-format": "{used}/{total}",
+    "on-click": "baobab"
   },
 
   "backlight": {
