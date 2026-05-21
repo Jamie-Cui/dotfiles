@@ -1,4 +1,17 @@
-/* --- Global Styles --- */
+@define-color mv_bg #000000;
+@define-color mv_surface #2f2f2f;
+@define-color mv_surface_hover #545454;
+@define-color mv_text #ffffff;
+@define-color mv_text_dim #a6a6a6;
+@define-color mv_border #646464;
+@define-color mv_border_active #c6daff;
+@define-color mv_blue #2fafff;
+@define-color mv_cyan #00d3d0;
+@define-color mv_green #44bc44;
+@define-color mv_yellow #d0bc00;
+@define-color mv_red #ff5f59;
+@define-color mv_purple #b6a0ff;
+
 * {
   font-family: 'Maple Mono NL NF CN', 'Inter', 'Segoe UI, NotoSans Nerd Font', sans-serif;
   font-size: 13px;
@@ -8,46 +21,46 @@
   padding-bottom: 0px;
 }
 
-/* --- Waybar Container --- */
 #waybar {
-  background: #1a1b26;
-  color: #c6d0f5;
+  background: @mv_bg;
+  color: @mv_text;
   margin: 0px;
   font-weight: 500;
 }
 
-/* --- Left Modules (Individual, Fully Rounded Blocks - With Horizontal Spacing & Simple Hover) --- */
 #workspaces,
 #cpu,
 #memory,
-#disk {
-  background-color: #1a1b26;
+#disk,
+#clock {
+  background-color: @mv_surface;
   padding: 0.3rem 0.7rem;
-  margin: 5px 0px; /* 5px top/bottom margin, 0px left/right (base for individual control) */
-  border-radius: 6px; /* These modules are always rounded */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin: 5px 0px;
+  border-radius: 6px;
+  border: 1px solid @mv_border;
+  box-shadow: none;
   min-width: 0;
-  border: none;
-  /* Transition for background-color and color only */
-  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out,
+    border-color 0.2s ease-in-out;
 }
 
 #workspaces {
   padding: 2px;
-  margin-left: 7px; /* Margin from the far left edge */
-  margin-right: 5px; /* Spacing after the workspaces module */
+  margin-left: 7px;
+  margin-right: 5px;
 }
 
-/* Simple Hover effects for individual left modules - BRIGHTER COLOR */
 #cpu:hover,
 #memory:hover,
-#disk:hover {
-  background-color: rgb(41, 42, 53); /* Brighter highlight */
+#disk:hover,
+#clock:hover {
+  background-color: @mv_surface_hover;
+  border-color: @mv_border_active;
 }
 
 #workspaces button {
-  color: #babbf1;
-  border-radius: 5px; /* Workspaces buttons are always rounded */
+  color: @mv_text_dim;
+  border-radius: 5px;
   padding: 0.3rem 0.6rem;
   background: transparent;
   transition: all 0.2s ease-in-out;
@@ -56,34 +69,26 @@
 }
 
 #workspaces button.active {
-  color: #99d1db;
-  background-color: rgba(153, 209, 219, 0.1);
-  box-shadow: inset 0 0 0 1px rgba(153, 209, 219, 0.2);
+  color: @mv_text;
+  background-color: @mv_surface_hover;
+  box-shadow: inset 0 0 0 1px @mv_border_active;
+}
+
+#workspaces button.visible {
+  color: @mv_text;
+}
+
+#workspaces button.urgent {
+  color: @mv_red;
+  background-color: rgba(255, 95, 89, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 95, 89, 0.4);
 }
 
 #workspaces button:hover {
-  background: rgb(41, 42, 53); /* Reference bright hover color */
-  color: #c6d0f5;
+  background: @mv_surface_hover;
+  color: @mv_text;
 }
 
-/* --- Center Module (Individual, Fully Rounded Block - With Simple Hover) --- */
-#clock {
-  background-color: #1a1b26;
-  padding: 0.3rem 0.7rem;
-  margin: 5px 0px;
-  border-radius: 6px; /* This module is always rounded */
-  box-shadow: 0 1px 3px rgba(153, 209, 219, 0.2);
-  min-width: 0;
-  border: none;
-  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
-}
-
-/* Simple Hover effect for clock module - BRIGHTER COLOR */
-#clock:hover {
-  background-color: rgba(153, 209, 219, 0.1); /* Brighter highlight */
-}
-
-/* --- Right Modules (Single, Seamless Bar ) --- */
 #tray,
 #bluetooth,
 #pulseaudio,
@@ -91,14 +96,18 @@
 #network,
 #custom-lock,
 #battery {
-  background-color: #1a1b26;
+  background-color: @mv_surface;
   padding: 0.3rem 0.7rem;
   margin: 5px 0px;
   border-radius: 0;
   box-shadow: none;
   min-width: 0;
-  border: none;
-  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  border-top: 1px solid @mv_border;
+  border-bottom: 1px solid @mv_border;
+  border-left: none;
+  border-right: none;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out,
+    border-color 0.2s ease-in-out;
 }
 
 #tray:hover,
@@ -108,82 +117,77 @@
 #network:hover,
 #custom-lock:hover,
 #battery:hover {
-  background-color: rgb(41, 42, 53);
+  background-color: @mv_surface_hover;
 }
 
 #tray {
   margin-left: 0px;
   border-top-left-radius: 6px;
   border-bottom-left-radius: 6px;
+  border-left: 1px solid @mv_border;
 }
 
 #custom-lock {
   border-top-right-radius: 6px;
   border-bottom-right-radius: 6px;
   margin-right: 7px;
+  border-right: 1px solid @mv_border;
 }
 
-#cpu {
-  color: #c6d0f5;
-}
-#memory {
-  color: #c6d0f5;
-}
-#disk {
-  color: #c6d0f5;
+#cpu,
+#memory,
+#disk,
+#pulseaudio,
+#backlight,
+#network {
+  color: @mv_text;
 }
 
 #clock {
-  color: #99d1db;
-  font-weight: 500;
-}
-
-#pulseaudio {
-  color: #c6d0f5;
-}
-#backlight {
-  color: #c6d0f5;
-}
-
-#network {
-  color: #c6d0f5;
+  color: @mv_cyan;
+  box-shadow: inset 0 0 0 1px rgba(0, 211, 208, 0.35);
 }
 
 #network.disconnected {
-  color: #e78284;
+  color: @mv_red;
 }
 
 #custom-lock {
-  color: #babbf1;
-}
-#bluetooth {
-  color: #888888;
-  font-size: 16px;
-}
-#bluetooth.on {
-  color: #2196f3;
-}
-#bluetooth.connected {
-  color: #99d1db;
-}
-#battery {
-  color: #99d1db;;
-}
-#battery.charging {
-  color: #a6d189;
-}
-#battery.warning:not(.charging) {
-  color: #e78284;
+  color: @mv_purple;
 }
 
-/* --- Tooltip Styles --- */
+#bluetooth {
+  color: @mv_text_dim;
+  font-size: 16px;
+}
+
+#bluetooth.on {
+  color: @mv_blue;
+}
+
+#bluetooth.connected {
+  color: @mv_cyan;
+}
+
+#battery {
+  color: @mv_text;
+}
+
+#battery.charging {
+  color: @mv_green;
+}
+
+#battery.warning:not(.charging) {
+  color: @mv_yellow;
+}
+
 tooltip {
-  background-color: #1a1b26;
-  color: #dddddd;
+  background-color: @mv_bg;
+  color: @mv_text;
   padding: 5px 12px;
   margin: 5px 0px;
   border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 1px solid @mv_border;
+  box-shadow: none;
   font-size: 12px;
 }

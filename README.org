@@ -3,72 +3,184 @@
 
 * dotfiles
 
-My personal dot files. It is recommended to *symlink* dotfiles to home folder (or whatever it should be).
+Personal configuration for Linux and macOS desktops. The repository is meant to
+be linked into =~/.config= or the home directory, with generated files created
+from =*.in= templates when host-specific values are needed.
 
-** key bindings (windows, linux, and mac)
+** Repository layout
 
-Since Gnu Emacs could almost do everthing, It's built-in browser is a true pain-in-the-ass. Therefore I decide to rely on window manager like i3 on linux, aerospace on macos, to help me switch between emacs and browser.
+- =nvim/= :: Neovim configuration.
+- =hypr/= :: Hyprland, Hyprpaper, Hyprlock, helper scripts, and wallpapers.
+- =i3/= :: i3 configuration, launcher wrapper, and wallpapers.
+- =waybar/= :: Waybar JSONC and CSS.
+- =kitty/= :: Kitty terminal config and themes.
+- =dunst/= :: Notification daemon config and reload helper.
+- =rime/= :: Rime input method customizations.
+- =i3blocks/= :: i3blocks config and helper scripts.
+- =gtk-3.0/=, =gtk-4.0/=, =imsettings/= :: GTK and input method settings.
+- =aerospace/= :: AeroSpace window manager config for macOS.
+- Top-level dotfiles :: =.vimrc=, =.tmux.conf=, =.Xresources=, =.xprofile=,
+  and shared formatting/tooling config.
 
-My definion: Command Key / Alt Key (whichever key is next to the space key) = meta
-My definion: Option Key / Windows Key (whichever key is next to the meta key) = super
+** Quick start
 
-- meta + (shift) + (1/2/3) : switch(/move) to workspace (1/2/3)
-- alt/opt + (shift) + (h/j/k/l) : focus(/move) to (left/down/up/right)
-- alt/opt + shift + r : reload window manager config
-- alt/opt + q : quit application
-- alt/opt + shift + q : lock screen
-- meta + space : application launcher
-- meta + tab : cycle applications
+Clone the repository, generate host-specific files, then symlink the pieces you
+use into the expected locations.
 
-** linux apps
+#+begin_src bash
+git clone git@github.com:Jamie-Cui/dotfiles.git ~/opt/dotfiles
+cd ~/opt/dotfiles
+make help
+make all
+#+end_src
+
+Example links:
+
+#+begin_src bash
+mkdir -p ~/.config
+mkdir -p ~/.config/ibus
+
+ln -sfn ~/opt/dotfiles/nvim ~/.config/nvim
+ln -sfn ~/opt/dotfiles/kitty ~/.config/kitty
+ln -sfn ~/opt/dotfiles/hypr ~/.config/hypr
+ln -sfn ~/opt/dotfiles/waybar ~/.config/waybar
+ln -sfn ~/opt/dotfiles/dunst ~/.config/dunst
+ln -sfn ~/opt/dotfiles/rime ~/.config/ibus/rime
+
+ln -sfn ~/opt/dotfiles/.vimrc ~/.vimrc
+ln -sfn ~/opt/dotfiles/.tmux.conf ~/.tmux.conf
+ln -sfn ~/opt/dotfiles/.Xresources ~/.Xresources
+#+end_src
+
+Adjust the links per host. For example, an i3/X11 machine may link =i3= and
+=i3blocks=, while a Wayland machine may link =hypr= and =waybar=.
+
+** Generated configs
+
+Files ending in =.in= are sources. =make all= replaces =@FONT_SIZE@= and writes
+the generated config next to the template. Generated outputs are ignored by Git.
+
+Current templates:
+
+- =gtk-3.0/settings.ini.in= -> =gtk-3.0/settings.ini=
+- =gtk-4.0/settings.ini.in= -> =gtk-4.0/settings.ini=
+- =hypr/hyprland.conf.in= -> =hypr/hyprland.conf=
+- =i3/config.in= -> =i3/config=
+- =kitty/kitty.conf.in= -> =kitty/kitty.conf=
+
+The font size is read from =../config.toml=:
+
+#+begin_src toml
+[dotfiles]
+font_size = 12
+#+end_src
+
+It can also be overridden for one run:
+
+#+begin_src bash
+make all FONT_SIZE=12
+make clean
+#+end_src
+
+** Validation
+
+There is no single build or test suite. Validate the affected tool after
+changes:
+
+#+begin_src bash
+make all
+i3 -C -c i3/config
+bash -n i3/rofi-drun.sh
+bash -n dunst/reload-and-test.sh
+nvim --headless "+checkhealth" +qa
+#+end_src
+
+For visible desktop changes, reload the component and check it on screen. This
+matters most for Hyprland, i3, Waybar, Kitty, Dunst, and GTK settings.
+
+** Key bindings
+
+The Linux and macOS window manager configs are arranged around the same working
+model: Emacs is the primary editor, browsers and other apps are switched through
+the window manager.
+
+Definitions:
+
+- Meta :: Command on macOS keyboards, or Alt on typical PC keyboards.
+- Super :: Option on macOS keyboards, or Windows on typical PC keyboards.
+
+Common bindings:
+
+- =Meta + 1/2/3= :: Switch to workspace 1/2/3.
+- =Meta + Shift + 1/2/3= :: Move the focused window to workspace 1/2/3.
+- =Alt/Option + h/j/k/l= :: Move focus left/down/up/right.
+- =Alt/Option + Shift + h/j/k/l= :: Move the focused window left/down/up/right.
+- =Alt/Option + Shift + r= :: Reload the window manager config.
+- =Alt/Option + q= :: Quit the focused application.
+- =Alt/Option + Shift + q= :: Lock the screen.
+- =Meta + Space= :: Open the application launcher.
+- =Meta + Tab= :: Cycle applications or focus.
+
+** Linux packages
+
+Fedora examples:
 
 #+begin_src bash
 sudo dnf install -y @i3-desktop-environment # window manager
-sudo dnf install -y i3blocks # better i3 bar
-sudo dnf install -y flameshot # screenshot
-sudo dnf install -y sysstat # capturing system-wide stats utility (required by i3block config)
-sudo dnf install -y lxappearance # config gtk application apperence
-sudo dnf install -y inkscape # drawing
+sudo dnf install -y i3blocks                 # i3 bar blocks
+sudo dnf install -y flameshot                # screenshots
+sudo dnf install -y sysstat                  # stats used by i3blocks
+sudo dnf install -y lxappearance             # GTK appearance
+sudo dnf install -y inkscape                 # drawing
+sudo dnf install -y ibus-rime                # Rime input method
 #+end_src
 
-** macos apps
+Useful extras depend on the active session. The i3 config expects tools such as
+=feh=, =picom=, =xclip=, =rofi=, =dunst=, =dex-autostart=, =xss-lock=,
+=i3lock=, =nm-applet=, and =pactl=. The Hyprland config expects =kitty=,
+=dolphin=, =rofi=, =waybar=, =fcitx5=, =xclip=, =dunst=, and =hyprpaper=.
+
+** macOS packages
 
 #+begin_src bash
-brew install --cask nikitabobko/tap/aerospace # window manager (optional)
-brew install --cask font-sketchybar-app-font # application font (optional)
-brew install --cask flameshot # screenshot
-brew install --cask inkscape # drawing
-brew install --cask kitty # terminal
-brew install --cask stats # task bar status
-brew install --cask hiddenbar # hide icons at task bar
-brew install --cask font-computer-modern # font
-brew install --cask font-fandol # font
+brew install --cask nikitabobko/tap/aerospace # window manager
+brew install --cask kitty                      # terminal
+brew install --cask flameshot                  # screenshots
+brew install --cask inkscape                   # drawing
+brew install --cask stats                      # menu bar stats
+brew install --cask hiddenbar                  # hide menu bar icons
+brew install --cask font-sketchybar-app-font   # icon font
+brew install --cask font-computer-modern       # font
+brew install --cask font-fandol                # font
 #+end_src
 
-fix v2ray damaged problem:
+If macOS quarantines v2rayN:
+
 #+begin_src bash
 sudo xattr -d com.apple.quarantine /Applications/v2rayN.app
 #+end_src
 
-** key repeat and delay tweak
+** Keyboard repeat
+
+Linux:
 
 #+begin_src bash
-# ubuntu
 gsettings set org.gnome.desktop.peripherals.keyboard repeat-interval 15
 gsettings set org.gnome.desktop.peripherals.keyboard delay 200
+ibus-setup # turn off the default emoji shortcut if it conflicts with C-;
+#+end_src
 
-ibus-setup # trun off emoji shortcut => which defaults to C-;
+macOS:
 
-# macos
-defaults write -g InitialKeyRepeat -int 15 // I think 15 is better, you can set this to 10
+#+begin_src bash
+defaults write -g InitialKeyRepeat -int 15
 defaults write -g KeyRepeat -int 1
-# or, config those values though GUI
 open ~/Library/Preferences/.GlobalPreferences.plist
 #+end_src
 
-** setup proxy
+** Proxy helpers
 
-If you use your proxy at: ~127.0.0.1:1087~
+For an HTTP proxy at =127.0.0.1:1087=:
 
 #+begin_src bash
 git config --global http.proxy http://127.0.0.1:1087
@@ -78,94 +190,107 @@ npm config set proxy http://127.0.0.1:1087
 npm config delete proxy
 #+end_src
 
+Shell helpers:
+
 #+begin_src bash
 export MY_PROXY=http://127.0.0.1:1087
 
 function set-proxy() {
-        export {http,https,ftp}_proxy=$MY_PROXY
-        export {HTTP,HTTPS,FTP}_PROXY=$MY_PROXY
-        export NO_PROXY=127.0.0.1
-        git config --global http.proxy $MY_PROXY
-        git config --global https.proxy $MY_PROXY
-        show-proxy
+    export {http,https,ftp}_proxy=$MY_PROXY
+    export {HTTP,HTTPS,FTP}_PROXY=$MY_PROXY
+    export NO_PROXY=127.0.0.1
+    git config --global http.proxy $MY_PROXY
+    git config --global https.proxy $MY_PROXY
+    show-proxy
 }
 
 function unset-proxy() {
-        unset {http,https,ftp}_proxy
-        unset {HTTP,HTTPS,FTP}_PROXY
-        unset NO_PROXY
-        git config --global --unset http.proxy
-        git config --global --unset https.proxy
+    unset {http,https,ftp}_proxy
+    unset {HTTP,HTTPS,FTP}_PROXY
+    unset NO_PROXY
+    git config --global --unset http.proxy
+    git config --global --unset https.proxy
 }
 
 function show-proxy() {
-        echo "[env] http_proxy: $HTTP_PROXY"
-        echo "[env] https_proxy: $HTTP_PROXY"
-        echo "[env] no_proxy: $NO_PROXY"
-        echo "[git] http.proxy:" $(git config --global --get http.proxy)
-        echo "[git] https.proxy:" $(git config --global --get https.proxy)
+    echo "[env] http_proxy: $HTTP_PROXY"
+    echo "[env] https_proxy: $HTTPS_PROXY"
+    echo "[env] no_proxy: $NO_PROXY"
+    echo "[git] http.proxy:" $(git config --global --get http.proxy)
+    echo "[git] https.proxy:" $(git config --global --get https.proxy)
 }
 
 alias et='tmux attach -t emacs-session || tmux new -s emacs-session "emacs -nw"'
 alias emacs='emacs -nw'
 #+end_src
 
-#+begin_src config
+SSH over a local SOCKS proxy:
+
+#+begin_src ssh-config
 Host github.com
-  port 22
+  Port 22
   User git
   HostName github.com
   PreferredAuthentications publickey
   IdentityFile ~/.ssh/id_ed25519
-
-  # 10808 is local socks listening port number, find it in your v2ray / clash setting (through GUI, preferrably)
   ProxyCommand socat - socks5:127.0.0.1:%h:%p,socksport=10808
 #+end_src
 
-or, if you see ~Connection closed by UNKNOWN port 65535~ erros.
-see: https://bannirui.github.io/2024/01/24/%E4%BB%A3%E7%90%86git%E7%9A%84ssh%E5%8D%8F%E8%AE%AE/
+If GitHub SSH fails with =Connection closed by UNKNOWN port 65535=, use the SSH
+443 endpoint:
 
-#+begin_src
+#+begin_src ssh-config
 Host github.com
-  port 443
+  Port 443
   User git
   HostName ssh.github.com
   PreferredAuthentications publickey
   IdentityFile ~/.ssh/id_ed25519
-
-  # 10808 is local socks listening port number, find it in your v2ray / clash setting (through GUI, preferrably)
   ProxyCommand socat - socks4:127.0.0.1:%h:%p,socksport=10808
 #+end_src
 
-** flameshot
+Reference:
+https://bannirui.github.io/2024/01/24/%E4%BB%A3%E7%90%86git%E7%9A%84ssh%E5%8D%8F%E8%AE%AE/
 
-https://github.com/flameshot-org/flameshot/issues/3326#issuecomment-2840309622
+** Input method
+
+For iBus + Rime on Linux:
+
+#+begin_src bash
+sudo dnf install -y ibus-rime
+ibus-setup
+#+end_src
+
+For X11 sessions, input method startup can be configured through:
+
+#+begin_src text
+~/.config/imsettings/xinputrc
+#+end_src
+
+** Flameshot
+
+On some desktops, the pinned screenshot flow works better through =xdotool=:
 
 #+begin_src bash
 xdotool exec flameshot gui --pin
 #+end_src
 
-** setup input method to ibus
+See:
+https://github.com/flameshot-org/flameshot/issues/3326#issuecomment-2840309622
+
+** Bluetooth keyboard notes
+
+Apple Magic Keyboards can require the =hid_apple= kernel module to be reloaded
+after Bluetooth issues. Connect the keyboard over USB first if wireless input is
+unreliable, then run:
 
 #+begin_src bash
-sudo dnf install ibus-rime
-#+end_src
-
-#+begin_src bash
-pip install PyGObject # may not necessary
-ibus-setup # config shortcut
-#+end_src
-
-then setup through (x11)
-#+begin_src
-~/.config/imsettings/xinputrc
-#+end_src
-
-
-** Fix Bluetooth/Kernel Driver Issues (hid_apple)
-Apple Magic Keyboards often require specific kernel modules to work properly over Bluetooth in Linux.
-
-Plug it in: If you are using it wirelessly, try connecting it via the USB cable.
-Reload hid_apple: Sometimes the module needs to be reloaded. Run:
 sudo modprobe -r hid_apple
 sudo modprobe hid_apple
+#+end_src
+
+** Security
+
+Do not commit secrets, proxy credentials, private keys, generated Rime user data,
+or local build/cache directories. Keep machine-specific values outside this
+repository when possible.

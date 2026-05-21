@@ -58,7 +58,7 @@
   "clock": {
     "timezone": "Asia/Shanghai",
     "tooltip": false,
-    "format": "{:%H:%M:%S  -  %A, %d}",
+    "format": "{:%H:%M:%S  -  %A, %d %B}",
     "interval": 1
   },
 
