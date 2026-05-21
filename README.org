@@ -140,6 +140,80 @@ Useful extras depend on the active session. The i3 config expects tools such as
 =i3lock=, =nm-applet=, and =pactl=. The Hyprland config expects =kitty=,
 =dolphin=, =rofi=, =waybar=, =fcitx5=, =xclip=, =dunst=, and =hyprpaper=.
 
+*** Hyprland / Wayland session
+
+The Hyprland setup in this repository is split between =hypr/=, =waybar/=,
+=dunst/=, =kitty/=, GTK settings, and Rime/Fcitx input method files.
+
+Core session packages:
+
+#+begin_src bash
+sudo dnf install -y \
+  hyprland \
+  xdg-desktop-portal \
+  xdg-desktop-portal-hyprland \
+  xdg-desktop-portal-gtk \
+  qt5-qtwayland \
+  qt6-qtwayland \
+  pipewire \
+  pipewire-pulseaudio \
+  wireplumber
+#+end_src
+
+Packages directly used by the checked-in Hyprland and Waybar configs:
+
+#+begin_src bash
+sudo dnf install -y \
+  kitty \
+  rofi \
+  waybar \
+  hyprpaper \
+  hyprlock \
+  dunst \
+  fcitx5 \
+  fcitx5-rime \
+  fcitx5-gtk \
+  fcitx5-qt \
+  xclip \
+  flameshot \
+  brightnessctl \
+  playerctl \
+  pavucontrol \
+  blueman \
+  NetworkManager-tui \
+  nm-connection-editor \
+  htop
+#+end_src
+
+Optional utilities that fit the same setup:
+
+#+begin_src bash
+sudo dnf install -y \
+  dolphin \
+  grim \
+  slurp \
+  wl-clipboard \
+  hypridle \
+  hyprpicker
+#+end_src
+
+Notes:
+
+- =xdg-desktop-portal-hyprland= is the Hyprland portal backend used by apps for
+  Wayland desktop integration such as screen sharing and portal requests.
+- =xdg-desktop-portal-gtk= supplies a GTK fallback file picker for portal
+  requests.
+- =pipewire=, =pipewire-pulseaudio=, and =wireplumber= back Waybar audio state,
+  =wpctl= media-key bindings, and privacy indicators.
+- =fcitx5= is autostarted by =hypr/hyprland.conf.in=; install =fcitx5-rime=
+  when using the checked-in Rime config.
+- =xclip= is kept for compatibility with the current config. For native
+  Wayland clipboard scripts, prefer =wl-clipboard=.
+- =dolphin= is configured as the file manager variable but is not currently
+  bound to a key.
+- =grim= and =slurp= are useful if switching screenshot capture from
+  =flameshot= to native Wayland tools.
+
 ** macOS packages
 
 #+begin_src bash
