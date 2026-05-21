@@ -132,6 +132,6 @@
     "tray": {
         "icon-size": 21,
         "spacing": 10,
-        "show-passive-items": true // Shows applets that are "inactive"
+        "show-passive-items": false
     }
 }

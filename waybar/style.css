@@ -3,8 +3,8 @@
 @define-color mv_surface_hover #545454;
 @define-color mv_text #ffffff;
 @define-color mv_text_dim #a6a6a6;
-@define-color mv_border #646464;
-@define-color mv_border_active #c6daff;
+@define-color mv_border rgba(100, 100, 100, 0.35);
+@define-color mv_border_active rgba(198, 218, 255, 0.45);
 @define-color mv_blue #2fafff;
 @define-color mv_cyan #00d3d0;
 @define-color mv_green #44bc44;
@@ -48,6 +48,34 @@
   padding: 2px;
   margin-left: 7px;
   margin-right: 5px;
+}
+
+#cpu,
+#memory,
+#disk {
+  margin: 5px 0px;
+  border-radius: 0;
+  border-left-width: 0;
+  border-right-width: 0;
+}
+
+#cpu {
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
+  margin-left: 0px;
+  border-left-width: 1px;
+}
+
+#disk {
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+  margin-right: 5px;
+  border-right-width: 1px;
+}
+
+#memory {
+  margin-left: 0px;
+  margin-right: 0px;
 }
 
 #cpu:hover,
@@ -110,28 +138,56 @@
     border-color 0.2s ease-in-out;
 }
 
-#tray:hover,
-#bluetooth:hover,
-#pulseaudio:hover,
-#backlight:hover,
-#network:hover,
-#custom-lock:hover,
-#battery:hover {
-  background-color: @mv_surface_hover;
+#tray {
+  margin-left: 0px;
+  margin-right: 8px;
+  border-radius: 6px;
+  border: 1px solid @mv_border;
 }
 
-#tray {
+#tray:hover {
+  background-color: @mv_surface_hover;
+  border-color: @mv_border_active;
+}
+
+#bluetooth {
   margin-left: 0px;
   border-top-left-radius: 6px;
   border-bottom-left-radius: 6px;
   border-left: 1px solid @mv_border;
 }
 
+#bluetooth,
+#pulseaudio,
+#backlight,
+#network,
+#battery,
 #custom-lock {
+  margin-left: 0px;
+  margin-right: 0px;
+  border-left-width: 0;
+  border-right-width: 0;
+}
+
+#bluetooth {
+  border-left-width: 0;
+}
+
+#custom-lock {
+  margin-right: 7px;
   border-top-right-radius: 6px;
   border-bottom-right-radius: 6px;
-  margin-right: 7px;
   border-right: 1px solid @mv_border;
+}
+
+#bluetooth:hover,
+#pulseaudio:hover,
+#backlight:hover,
+#network:hover,
+#battery:hover,
+#custom-lock:hover {
+  background-color: @mv_surface_hover;
+  border-color: @mv_border_active;
 }
 
 #cpu,
@@ -144,8 +200,8 @@
 }
 
 #clock {
-  color: @mv_cyan;
-  box-shadow: inset 0 0 0 1px rgba(0, 211, 208, 0.35);
+  color: @mv_text;
+  box-shadow: inset 0 0 0 1px rgba(0, 211, 208, 0.18);
 }
 
 #network.disconnected {
