@@ -15,11 +15,13 @@
 
   "modules-right": [
     "tray",
+    "privacy",
     "bluetooth",
     "network",
     "pulseaudio",
     "backlight",
     "battery",
+    "idle_inhibitor",
     "custom/lock"
   ],
 
@@ -43,6 +45,25 @@
         },
     "on-click": "blueman-manager",
     "tooltip-format-connected":"{device_enumerate}"
+  },
+
+  "privacy": {
+    "icon-spacing": 4,
+    "icon-size": 16,
+    "transition-duration": 250,
+    "modules": [
+      {
+        "type": "screenshare",
+        "tooltip": true,
+        "tooltip-icon-size": 24
+      },
+      {
+        "type": "audio-in",
+        "tooltip": true,
+        "tooltip-icon-size": 24
+      }
+    ],
+    "ignore-monitor": true
   },
 
   "custom/music": {
@@ -122,6 +143,16 @@
         // "format-good": "", // An empty format will hide the module
         // "format-full": "",
         "format-icons": ["", "", "", "", ""]
+  },
+
+  "idle_inhibitor": {
+    "format": "{icon}",
+    "format-icons": {
+      "activated": "󰅶",
+      "deactivated": "󰾪"
+    },
+    "tooltip-format-activated": "Idle inhibit on",
+    "tooltip-format-deactivated": "Idle inhibit off"
   },
 
   "custom/lock": {

@@ -118,12 +118,14 @@
 }
 
 #tray,
+#privacy,
 #bluetooth,
 #pulseaudio,
 #backlight,
 #network,
 #custom-lock,
-#battery {
+#battery,
+#idle_inhibitor {
   background-color: @mv_surface;
   padding: 0.3rem 0.7rem;
   margin: 5px 0px;
@@ -150,18 +152,13 @@
   border-color: @mv_border_active;
 }
 
-#bluetooth {
-  margin-left: 0px;
-  border-top-left-radius: 6px;
-  border-bottom-left-radius: 6px;
-  border-left: 1px solid @mv_border;
-}
-
+#privacy,
 #bluetooth,
 #pulseaudio,
 #backlight,
 #network,
 #battery,
+#idle_inhibitor,
 #custom-lock {
   margin-left: 0px;
   margin-right: 0px;
@@ -169,8 +166,14 @@
   border-right-width: 0;
 }
 
+#privacy {
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
+  border-left-width: 1px;
+}
+
 #bluetooth {
-  border-left-width: 0;
+  margin-left: 0px;
 }
 
 #custom-lock {
@@ -180,11 +183,13 @@
   border-right: 1px solid @mv_border;
 }
 
+#privacy:hover,
 #bluetooth:hover,
 #pulseaudio:hover,
 #backlight:hover,
 #network:hover,
 #battery:hover,
+#idle_inhibitor:hover,
 #custom-lock:hover {
   background-color: @mv_surface_hover;
   border-color: @mv_border_active;
@@ -193,9 +198,11 @@
 #cpu,
 #memory,
 #disk,
+#privacy,
 #pulseaudio,
 #backlight,
-#network {
+#network,
+#idle_inhibitor {
   color: @mv_text;
 }
 
@@ -218,11 +225,25 @@
 }
 
 #bluetooth.on {
-  color: @mv_blue;
+  color: @mv_text;
 }
 
 #bluetooth.connected {
-  color: @mv_cyan;
+  color: @mv_text;
+}
+
+#idle_inhibitor.deactivated {
+  color: @mv_text_dim;
+}
+
+#idle_inhibitor.activated {
+  color: @mv_text;
+}
+
+#idle_inhibitor {
+  font-family: 'Maple Mono NL NF CN';
+  font-weight: 500;
+  font-size: 16px;
 }
 
 #battery {
