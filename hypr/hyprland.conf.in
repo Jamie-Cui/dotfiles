@@ -284,7 +284,7 @@ bind = $metaMod, q, killactive
 bind = $metaMod SHIFT, q, exec, hyprlock
 
 # flameshot
-bind = $metaMod Control, a, exec, flameshot gui
+bind = $metaMod Control, a, exec, QT_SCALE_FACTOR=0.65 flameshot gui
 
 # Switch workspaces with mainMod + [0-9]
 bind = $metaMod, 1, workspace, 1
