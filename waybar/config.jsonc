@@ -15,6 +15,12 @@
 
   "modules-right": [
     "tray",
+    "group/system"
+  ],
+
+  "group/system": {
+    "orientation": "horizontal",
+    "modules": [
     "privacy",
     "bluetooth",
     "network",
@@ -23,7 +29,8 @@
     "battery",
     "idle_inhibitor",
     "custom/lock"
-  ],
+    ]
+  },
 
   "hyprland/workspaces": {
     "format": "{name}: {icon}",

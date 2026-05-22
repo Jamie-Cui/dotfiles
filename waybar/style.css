@@ -118,24 +118,13 @@
 }
 
 #tray,
-#privacy,
-#bluetooth,
-#pulseaudio,
-#backlight,
-#network,
-#custom-lock,
-#battery,
-#idle_inhibitor {
+#system {
   background-color: @mv_surface;
-  padding: 0.3rem 0.7rem;
   margin: 5px 0px;
-  border-radius: 0;
+  border-radius: 6px;
+  border: 1px solid @mv_border;
   box-shadow: none;
   min-width: 0;
-  border-top: 1px solid @mv_border;
-  border-bottom: 1px solid @mv_border;
-  border-left: none;
-  border-right: none;
   transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out,
     border-color 0.2s ease-in-out;
 }
@@ -143,11 +132,17 @@
 #tray {
   margin-left: 0px;
   margin-right: 8px;
-  border-radius: 6px;
-  border: 1px solid @mv_border;
+  padding: 0.3rem 0.7rem;
 }
 
-#tray:hover {
+#system {
+  margin-left: 0px;
+  margin-right: 7px;
+  padding: 0;
+}
+
+#tray:hover,
+#system:hover {
   background-color: @mv_surface_hover;
   border-color: @mv_border_active;
 }
@@ -160,39 +155,20 @@
 #battery,
 #idle_inhibitor,
 #custom-lock {
+  background-color: transparent;
+  padding: 0.3rem 0.7rem;
+  margin: 0px;
+  border-radius: 0;
+  box-shadow: none;
+  min-width: 0;
+  border: none;
   margin-left: 0px;
   margin-right: 0px;
-  border-left-width: 0;
-  border-right-width: 0;
-}
-
-#privacy {
-  border-top-left-radius: 6px;
-  border-bottom-left-radius: 6px;
-  border-left-width: 1px;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
 }
 
 #bluetooth {
   margin-left: 0px;
-}
-
-#custom-lock {
-  margin-right: 7px;
-  border-top-right-radius: 6px;
-  border-bottom-right-radius: 6px;
-  border-right: 1px solid @mv_border;
-}
-
-#privacy:hover,
-#bluetooth:hover,
-#pulseaudio:hover,
-#backlight:hover,
-#network:hover,
-#battery:hover,
-#idle_inhibitor:hover,
-#custom-lock:hover {
-  background-color: @mv_surface_hover;
-  border-color: @mv_border_active;
 }
 
 #cpu,
