@@ -72,13 +72,17 @@ cmd-shift-0 = 'move-node-to-workspace 0'
 
 alt-shift-enter = 'layout floating tiling'
 
-[[on-window-detected]]
-if.app-name-regex-substring = 'wechat'
-run = 'layout floating'
+# [[on-window-detected]]
+# if.app-name-regex-substring = 'wechat'
+# run = 'layout floating'
 
-[[on-window-detected]]
-if.app-name-regex-substring = 'dingtalk'
-run = 'layout floating'
+# [[on-window-detected]]
+# if.app-name-regex-substring = 'dingtalk'
+# run = 'layout floating'
+
+# [[on-window-detected]]
+# if.app-name-regex-substring = 'feishu'
+# run = 'layout floating'
 
 [[on-window-detected]]
 if.app-name-regex-substring = 'preview'
@@ -86,10 +90,6 @@ run = 'layout floating'
 
 [[on-window-detected]]
 if.app-name-regex-substring = 'finder'
-run = 'layout floating'
-
-[[on-window-detected]]
-if.app-name-regex-substring = 'feishu'
 run = 'layout floating'
 
 [[on-window-detected]]
