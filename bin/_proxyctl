@@ -1,0 +1,82 @@
+#compdef proxyctl
+
+# proxyctl 的 zsh 补全定义。
+
+local -a commands init_options set_options proxy_urls no_proxy_values
+
+commands=(
+    'init:安装或更新 zsh 初始化配置'
+    'uninit:移除 zsh 初始化配置'
+    'on:启用当前 shell 与 git 全局代理'
+    'off:关闭当前 shell 与 git 全局代理'
+    'status:显示当前代理状态'
+    'help:显示帮助'
+)
+
+init_options=(
+    '--print:打印 zsh 初始化代码，不写入 ~/.zshrc'
+    '--install:安装 zsh 初始化配置'
+    '--force:强制更新已有初始化块'
+    '--uninstall:移除 zsh 初始化配置'
+    '--uninit:移除 zsh 初始化配置'
+)
+
+set_options=(
+    '--no-proxy:设置不走代理的地址列表'
+    '--no-proxy=:设置不走代理的地址列表'
+)
+
+proxy_urls=(
+    "${MY_PROXY:-http://127.0.0.1:1087}"
+    'http://127.0.0.1:1087'
+    'http://127.0.0.1:7890'
+    'socks5://127.0.0.1:1080'
+)
+
+no_proxy_values=(
+    "${MY_NO_PROXY:-127.0.0.1,localhost,::1}"
+    '127.0.0.1,localhost,::1'
+    '127.0.0.1,localhost,::1,*.local'
+)
+
+case "$CURRENT" in
+    2)
+        _describe -t commands 'proxyctl command' commands
+        return 0
+        ;;
+esac
+
+case "${words[2]}" in
+    init)
+        _describe -t options 'proxyctl init option' init_options
+        return 0
+        ;;
+    on)
+        case "${words[CURRENT - 1]}" in
+            --no-proxy)
+                _describe -t no-proxy-values 'no_proxy value' no_proxy_values
+                return 0
+                ;;
+        esac
+
+        if [[ "$PREFIX" == --no-proxy=* ]]; then
+            compadd -P '--no-proxy=' -a no_proxy_values
+            return 0
+        fi
+
+        if [[ "$PREFIX" == -* ]]; then
+            _describe -t options 'proxyctl on option' set_options
+            return 0
+        fi
+
+        _describe -t proxy-urls 'proxy URL' proxy_urls
+        _describe -t options 'proxyctl on option' set_options
+        return 0
+        ;;
+    uninit|off|status|help)
+        _message 'no more arguments'
+        return 0
+        ;;
+esac
+
+return 1

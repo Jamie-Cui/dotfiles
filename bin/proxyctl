@@ -1,0 +1,456 @@
+#!/usr/bin/env zsh
+# proxyctl - 管理当前 zsh shell 与 git 全局配置里的代理。
+
+# 默认代理可以通过 MY_PROXY 覆盖；没有设置时使用本机常见 HTTP 代理端口。
+local default_proxy="${MY_PROXY:-http://127.0.0.1:1087}"
+local default_no_proxy="${MY_NO_PROXY:-127.0.0.1,localhost,::1}"
+local cmd="${1:-status}"
+
+# on/off 需要修改“当前 shell”的环境变量，因此必须以 zsh autoload 函数运行。
+# 如果只是从 PATH 启动外部脚本，环境变量只能影响脚本自己的子进程，退出后不会保留。
+local loaded_as_function="${+functions[proxyctl]}"
+
+# ${(%):-%x} 在 zsh 中表示当前脚本/函数文件路径，用来生成 init 代码里的 fpath。
+local proxyctl_path="${(%):-%x}"
+local proxyctl_zshrc="${ZDOTDIR:-$HOME}/.zshrc"
+
+# 用固定标记包住写入 .zshrc 的内容，方便判断是否已经初始化，避免重复追加。
+local proxyctl_marker_begin="# >>> proxyctl init >>>"
+local proxyctl_marker_end="# <<< proxyctl init <<<"
+
+# 同时维护大小写代理环境变量，兼容不同 CLI 工具的读取习惯。
+local -a lower_vars upper_vars
+lower_vars=(http_proxy https_proxy ftp_proxy)
+upper_vars=(HTTP_PROXY HTTPS_PROXY FTP_PROXY)
+
+_proxyctl_usage() {
+    cat <<'EOF'
+Usage:
+  proxyctl init [--force]                Install or update zsh initialization
+  proxyctl init --print                  Print zsh initialization code
+  proxyctl init --uninstall              Remove zsh initialization from ~/.zshrc
+  proxyctl uninit                        Remove zsh initialization from ~/.zshrc
+  proxyctl on [URL] [--no-proxy LIST]    Enable proxy for current shell and git
+  proxyctl off                           Disable proxy for current shell and git
+  proxyctl status                        Show current proxy state
+  proxyctl help                          Show this help
+
+Defaults:
+  URL defaults to $MY_PROXY, or http://127.0.0.1:1087 when $MY_PROXY is unset.
+  LIST defaults to $MY_NO_PROXY, or 127.0.0.1,localhost,::1 when unset.
+EOF
+}
+
+_proxyctl_init_block() {
+    local dir="${proxyctl_path:A:h}"
+
+    # 将 proxyctl 所在目录加入 fpath，并让 zsh 懒加载同名函数。
+    # 如果补全系统还没加载，则先加载 compinit，再显式绑定 _proxyctl。
+    cat <<EOF
+# proxyctl
+fpath=($dir \$fpath)
+autoload -Uz proxyctl
+if (( ! \${+functions[compdef]} )); then
+    autoload -Uz compinit
+    compinit -i
+fi
+if (( \${+functions[compdef]} )); then
+    unfunction _proxyctl 2>/dev/null || true
+    autoload -Uz _proxyctl
+    compdef _proxyctl proxyctl
+fi
+EOF
+}
+
+_proxyctl_wrapped_init_block() {
+    print -r -- "$proxyctl_marker_begin"
+    _proxyctl_init_block
+    print -r -- "$proxyctl_marker_end"
+}
+
+_proxyctl_init_print() {
+    _proxyctl_init_block
+}
+
+_proxyctl_init_install() {
+    local force="${1:-0}"
+    local block
+
+    block="$(_proxyctl_wrapped_init_block)"
+
+    # init 可以重复运行；已存在且内容一致时不再写入。
+    if _proxyctl_is_initialized; then
+        local current_block="$(_proxyctl_current_init_block)"
+        if (( ! force )) && [[ "$current_block" == "$block" ]]; then
+            echo "proxyctl: initialization already exists in $proxyctl_zshrc"
+            return 0
+        fi
+
+        _proxyctl_replace_init_block "$block" || return $?
+        echo "proxyctl: updated initialization in $proxyctl_zshrc"
+        echo "proxyctl: run 'source $proxyctl_zshrc' or open a new zsh shell"
+        return 0
+    fi
+
+    mkdir -p "${proxyctl_zshrc:h}"
+    {
+        [[ -s "$proxyctl_zshrc" ]] && print
+        print -r -- "$block"
+    } >> "$proxyctl_zshrc"
+
+    echo "proxyctl: added initialization to $proxyctl_zshrc"
+    echo "proxyctl: run 'source $proxyctl_zshrc' or open a new zsh shell"
+}
+
+_proxyctl_init() {
+    local force=0
+
+    while (( $# > 0 )); do
+        case "$1" in
+            --print)
+                _proxyctl_init_print
+                return $?
+                ;;
+            --install)
+                shift
+                ;;
+            --force)
+                force=1
+                shift
+                ;;
+            --uninstall|--uninit)
+                _proxyctl_uninit
+                return $?
+                ;;
+            *)
+                echo "proxyctl: unknown init option: $1" >&2
+                _proxyctl_usage >&2
+                return 2
+                ;;
+        esac
+    done
+
+    _proxyctl_init_install "$force"
+}
+
+_proxyctl_uninit() {
+    if ! _proxyctl_is_initialized; then
+        echo "proxyctl: initialization is not installed in $proxyctl_zshrc"
+        return 0
+    fi
+
+    _proxyctl_remove_init_block || return $?
+    echo "proxyctl: removed initialization from $proxyctl_zshrc"
+    echo "proxyctl: run 'source $proxyctl_zshrc' or open a new zsh shell"
+}
+
+_proxyctl_is_initialized() {
+    # 只检查由 proxyctl init 写入的标记，避免误判用户手写的其他 fpath 配置。
+    [[ -f "$proxyctl_zshrc" ]] &&
+        grep -Fq "$proxyctl_marker_begin" "$proxyctl_zshrc" &&
+        grep -Fq "$proxyctl_marker_end" "$proxyctl_zshrc"
+}
+
+_proxyctl_current_init_block() {
+    local in_block=0
+    local found_end=0
+    local line
+
+    [[ -f "$proxyctl_zshrc" ]] || return 1
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        if (( ! in_block )) && [[ "$line" == "$proxyctl_marker_begin" ]]; then
+            in_block=1
+        fi
+
+        if (( in_block )); then
+            print -r -- "$line"
+            if [[ "$line" == "$proxyctl_marker_end" ]]; then
+                found_end=1
+                break
+            fi
+        fi
+    done < "$proxyctl_zshrc"
+
+    (( found_end ))
+}
+
+_proxyctl_replace_init_block() {
+    local block="$1"
+    local tmp="${proxyctl_zshrc}.proxyctl.$$"
+    local in_block=0
+    local replaced=0
+    local found_end=0
+    local line
+
+    # 用临时文件替换 marker 包围的 init 块，避免路径变化后 .zshrc 留着旧 fpath。
+    {
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            if (( ! in_block )) && [[ "$line" == "$proxyctl_marker_begin" ]]; then
+                print -r -- "$block"
+                in_block=1
+                replaced=1
+                continue
+            fi
+
+            if (( in_block )); then
+                if [[ "$line" == "$proxyctl_marker_end" ]]; then
+                    in_block=0
+                    found_end=1
+                fi
+                continue
+            fi
+
+            print -r -- "$line"
+        done < "$proxyctl_zshrc"
+    } > "$tmp" || {
+        command rm -f "$tmp"
+        echo "proxyctl: failed to prepare updated initialization for $proxyctl_zshrc" >&2
+        return 1
+    }
+
+    if (( in_block || ! replaced || ! found_end )); then
+        command rm -f "$tmp"
+        echo "proxyctl: failed to update initialization block in $proxyctl_zshrc" >&2
+        return 1
+    fi
+
+    command mv "$tmp" "$proxyctl_zshrc" || {
+        command rm -f "$tmp"
+        echo "proxyctl: failed to write updated initialization to $proxyctl_zshrc" >&2
+        return 1
+    }
+}
+
+_proxyctl_remove_init_block() {
+    local tmp="${proxyctl_zshrc}.proxyctl.$$"
+    local in_block=0
+    local removed=0
+    local found_end=0
+    local line
+
+    # 只删除 proxyctl 自己写入的 marker 块，保留 .zshrc 其他内容。
+    {
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            if (( ! in_block )) && [[ "$line" == "$proxyctl_marker_begin" ]]; then
+                in_block=1
+                removed=1
+                continue
+            fi
+
+            if (( in_block )); then
+                if [[ "$line" == "$proxyctl_marker_end" ]]; then
+                    in_block=0
+                    found_end=1
+                fi
+                continue
+            fi
+
+            print -r -- "$line"
+        done < "$proxyctl_zshrc"
+    } > "$tmp" || {
+        command rm -f "$tmp"
+        echo "proxyctl: failed to prepare uninitialization for $proxyctl_zshrc" >&2
+        return 1
+    }
+
+    if (( in_block || ! removed || ! found_end )); then
+        command rm -f "$tmp"
+        echo "proxyctl: failed to remove initialization block in $proxyctl_zshrc" >&2
+        return 1
+    fi
+
+    command mv "$tmp" "$proxyctl_zshrc" || {
+        command rm -f "$tmp"
+        echo "proxyctl: failed to write updated $proxyctl_zshrc" >&2
+        return 1
+    }
+}
+
+_proxyctl_check_initialized() {
+    _proxyctl_is_initialized && return 0
+
+    cat >&2 <<EOF
+proxyctl: initialization was not found in $proxyctl_zshrc.
+
+Run once:
+  proxyctl init
+
+Then either open a new zsh shell or run:
+  source $proxyctl_zshrc
+EOF
+    return 1
+}
+
+_proxyctl_require_function() {
+    # on/off 如果不是函数模式运行，就无法影响当前终端，需要直接拒绝。
+    if (( loaded_as_function )); then
+        return 0
+    fi
+
+    cat >&2 <<'EOF'
+proxyctl: on/off must run as a zsh function to change the current shell.
+
+Run once:
+  proxyctl init
+
+Then either open a new zsh shell or run:
+  source ~/.zshrc
+EOF
+    return 1
+}
+
+_proxyctl_on() {
+    _proxyctl_require_function || return $?
+
+    local proxy="$default_proxy"
+    local no_proxy_value="$default_no_proxy"
+    local proxy_seen=0
+    local git_failed=0
+
+    while (( $# > 0 )); do
+        case "$1" in
+            --no-proxy)
+                if (( $# < 2 )); then
+                    echo "proxyctl: --no-proxy requires a value" >&2
+                    return 2
+                fi
+                no_proxy_value="$2"
+                shift 2
+                ;;
+            --no-proxy=*)
+                no_proxy_value="${1#--no-proxy=}"
+                shift
+                ;;
+            --)
+                shift
+                if (( $# > 0 )); then
+                    if (( proxy_seen )); then
+                        echo "proxyctl: unexpected extra argument: $1" >&2
+                        return 2
+                    fi
+                    proxy="$1"
+                    proxy_seen=1
+                    shift
+                fi
+                if (( $# > 0 )); then
+                    echo "proxyctl: unexpected extra argument: $1" >&2
+                    return 2
+                fi
+                ;;
+            -*)
+                echo "proxyctl: unknown on option: $1" >&2
+                _proxyctl_usage >&2
+                return 2
+                ;;
+            *)
+                if (( proxy_seen )); then
+                    echo "proxyctl: unexpected extra argument: $1" >&2
+                    return 2
+                fi
+                proxy="$1"
+                proxy_seen=1
+                shift
+                ;;
+        esac
+    done
+
+    # 保存本次使用的代理地址，后续 proxyctl on 不带参数时会继续沿用 MY_PROXY。
+    export MY_PROXY="$proxy"
+    export MY_NO_PROXY="$no_proxy_value"
+
+    local name
+    for name in $lower_vars $upper_vars; do
+        export "$name=$proxy"
+    done
+
+    # 同时设置 NO_PROXY/no_proxy，避免本机服务也被转发到代理。
+    export NO_PROXY="$no_proxy_value"
+    export no_proxy="$no_proxy_value"
+
+    # git 的代理配置不是环境变量，需要单独写入全局 git config。
+    _proxyctl_git_set http.proxy "$proxy" || git_failed=1
+    _proxyctl_git_set https.proxy "$proxy" || git_failed=1
+
+    _proxyctl_show
+    return $git_failed
+}
+
+_proxyctl_off() {
+    _proxyctl_require_function || return $?
+
+    local git_failed=0
+
+    # 清理当前 shell 的代理环境变量。
+    local name
+    for name in $lower_vars $upper_vars; do
+        unset "$name"
+    done
+    unset NO_PROXY
+    unset no_proxy
+    unset MY_NO_PROXY
+
+    # --unset-all 可以清掉重复写入的同名 git 配置；不存在时忽略错误。
+    _proxyctl_git_unset http.proxy || git_failed=1
+    _proxyctl_git_unset https.proxy || git_failed=1
+
+    _proxyctl_show
+    return $git_failed
+}
+
+_proxyctl_show() {
+    # 展示环境变量与 git 配置的当前状态，优先显示大写环境变量。
+    echo "[env] http_proxy: ${HTTP_PROXY:-${http_proxy:-}}"
+    echo "[env] https_proxy: ${HTTPS_PROXY:-${https_proxy:-}}"
+    echo "[env] no_proxy: ${NO_PROXY:-${no_proxy:-}}"
+    echo "[git] http.proxy: $(git config --global --get http.proxy)"
+    echo "[git] https.proxy: $(git config --global --get https.proxy)"
+}
+
+_proxyctl_git_set() {
+    local key="$1"
+    local value="$2"
+
+    git config --global "$key" "$value" && return 0
+
+    echo "proxyctl: failed to update git $key" >&2
+    return 1
+}
+
+_proxyctl_git_unset() {
+    local key="$1"
+
+    git config --global --get-all "$key" >/dev/null 2>&1 || return 0
+    git config --global --unset-all "$key" && return 0
+
+    echo "proxyctl: failed to unset git $key" >&2
+    return 1
+}
+
+case "$cmd" in
+    init)
+        _proxyctl_init "${@:2}"
+        ;;
+    uninit)
+        _proxyctl_uninit
+        ;;
+    on)
+        _proxyctl_check_initialized || return $?
+        _proxyctl_on "${@:2}"
+        ;;
+    off)
+        _proxyctl_check_initialized || return $?
+        _proxyctl_off
+        ;;
+    status)
+        _proxyctl_show
+        ;;
+    help|-h|--help)
+        _proxyctl_usage
+        ;;
+    *)
+        echo "proxyctl: unknown command: $cmd" >&2
+        _proxyctl_usage >&2
+        return 2
+        ;;
+esac
