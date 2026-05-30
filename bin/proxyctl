@@ -2,7 +2,7 @@
 # proxyctl - 管理当前 zsh shell 与 git 全局配置里的代理。
 
 # 默认代理可以通过 MY_PROXY 覆盖；没有设置时使用本机常见 HTTP 代理端口。
-local default_proxy="${MY_PROXY:-http://127.0.0.1:1087}"
+local default_proxy="${MY_PROXY:-http://127.0.0.1:10808}"
 local default_no_proxy="${MY_NO_PROXY:-127.0.0.1,localhost,::1}"
 local cmd="${1:-status}"
 
@@ -36,7 +36,7 @@ Usage:
   proxyctl help                          Show this help
 
 Defaults:
-  URL defaults to $MY_PROXY, or http://127.0.0.1:1087 when $MY_PROXY is unset.
+  URL defaults to $MY_PROXY, or http://127.0.0.1:10808 when $MY_PROXY is unset.
   LIST defaults to $MY_NO_PROXY, or 127.0.0.1,localhost,::1 when unset.
 EOF
 }
@@ -45,11 +45,13 @@ _proxyctl_init_block() {
     local dir="${proxyctl_path:A:h}"
 
     # 将 proxyctl 所在目录加入 fpath，并让 zsh 懒加载同名函数。
+    # 同时提供短别名 p，方便日常快速切换代理。
     # 如果补全系统还没加载，则先加载 compinit，再显式绑定 _proxyctl。
     cat <<EOF
 # proxyctl
 fpath=($dir \$fpath)
 autoload -Uz proxyctl
+alias p=proxyctl
 if (( ! \${+functions[compdef]} )); then
     autoload -Uz compinit
     compinit -i
@@ -57,7 +59,7 @@ fi
 if (( \${+functions[compdef]} )); then
     unfunction _proxyctl 2>/dev/null || true
     autoload -Uz _proxyctl
-    compdef _proxyctl proxyctl
+    compdef _proxyctl proxyctl p
 fi
 EOF
 }
