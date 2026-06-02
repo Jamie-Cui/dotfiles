@@ -50,6 +50,14 @@ exec-once = xclip # clipboard
 exec-once = dunst # notification center
 exec-once = hyprpaper # wallpaper
 
+# Keep user systemd/DBus aware of the Hyprland session. Without this, the
+# regular xdg-desktop-portal.service can fail because graphical-session.target
+# is inactive, which makes OBS PipeWire monitor/window capture disappear.
+exec-once = dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE DESKTOP_SESSION HYPRLAND_INSTANCE_SIGNATURE
+exec-once = systemctl --user import-environment DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE DESKTOP_SESSION HYPRLAND_INSTANCE_SIGNATURE
+exec-once = systemctl --user start xdg-desktop-portal-hyprland.service xdg-permission-store.service xdg-document-portal.service
+exec-once = systemd-run --user --unit=xdg-desktop-portal-manual --same-dir /usr/libexec/xdg-desktop-portal
+
 
 #############################
 ### ENVIRONMENT VARIABLES ###
