@@ -84,17 +84,17 @@ alt-shift-enter = 'layout floating tiling'
 # if.app-name-regex-substring = 'feishu'
 # run = 'layout floating'
 
-[[on-window-detected]]
-if.app-name-regex-substring = 'preview'
-run = 'layout floating'
+# [[on-window-detected]]
+# if.app-name-regex-substring = 'preview'
+# run = 'layout floating'
 
-[[on-window-detected]]
-if.app-name-regex-substring = 'finder'
-run = 'layout floating'
+# [[on-window-detected]]
+# if.app-name-regex-substring = 'finder'
+# run = 'layout floating'
 
-[[on-window-detected]]
-if.app-name-regex-substring = 'mail'
-run = 'layout floating'
+# [[on-window-detected]]
+# if.app-name-regex-substring = 'mail'
+# run = 'layout floating'
 
 # See https://nikitabobko.github.io/AeroSpace/guide#key-mapping
 [key-mapping]
