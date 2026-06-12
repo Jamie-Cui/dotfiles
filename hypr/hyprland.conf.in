@@ -340,6 +340,9 @@ bindl = , XF86AudioPrev, exec, playerctl previous
 ### WINDOWS AND WORKSPACES ###
 ##############################
 
+windowrule = match:class ^(VTube Studio)$, render_unfocused on
+windowrule = match:class ^(obs|obs64|OBS)$, render_unfocused on
+
 # See https://wiki.hypr.land/Configuring/Window-Rules/ for more
 # See https://wiki.hypr.land/Configuring/Workspace-Rules/ for workspace rules
 
