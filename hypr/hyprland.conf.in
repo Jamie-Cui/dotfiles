@@ -340,6 +340,9 @@ bindl = , XF86AudioPrev, exec, playerctl previous
 ### WINDOWS AND WORKSPACES ###
 ##############################
 
+workspace = 4, defaultName:PERSIST, persistent:true
+
+# STALE maybe remove this setting
 windowrule = match:class ^(VTube Studio)$, render_unfocused on
 windowrule = match:class ^(obs|obs64|OBS)$, render_unfocused on
 
