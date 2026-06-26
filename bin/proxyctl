@@ -4,7 +4,7 @@
 # 默认代理可以通过 MY_PROXY 覆盖；没有设置时使用本机常见 HTTP 代理端口。
 local default_proxy="${MY_PROXY:-http://127.0.0.1:10808}"
 local default_no_proxy="${MY_NO_PROXY:-127.0.0.1,localhost,::1}"
-local cmd="${1:-status}"
+local cmd="${1:-}"
 
 # on/off 需要修改“当前 shell”的环境变量，因此必须以 zsh autoload 函数运行。
 # 如果只是从 PATH 启动外部脚本，环境变量只能影响脚本自己的子进程，退出后不会保留。
@@ -26,6 +26,7 @@ upper_vars=(HTTP_PROXY HTTPS_PROXY FTP_PROXY)
 _proxyctl_usage() {
     cat <<'EOF'
 Usage:
+  proxyctl                              Toggle proxy on/off
   proxyctl init [--force]                Install or update zsh initialization
   proxyctl init --print                  Print zsh initialization code
   proxyctl init --uninstall              Remove zsh initialization from ~/.zshrc
@@ -409,6 +410,29 @@ _proxyctl_show() {
     echo "[git] https.proxy: $(git config --global --get https.proxy)"
 }
 
+_proxyctl_is_fully_on() {
+    local name
+
+    for name in $lower_vars $upper_vars; do
+        [[ -n "${(P)name:-}" ]] || return 1
+    done
+
+    [[ -n "${NO_PROXY:-}" ]] || return 1
+    [[ -n "${no_proxy:-}" ]] || return 1
+    [[ -n "$(git config --global --get http.proxy)" ]] || return 1
+    [[ -n "$(git config --global --get https.proxy)" ]] || return 1
+
+    return 0
+}
+
+_proxyctl_toggle() {
+    if _proxyctl_is_fully_on; then
+        _proxyctl_off
+    else
+        _proxyctl_on
+    fi
+}
+
 _proxyctl_git_set() {
     local key="$1"
     local value="$2"
@@ -428,6 +452,12 @@ _proxyctl_git_unset() {
     echo "proxyctl: failed to unset git $key" >&2
     return 1
 }
+
+if (( $# == 0 )); then
+    _proxyctl_check_initialized || return $?
+    _proxyctl_toggle
+    return $?
+fi
 
 case "$cmd" in
     init)
