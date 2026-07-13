@@ -88,7 +88,7 @@ floating_modifier $mod
 bindsym $meta+Tab focus right
 
 # REVIEW rofi (Mod1 = Meta)
-bindsym $meta+space exec rofi -show drun -run-command "$HOME/.config/i3/rofi-drun.sh {cmd}" -font "monospace @FONT_SIZE@"
+bindsym $meta+space exec rofi -show drun -run-command "$HOME/.config/rofi/rofi-drun.sh {cmd}" -font "monospace @FONT_SIZE@"
 
 # ------------------------------------------------------------------------------------------------------
 # Meta key binding end

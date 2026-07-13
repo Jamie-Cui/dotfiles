@@ -1,0 +1,4 @@
+# Copy this file to local.mk for machine-local settings.
+# local.mk is ignored by Git; command-line variables still take precedence.
+
+FONT_SIZE := 12

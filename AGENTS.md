@@ -2,35 +2,82 @@
 
 ## Project Structure & Module Organization
 
-This repository is a personal dotfiles collection. Top-level files configure shared tools (`.vimrc`, `.tmux.conf`, `.Xresources`, `README.org`, `Makefile`). Tool-specific configuration lives in directories such as `nvim/`, `hypr/`, `i3/`, `waybar/`, `kitty/`, `rime/`, `dunst/`, `aerospace/`, and `i3blocks/`.
+This repository is a GNU Stow-managed dotfiles collection.  Deployable content
+lives under `packages/<package>/` and mirrors its destination below `$HOME`.
+Examples include `packages/nvim/.config/nvim/`,
+`packages/kitty/.config/kitty/`, and `packages/vim/.vimrc`.
 
-Template files ending in `.in` are the source of generated local configs, for example `hypr/hyprland.conf.in`, `i3/config.in`, and `kitty/kitty.conf.in`. Generated outputs are ignored by Git and should usually not be committed. Visual assets are under `i3/`.
+Repository metadata (`README.org`, `Makefile`, `.gitignore`, `LICENSE`, and this
+file) stays at the root and is never stowed.  `packages/rime/` is special: the
+Makefile deploys its files to a profile-specific Squirrel, IBus, or Fcitx5
+directory.  Reference-only formatter and language-server configuration lives
+under `templates/` and is never stowed.
+
+Template files ending in `.in` are tracked sources.  Generated files live beside
+their templates, are ignored by Git, and should not be edited directly.
 
 ## Build, Test, and Development Commands
 
-- `make help`: list supported Make targets and the active font size.
-- `make all`: regenerate configs from `*.in` templates, replacing `@FONT_SIZE@` using `../config.toml` or `FONT_SIZE`.
-- `make all FONT_SIZE=12`: regenerate configs with an explicit font size.
-- `make clean`: remove generated configs and return to template-only state.
+- `make help`: list commands, profiles, and the active font size.
+- `make generate FONT_SIZE=12`: render all `*.in` templates.
+- `make list-profile PROFILE=macos`: show packages and the Rime target.
+- `make dry-run PROFILE=macos`: preview Stow operations without changing `$HOME`.
+- `make stow PROFILE=macos`: generate, preflight, and deploy a profile.
+- `make restow PROFILE=macos`: prune stale links and redeploy a profile.
+- `make unstow PROFILE=macos`: remove links owned by the profile.
+- `make verify PROFILE=macos`: test a complete stow/restow/unstow cycle in a
+  temporary home directory.
+- `make clean`: remove generated files; unstow first to avoid dangling links.
 
-There is no single app build. After editing a tool config, validate with that tool where possible: `i3 -C -c i3/config`, `bash -n i3/rofi-drun.sh`, or `nvim --headless "+checkhealth" +qa`.
+Profiles are `macos`, `linux-i3`, and `linux-hypr`.  Use
+`EXTRA_PACKAGES="nvim tmux"` for opt-in packages and `RIME=0` to skip Rime.
+The font size defaults to 10; copy `local.mk.example` to the ignored `local.mk`
+for a persistent machine-local override, or pass `FONT_SIZE` on the command
+line for a one-off override.
+
+There is no application build.  After editing a tool config, validate with that
+tool where possible, for example:
+
+- `i3 -C -c packages/i3/.config/i3/config`
+- `bash -n packages/rofi/.config/rofi/rofi-drun.sh`
+- `bash -n packages/dunst/.config/dunst/reload-and-test.sh`
+- `nvim --headless "+checkhealth" +qa`
+
+## Stow Safety
+
+Use the Makefile rather than raw Stow commands so template exclusion,
+`--no-folding`, Rime targets, and preflight checks stay consistent.  Always run
+`dry-run` before changing a real home directory.  Do not use `stow --adopt`
+during migration because it moves conflicting target files into the package
+tree.  Remove an old manual link only after confirming its destination.
 
 ## Coding Style & Naming Conventions
 
-Preserve each file's native format and indentation. Use tabs only where required, such as Makefile recipes. Keep shell scripts executable, start them with `#!/bin/bash`, and prefer lowercase variable names. Name new tool directories after the upstream application.
+Preserve each file's native format and indentation.  Use tabs only where
+required, such as Makefile recipes.  Keep shell scripts executable, start them
+with `#!/bin/bash` where that is the established convention, and prefer
+lowercase variable names.  Name packages after the upstream application.
 
-For C/C++ helper files, follow the checked-in `.clang-format` Google style. Keep generated configs derived from templates; edit the `.in` source instead of the ignored output when both exist.
+For C/C++ helper files, follow `templates/.clang-format`.  Edit the `.in`
+source whenever a generated output exists.
 
 ## Testing Guidelines
 
-No formal test framework or coverage target exists. Treat validation as tool-specific smoke testing. Run `make all` after template changes, syntax-check scripts with `bash -n path/to/script.sh`, and reload or dry-run affected desktop components when available. For UI-visible changes to Waybar, i3, Hyprland, Kitty, or Dunst, verify visually.
+Run `make verify PROFILE=<affected-profile>` for Stow or layout changes.  Run
+`make generate` after template changes and syntax-check affected scripts.  For
+UI-visible changes to Waybar, i3, Hyprland, Kitty, AeroSpace, or Dunst, also
+reload the component and verify visually.
 
 ## Commit & Pull Request Guidelines
 
-The current history uses Conventional Commit style, for example `feat: add comprehensive dotfiles configuration`. Continue with concise subjects such as `fix: correct waybar bluetooth state` or `chore: update rime schema`.
-
-Pull requests should describe the affected tools, list validation commands run, and note any required local dependencies or host-specific assumptions. Include screenshots or short notes for visual changes to bars, window managers, terminals, or notifications.
+Use concise Conventional Commit subjects, for example
+`refactor: manage dotfiles with stow` or
+`fix: correct waybar bluetooth state`.  Pull requests should identify affected
+packages, list validation commands, and note host-specific assumptions.  Include
+screenshots or short notes for visible desktop changes.
 
 ## Security & Configuration Tips
 
-Do not commit machine-specific secrets, proxy credentials, private keys, generated Rime user data, or local build/cache directories. Keep host-specific values in local config files outside the repository when possible.
+Do not commit machine-specific secrets, proxy credentials, private keys,
+generated Rime user data, or local build/cache directories.  Keep host-specific
+values in local files outside the repository when possible.

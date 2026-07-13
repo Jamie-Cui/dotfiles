@@ -3,87 +3,166 @@
 
 * dotfiles
 
-Personal configuration for Linux and macOS desktops. The repository is meant to
-be linked into =~/.config= or the home directory, with generated files created
-from =*.in= templates when host-specific values are needed.
+Personal Linux and macOS configuration deployed with GNU Stow.  Each directory
+under =packages/= is an independently deployable package whose contents mirror
+paths below the target home directory.
 
-** Repository layout
+This repository manages dotfiles only.  It does not deploy the sibling
+=~/opt/emacs.d=, =org-root=, =skills=, or source/build repositories.
 
-- =nvim/= :: Neovim configuration.
-- =hypr/= :: Hyprland, Hyprpaper, Hyprlock, helper scripts, and wallpapers.
-- =i3/= :: i3 configuration, launcher wrapper, and wallpapers.
-- =waybar/= :: Waybar JSONC and CSS.
-- =kitty/= :: Kitty terminal config and themes.
-- =dunst/= :: Notification daemon config and reload helper.
-- =rime/= :: Rime input method customizations.
-- =i3blocks/= :: i3blocks config and helper scripts.
-- =gtk-3.0/=, =gtk-4.0/=, =imsettings/= :: GTK and input method settings.
-- =aerospace/= :: AeroSpace window manager config for macOS.
-- Top-level dotfiles :: =.vimrc=, =.tmux.conf=, =.Xresources=, =.xprofile=,
-  and shared formatting/tooling config.
+** Requirements
 
-** Quick start
+- GNU Stow 2.x
+- GNU Make
+- Standard POSIX tools such as =find=, =grep=, =sed=, and =sh=
 
-Clone the repository, generate host-specific files, then symlink the pieces you
-use into the expected locations.
+On macOS:
 
 #+begin_src bash
-git clone git@github.com:Jamie-Cui/dotfiles.git ~/opt/dotfiles
-cd ~/opt/dotfiles
+brew install stow
+#+end_src
+
+On Fedora:
+
+#+begin_src bash
+sudo dnf install stow make
+#+end_src
+
+** Package layout
+
+Most packages mirror =$HOME= directly:
+
+#+begin_example
+packages/
+├── vim/.vimrc
+├── tmux/.tmux.conf
+├── x11/.Xresources
+├── nvim/.config/nvim/
+├── kitty/.config/kitty/
+├── aerospace/.config/aerospace/
+├── hypr/.config/hypr/
+├── i3/.config/i3/
+├── rofi/.config/rofi/
+└── bin/.local/bin/
+#+end_example
+
+=rime/= is the only special package.  Its files are deployed into a
+profile-specific input-method directory rather than directly below =$HOME=.
+
+** Profiles
+
+| Profile      | Regular packages                                                                                  | Rime target                         |
+|--------------+---------------------------------------------------------------------------------------------------+-------------------------------------|
+| =macos=        | =vim kitty aerospace bin=                                                                           | =~/Library/Rime=                      |
+| =linux-i3=     | =vim tmux nvim kitty bin x11 rofi i3 i3blocks dunst flameshot gtk-3.0 gtk-4.0 imsettings=              | =~/.config/ibus/rime=                 |
+| =linux-hypr=   | =vim tmux nvim kitty bin rofi hypr waybar dunst flameshot gtk-3.0 gtk-4.0=                             | =~/.local/share/fcitx5/rime=          |
+
+Reference-only Clang and CMake configuration lives under =templates/=.  These
+files are not Stow packages and are never deployed by the Makefile.
+
+Add an optional deployable package without changing a profile:
+
+#+begin_src bash
+make stow PROFILE=macos EXTRA_PACKAGES="nvim tmux"
+#+end_src
+
+Set =RIME=0= to skip Rime for a command.
+
+** Usage
+
+Inspect the selected profile and preview all link operations first:
+
+#+begin_src bash
 make help
-make all
+make list-profile PROFILE=macos
+make dry-run PROFILE=macos
 #+end_src
 
-Example links:
+A bare =make= remains a generation-only operation for compatibility with the
+existing =~/opt= bootstrap; it never changes =$HOME=.
+
+Deploy, update, or remove a profile:
 
 #+begin_src bash
-mkdir -p ~/.config
-mkdir -p ~/.config/ibus
-
-ln -sfn ~/opt/dotfiles/nvim ~/.config/nvim
-ln -sfn ~/opt/dotfiles/kitty ~/.config/kitty
-ln -sfn ~/opt/dotfiles/hypr ~/.config/hypr
-ln -sfn ~/opt/dotfiles/waybar ~/.config/waybar
-ln -sfn ~/opt/dotfiles/dunst ~/.config/dunst
-ln -sfn ~/opt/dotfiles/rime ~/.config/ibus/rime
-
-ln -sfn ~/opt/dotfiles/.vimrc ~/.vimrc
-ln -sfn ~/opt/dotfiles/.tmux.conf ~/.tmux.conf
-ln -sfn ~/opt/dotfiles/.Xresources ~/.Xresources
+make stow PROFILE=macos
+make restow PROFILE=macos
+make unstow PROFILE=macos
 #+end_src
 
-Adjust the links per host. For example, an i3/X11 machine may link =i3= and
-=i3blocks=, while a Wayland machine may link =hypr= and =waybar=.
+All operations use Stow's =--no-folding= mode.  Target directories such as
+=~/.config/kitty= remain real directories, while the managed files inside them
+are symbolic links.  This keeps application-created runtime state out of the
+repository.
+
+Do not use =stow --adopt= during migration: it moves conflicting target files
+into the package tree.  Compare and reconcile existing files explicitly.
 
 ** Generated configs
 
-Files ending in =.in= are sources. =make all= replaces =@FONT_SIZE@= and writes
-the generated config next to the template. Generated outputs are ignored by Git.
+Files ending in =.in= are tracked sources.  =make generate= replaces
+=@FONT_SIZE@= and writes ignored output files beside the templates:
 
-Current templates:
+- =packages/gtk-3.0/.config/gtk-3.0/settings.ini.in= -> =settings.ini=
+- =packages/gtk-4.0/.config/gtk-4.0/settings.ini.in= -> =settings.ini=
+- =packages/hypr/.config/hypr/hyprland.conf.in= -> =hyprland.conf=
+- =packages/i3/.config/i3/config.in= -> =config=
+- =packages/kitty/.config/kitty/kitty.conf.in= -> =kitty.conf=
 
-- =gtk-3.0/settings.ini.in= -> =gtk-3.0/settings.ini=
-- =gtk-4.0/settings.ini.in= -> =gtk-4.0/settings.ini=
-- =hypr/hyprland.conf.in= -> =hypr/hyprland.conf=
-- =i3/config.in= -> =i3/config=
-- =kitty/kitty.conf.in= -> =kitty/kitty.conf=
-
-The font size is read from =../config.toml=:
-
-#+begin_src toml
-[dotfiles]
-font_size = 12
-#+end_src
-
-It can also be overridden for one run:
+The font size defaults to 10 in the Makefile.  For a persistent, machine-local
+override, copy =local.mk.example= to the ignored =local.mk= and edit the value:
 
 #+begin_src bash
-make all FONT_SIZE=12
-make clean
+cp local.mk.example local.mk
 #+end_src
+
+For a one-off override, pass =FONT_SIZE= on the command line.  Command-line
+values take precedence over =local.mk=:
+
+#+begin_src bash
+make generate FONT_SIZE=12
+#+end_src
+
+Template files are excluded from Stow.  Generated outputs must exist before
+deployment, so =stow=, =restow=, =dry-run=, and =verify= run generation first.
+Run =make unstow PROFILE=...= before =make clean= to avoid dangling links.
+
+** Verification
+
+The verification target creates a temporary home directory, deploys and
+restows the selected profile, checks representative links and template
+exclusion, then unstows it and checks that no links remain:
+
+#+begin_src bash
+make verify PROFILE=macos
+make verify PROFILE=linux-i3
+make verify PROFILE=linux-hypr
+#+end_src
+
+After editing a tool configuration, also run the tool-specific check where
+available:
+
+#+begin_src bash
+bash -n packages/rofi/.config/rofi/rofi-drun.sh
+bash -n packages/dunst/.config/dunst/reload-and-test.sh
+i3 -C -c packages/i3/.config/i3/config
+nvim --headless "+checkhealth" +qa
+#+end_src
+
+For UI-visible changes to AeroSpace, Kitty, Hyprland, i3, Waybar, Dunst, or GTK,
+reload the application and verify the result visually.
+
+** First migration from manual links
+
+Stow rejects pre-existing files and symbolic links that it does not own.  First
+run =make verify=, then =make dry-run=.  For each reported conflict:
+
+1. Inspect it with =readlink= or =diff=.
+2. Remove only an old link that is confirmed to point into this repository.
+3. Preserve and reconcile real files rather than overwriting them.
+4. Run =make stow= and repeat =make dry-run= to confirm the target is clean.
 
 ** Security
 
-Do not commit secrets, proxy credentials, private keys, generated Rime user data,
-or local build/cache directories. Keep machine-specific values outside this
-repository when possible.
+Do not commit secrets, proxy credentials, private keys, generated Rime user
+data, or application caches.  Keep host-specific values outside this repository
+when possible.

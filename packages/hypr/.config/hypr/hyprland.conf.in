@@ -35,7 +35,7 @@ monitor=,preferred,auto,auto
 # Set programs that you use
 $terminal = kitty
 $fileManager = dolphin
-$menu = rofi -show drun -run-command "$HOME/.config/i3/rofi-drun.sh {cmd}" -font "monospace @FONT_SIZE@"
+$menu = rofi -show drun -run-command "$HOME/.config/rofi/rofi-drun.sh {cmd}" -font "monospace @FONT_SIZE@"
 
 #################
 ### AUTOSTART ###

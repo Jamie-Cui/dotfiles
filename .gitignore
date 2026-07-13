@@ -1,5 +1,6 @@
 .DS_Store
 .projectile-cache.eld
+/local.mk
 
 # Compiled
 *.elc
@@ -21,17 +22,10 @@ dist/
 # Undo-tree save-files
 *.~undo-tree
 
-# Generated dotfiles (from .in templates via 'make font')
-kitty/kitty.conf
-gtk-3.0/settings.ini
-gtk-3.0/bookmarks
-gtk-4.0/settings.ini
-i3/config
-hypr/hyprland.conf
-
-# for rime
-rime/build/*
-rime/luna_pinyin.userdb/*
-rime/sync/*
-rime/*.yaml
-!rime/*.custom.yaml
+# Generated package files (from *.in templates via make generate)
+/packages/kitty/.config/kitty/kitty.conf
+/packages/gtk-3.0/.config/gtk-3.0/settings.ini
+/packages/gtk-3.0/.config/gtk-3.0/bookmarks
+/packages/gtk-4.0/.config/gtk-4.0/settings.ini
+/packages/i3/.config/i3/config
+/packages/hypr/.config/hypr/hyprland.conf
