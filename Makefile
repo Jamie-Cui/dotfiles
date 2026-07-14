@@ -137,6 +137,11 @@ verify: generate _check-profile _check-stow ## Test deployment in a temporary HO
 	test -L "$$tmp/.vimrc"; \
 	test -L "$$tmp/.config/kitty/kitty.conf"; \
 	test -L "$$tmp/.local/bin/proxyctl"; \
+	init_block=$$("$$tmp/.local/bin/proxyctl" init --print); \
+	printf '%s\n' "$$init_block" | grep -Fq "fpath=($$tmp/.local/bin \$$fpath)" || { \
+		echo "proxyctl init resolved the Stow link outside $$tmp/.local/bin" >&2; \
+		exit 1; \
+	}; \
 	if [ "$(RIME)" = "1" ]; then \
 		find "$$tmp" -type l -name 'default.custom.yaml' -print -quit | grep -q .; \
 	fi; \

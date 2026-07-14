@@ -43,7 +43,8 @@ EOF
 }
 
 _proxyctl_init_block() {
-    local dir="${proxyctl_path:A:h}"
+    # 保留 ~/.local/bin 这类 Stow 链接路径，避免把仓库的物理路径写进 .zshrc。
+    local dir="${proxyctl_path:a:h}"
 
     # 将 proxyctl 所在目录加入 fpath，并让 zsh 懒加载同名函数。
     # 同时提供短别名 p，方便日常快速切换代理。
