@@ -7,8 +7,9 @@ Personal Linux and macOS configuration deployed with GNU Stow.  Each directory
 under =packages/= is an independently deployable package whose contents mirror
 paths below the target home directory.
 
-This repository manages dotfiles only.  It does not deploy the sibling
-=~/opt/emacs.d=, =org-root=, =skills=, or source/build repositories.
+Reusable Codex skills live in the =skills= Stow package and deploy into
+=~/.agents/skills=.  Other source repositories remain outside dotfiles
+deployment.
 
 ** Requirements
 
@@ -34,6 +35,7 @@ Most packages mirror =$HOME= directly:
 
 #+begin_example
 packages/
+├── skills/.agents/skills/
 ├── vim/.vimrc
 ├── tmux/.tmux.conf
 ├── x11/.Xresources
@@ -53,9 +55,9 @@ profile-specific input-method directory rather than directly below =$HOME=.
 
 | Profile      | Regular packages                                                                                  | Rime target                         |
 |--------------+---------------------------------------------------------------------------------------------------+-------------------------------------|
-| =macos=        | =vim kitty aerospace bin=                                                                           | =~/Library/Rime=                      |
-| =linux-i3=     | =vim tmux nvim kitty bin x11 rofi i3 i3blocks dunst flameshot gtk-3.0 gtk-4.0 imsettings=              | =~/.config/ibus/rime=                 |
-| =linux-hypr=   | =vim tmux nvim kitty bin rofi hypr waybar dunst flameshot gtk-3.0 gtk-4.0=                             | =~/.local/share/fcitx5/rime=          |
+| =macos=        | =vim kitty aerospace bin skills=                                                                    | =~/Library/Rime=                      |
+| =linux-i3=     | =vim tmux nvim kitty bin x11 rofi i3 i3blocks dunst flameshot gtk-3.0 gtk-4.0 imsettings skills=       | =~/.config/ibus/rime=                 |
+| =linux-hypr=   | =vim tmux nvim kitty bin rofi hypr waybar dunst flameshot gtk-3.0 gtk-4.0 skills=                      | =~/.local/share/fcitx5/rime=          |
 
 Reference-only Clang and CMake configuration lives under =templates/=.  These
 files are not Stow packages and are never deployed by the Makefile.
@@ -67,6 +69,48 @@ make stow PROFILE=macos EXTRA_PACKAGES="nvim tmux"
 #+end_src
 
 Set =RIME=0= to skip Rime for a command.
+
+** Agent skills
+
+Keep reusable skill source under =packages/skills/.agents/skills/=.  The
+=skills= package is part of every profile, so the standard lifecycle commands
+install and refresh it together with the rest of the selected profile:
+
+#+begin_src bash
+make dry-run PROFILE=linux-hypr
+make stow PROFILE=linux-hypr
+make restow PROFILE=linux-hypr
+make unstow PROFILE=linux-hypr
+#+end_src
+
+The deployment uses =--no-folding=.  Managed files become symbolic links while
+skills installed from other sources can coexist in =~/.agents/skills=.  Run the
+profile's =restow= target after adding or removing a skill; edits inside an
+existing skill are visible immediately.
+
+This repository is the source of truth for the managed skills.  Do not edit the
+installed files below =~/.agents/skills=; edit the matching source directory in
+=packages/skills/.agents/skills/= instead.  This repository intentionally does
+not provide an =npx skills add= package, generated bundle branch, upstream audit,
+or separate installer.  GNU Stow is the supported deployment mechanism.
+
+*** Maintaining a skill
+
+Each skill lives in a lowercase, hyphenated directory and must contain a
+=SKILL.md= with YAML frontmatter defining =name= and =description=.  Keep helper
+scripts, references, assets, evals, licenses, and =agents/openai.yaml= inside the
+owning skill directory.
+
+After adding or removing a skill, preview and refresh the selected profile:
+
+#+begin_src bash
+make dry-run PROFILE=linux-hypr
+make restow PROFILE=linux-hypr
+#+end_src
+
+For content-only edits, the existing Stow link exposes the change immediately.
+Still inspect the rendered Markdown and run the profile verification before
+committing changes that affect the package layout or deployment behavior.
 
 ** Usage
 
@@ -130,7 +174,8 @@ Run =make unstow PROFILE=...= before =make clean= to avoid dangling links.
 
 The verification target creates a temporary home directory, deploys and
 restows the selected profile, checks representative links and template
-exclusion, then unstows it and checks that no links remain:
+exclusion—including the =project-plan= skill link—then unstows it and checks
+that no links remain:
 
 #+begin_src bash
 make verify PROFILE=macos

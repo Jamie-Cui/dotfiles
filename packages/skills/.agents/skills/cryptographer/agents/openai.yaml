@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cryptographer"
+  short_description: "Run novelty-first crypto paper research"
+  default_prompt: "Use $cryptographer to check prior art and non-obviousness first, then write, revise, or review a cryptography, ZK, security, MCP, or LLM-security research paper or research note."

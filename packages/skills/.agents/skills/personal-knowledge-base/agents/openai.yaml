@@ -1,0 +1,7 @@
+interface:
+  display_name: "Personal Knowledge Base"
+  short_description: "Search notes and summarize repos"
+  default_prompt: "Use $personal-knowledge-base to search my notes or add a repository summary to my knowledge base."
+
+policy:
+  allow_implicit_invocation: true

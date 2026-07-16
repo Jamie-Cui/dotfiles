@@ -13,6 +13,16 @@ Makefile deploys its files to a profile-specific Squirrel, IBus, or Fcitx5
 directory.  Reference-only formatter and language-server configuration lives
 under `templates/` and is never stowed.
 
+`packages/skills/.agents/skills/` contains reusable Codex skills. Each skill
+lives in a lowercase, hyphenated directory centered on `SKILL.md`; keep helper
+scripts, references, assets, evals, licenses, and agent metadata beside the
+skill that owns them.
+
+Treat this repository as the source of truth for those managed skills.  Edit
+the package source rather than files below `~/.agents/skills`.  Deployment is
+Stow-only; do not add `npx skills add`, bundle publication, upstream-audit, or
+separate installer machinery unless the user explicitly requests it.
+
 Template files ending in `.in` are tracked sources.  Generated files live beside
 their templates, are ignored by Git, and should not be edited directly.
 
@@ -27,6 +37,8 @@ their templates, are ignored by Git, and should not be edited directly.
 - `make unstow PROFILE=macos`: remove links owned by the profile.
 - `make verify PROFILE=macos`: test a complete stow/restow/unstow cycle in a
   temporary home directory.
+- `rg --files -g 'SKILL.md' packages/skills/.agents/skills`: list managed skill
+  entrypoints.
 - `make clean`: remove generated files; unstow first to avoid dangling links.
 
 Profiles are `macos`, `linux-i3`, and `linux-hypr`.  Use
@@ -63,10 +75,12 @@ source whenever a generated output exists.
 
 ## Testing Guidelines
 
-Run `make verify PROFILE=<affected-profile>` for Stow or layout changes.  Run
-`make generate` after template changes and syntax-check affected scripts.  For
-UI-visible changes to Waybar, i3, Hyprland, Kitty, AeroSpace, or Dunst, also
-reload the component and verify visually.
+Run `make verify PROFILE=<affected-profile>` for Stow or layout changes.  After
+adding or removing a skill, run the matching `make dry-run` and `make restow`.
+For a skill content change, validate the affected `SKILL.md` frontmatter and
+inspect the rendered Markdown.  Run `make generate` after template changes and
+syntax-check affected scripts.  For UI-visible changes to Waybar, i3, Hyprland,
+Kitty, AeroSpace, or Dunst, also reload the component and verify visually.
 
 ## Commit & Pull Request Guidelines
 

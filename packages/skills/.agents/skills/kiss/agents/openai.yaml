@@ -1,0 +1,4 @@
+interface:
+  display_name: "KISS"
+  short_description: "Remove accidental complexity and overengineering"
+  default_prompt: "Use $kiss to simplify this design while preserving required behavior."

@@ -1,0 +1,17 @@
+{
+  "skill_name": "repo-summary",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Summarize this repo",
+      "expected_output": "Should detect org-roam directory, analyze the current repository (dotfiles), and generate a comprehensive org-roam summary file covering architecture, dependencies, and design patterns",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Create an org-roam summary for this repository",
+      "expected_output": "Should perform the same analysis as eval 1, but phrased differently to test trigger reliability",
+      "files": []
+    }
+  ]
+}

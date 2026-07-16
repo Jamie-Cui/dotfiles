@@ -1,0 +1,4 @@
+interface:
+  display_name: "Emacs Operations"
+  short_description: "Inspect, edit, and debug live Emacs workflows"
+  default_prompt: "Use $emacs to inspect, edit, or debug live Emacs state in the running session."

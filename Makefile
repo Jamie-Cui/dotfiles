@@ -16,9 +16,9 @@ EXTRA_PACKAGES ?=
 
 PROFILES := macos linux-i3 linux-hypr
 
-PACKAGES_macos := vim kitty aerospace bin
-PACKAGES_linux-i3 := vim tmux nvim kitty bin x11 rofi i3 i3blocks dunst flameshot gtk-3.0 gtk-4.0 imsettings
-PACKAGES_linux-hypr := vim tmux nvim kitty bin rofi hypr waybar dunst flameshot gtk-3.0 gtk-4.0
+PACKAGES_macos := vim kitty aerospace bin skills
+PACKAGES_linux-i3 := vim tmux nvim kitty bin x11 rofi i3 i3blocks dunst flameshot gtk-3.0 gtk-4.0 imsettings skills
+PACKAGES_linux-hypr := vim tmux nvim kitty bin rofi hypr waybar dunst flameshot gtk-3.0 gtk-4.0 skills
 
 RIME_TARGET_macos := $(DEPLOY_HOME)/Library/Rime
 RIME_TARGET_linux-i3 := $(DEPLOY_HOME)/.config/ibus/rime
@@ -137,6 +137,7 @@ verify: generate _check-profile _check-stow ## Test deployment in a temporary HO
 	test -L "$$tmp/.vimrc"; \
 	test -L "$$tmp/.config/kitty/kitty.conf"; \
 	test -L "$$tmp/.local/bin/proxyctl"; \
+	test -L "$$tmp/.agents/skills/project-plan/SKILL.md"; \
 	init_block=$$("$$tmp/.local/bin/proxyctl" init --print); \
 	printf '%s\n' "$$init_block" | grep -Fq "fpath=($$tmp/.local/bin \$$fpath)" || { \
 		echo "proxyctl init resolved the Stow link outside $$tmp/.local/bin" >&2; \
