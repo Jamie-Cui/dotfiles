@@ -30,19 +30,22 @@ their templates, are ignored by Git, and should not be edited directly.
 
 - `make help`: list commands, profiles, and the active font size.
 - `make generate FONT_SIZE=12`: render all `*.in` templates.
-- `make list-profile PROFILE=macos`: show packages and the Rime target.
-- `make dry-run PROFILE=macos`: preview Stow operations without changing `$HOME`.
-- `make stow PROFILE=macos`: generate, preflight, and deploy a profile.
-- `make restow PROFILE=macos`: prune stale links and redeploy a profile.
-- `make unstow PROFILE=macos`: remove links owned by the profile.
-- `make verify PROFILE=macos`: test a complete stow/restow/unstow cycle in a
+- `make list-profile`: show the auto-selected packages and Rime target.
+- `make dry-run`: preview Stow operations without changing `$HOME`.
+- `make stow`: generate, preflight, and deploy the auto-selected profile.
+- `make restow`: prune stale links and redeploy the selected profile.
+- `make unstow`: remove links owned by the selected profile.
+- `make verify`: test a complete stow/restow/unstow cycle in a
   temporary home directory.
 - `rg --files -g 'SKILL.md' packages/skills/.agents/skills`: list managed skill
   entrypoints.
 - `make clean`: remove generated files; unstow first to avoid dangling links.
 
-Profiles are `macos`, `linux-i3`, and `linux-hypr`.  Use
-`EXTRA_PACKAGES="nvim tmux"` for opt-in packages and `RIME=0` to skip Rime.
+Profiles are `macos` and `linux`; the Makefile selects one from `uname -s` by
+default.  The Linux profile includes both i3 and Hyprland packages and targets
+Fcitx5 Rime.  Set `PROFILE` only to override detection, set
+`RIME_TARGET_linux = $(DEPLOY_HOME)/.config/ibus/rime` in `local.mk` for IBus,
+use `EXTRA_PACKAGES="nvim tmux"` for opt-in packages, and use `RIME=0` to skip Rime.
 The font size defaults to 10; copy `local.mk.example` to the ignored `local.mk`
 for a persistent machine-local override, or pass `FONT_SIZE` on the command
 line for a one-off override.
@@ -75,7 +78,8 @@ source whenever a generated output exists.
 
 ## Testing Guidelines
 
-Run `make verify PROFILE=<affected-profile>` for Stow or layout changes.  After
+Run `make verify PROFILE=<affected-profile>` for Stow or layout changes; verify
+both `macos` and `linux` when changing shared Makefile behavior.  After
 adding or removing a skill, run the matching `make dry-run` and `make restow`.
 For a skill content change, validate the affected `SKILL.md` frontmatter and
 inspect the rendered Markdown.  Run `make generate` after template changes and

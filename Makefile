@@ -10,22 +10,22 @@ STOW ?= stow
 PACKAGES_DIR := $(CURDIR)/packages
 DEPLOY_HOME ?= $(HOME)
 TARGET ?= $(DEPLOY_HOME)
-PROFILE ?= macos
+UNAME_S ?= $(shell uname -s)
+DEFAULT_PROFILE := $(if $(filter Darwin,$(UNAME_S)),macos,$(if $(filter Linux,$(UNAME_S)),linux))
+PROFILE ?= $(DEFAULT_PROFILE)
 RIME ?= 1
 EXTRA_PACKAGES ?=
 
-PROFILES := macos linux-i3 linux-hypr
+PROFILES := macos linux
 
 PACKAGES_macos := vim kitty aerospace bin skills
-PACKAGES_linux-i3 := vim tmux nvim kitty bin x11 rofi i3 i3blocks dunst flameshot gtk-3.0 gtk-4.0 imsettings skills
-PACKAGES_linux-hypr := vim tmux nvim kitty bin rofi hypr waybar dunst flameshot gtk-3.0 gtk-4.0 skills
+PACKAGES_linux := vim tmux nvim kitty bin x11 rofi i3 i3blocks hypr waybar dunst flameshot gtk-3.0 gtk-4.0 imsettings skills
 
-RIME_TARGET_macos := $(DEPLOY_HOME)/Library/Rime
-RIME_TARGET_linux-i3 := $(DEPLOY_HOME)/.config/ibus/rime
-RIME_TARGET_linux-hypr := $(DEPLOY_HOME)/.local/share/fcitx5/rime
+RIME_TARGET_macos ?= $(DEPLOY_HOME)/Library/Rime
+RIME_TARGET_linux ?= $(DEPLOY_HOME)/.local/share/fcitx5/rime
 
 PACKAGES := $(sort $(PACKAGES_$(PROFILE)) $(EXTRA_PACKAGES))
-RIME_TARGET := $(RIME_TARGET_$(PROFILE))
+RIME_TARGET ?= $(RIME_TARGET_$(PROFILE))
 STOW_BASE := $(STOW) --dir="$(PACKAGES_DIR)" --no-folding --ignore='.*[.]in'
 
 # -- Help ---------------------------------------------------------------------
@@ -42,13 +42,15 @@ help: ## Show commands and profile selection
 	@echo "  clean         Remove generated package files"
 	@echo ""
 	@echo "Profiles: $(PROFILES)"
-	@echo "Selected: $(PROFILE)"
+	@echo "Detected system: $(UNAME_S)"
+	@echo "Selected: $(or $(PROFILE),unsupported)"
 	@echo "Extra packages: $(or $(strip $(EXTRA_PACKAGES)),none)"
 	@echo "Font size: $(FONT_SIZE)"
 	@echo "Examples:"
-	@echo "  make dry-run PROFILE=macos"
-	@echo "  make stow PROFILE=linux-hypr"
-	@echo "  make verify PROFILE=linux-i3"
+	@echo "  make dry-run"
+	@echo "  make stow"
+	@echo "  make verify"
+	@echo "  make stow PROFILE=macos  # override auto-selection"
 
 list-profile: _check-profile ## Show the selected profile
 	@echo "Profile: $(PROFILE)"
@@ -160,7 +162,10 @@ verify: generate _check-profile _check-stow ## Test deployment in a temporary HO
 # -- Guards -------------------------------------------------------------------
 
 _check-profile:
-	@if [ -z "$(filter $(PROFILE),$(PROFILES))" ]; then \
+	@if [ -z "$(PROFILE)" ]; then \
+		echo "Unsupported system $(UNAME_S); set PROFILE to one of: $(PROFILES)" >&2; \
+		exit 2; \
+	elif [ -z "$(filter $(PROFILE),$(PROFILES))" ]; then \
 		echo "Unknown PROFILE=$(PROFILE); choose one of: $(PROFILES)" >&2; \
 		exit 2; \
 	fi

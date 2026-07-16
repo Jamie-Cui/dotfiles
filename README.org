@@ -53,11 +53,21 @@ profile-specific input-method directory rather than directly below =$HOME=.
 
 ** Profiles
 
-| Profile      | Regular packages                                                                                  | Rime target                         |
-|--------------+---------------------------------------------------------------------------------------------------+-------------------------------------|
-| =macos=        | =vim kitty aerospace bin skills=                                                                    | =~/Library/Rime=                      |
-| =linux-i3=     | =vim tmux nvim kitty bin x11 rofi i3 i3blocks dunst flameshot gtk-3.0 gtk-4.0 imsettings skills=       | =~/.config/ibus/rime=                 |
-| =linux-hypr=   | =vim tmux nvim kitty bin rofi hypr waybar dunst flameshot gtk-3.0 gtk-4.0 skills=                      | =~/.local/share/fcitx5/rime=          |
+The Makefile selects =macos= on Darwin and =linux= on Linux.  Override =PROFILE=
+only when testing another platform's package set.
+
+| Profile | Regular packages                                                                                                             | Rime target                |
+|---------+------------------------------------------------------------------------------------------------------------------------------+----------------------------|
+| =macos=   | =vim kitty aerospace bin skills=                                                                                               | =~/Library/Rime=             |
+| =linux=   | =vim tmux nvim kitty bin x11 rofi i3 i3blocks hypr waybar dunst flameshot gtk-3.0 gtk-4.0 imsettings skills=                      | =~/.local/share/fcitx5/rime= |
+
+The Linux profile installs both i3 and Hyprland configuration.  Missing either
+desktop environment does not affect Stow deployment.  Linux defaults to the
+Fcitx5 Rime directory; an IBus host can override it in =local.mk=:
+
+#+begin_src makefile
+RIME_TARGET_linux = $(DEPLOY_HOME)/.config/ibus/rime
+#+end_src
 
 Reference-only Clang and CMake configuration lives under =templates/=.  These
 files are not Stow packages and are never deployed by the Makefile.
@@ -65,7 +75,7 @@ files are not Stow packages and are never deployed by the Makefile.
 Add an optional deployable package without changing a profile:
 
 #+begin_src bash
-make stow PROFILE=macos EXTRA_PACKAGES="nvim tmux"
+make stow EXTRA_PACKAGES="nvim tmux"
 #+end_src
 
 Set =RIME=0= to skip Rime for a command.
@@ -77,10 +87,10 @@ Keep reusable skill source under =packages/skills/.agents/skills/=.  The
 install and refresh it together with the rest of the selected profile:
 
 #+begin_src bash
-make dry-run PROFILE=linux-hypr
-make stow PROFILE=linux-hypr
-make restow PROFILE=linux-hypr
-make unstow PROFILE=linux-hypr
+make dry-run
+make stow
+make restow
+make unstow
 #+end_src
 
 The deployment uses =--no-folding=.  Managed files become symbolic links while
@@ -104,8 +114,8 @@ owning skill directory.
 After adding or removing a skill, preview and refresh the selected profile:
 
 #+begin_src bash
-make dry-run PROFILE=linux-hypr
-make restow PROFILE=linux-hypr
+make dry-run
+make restow
 #+end_src
 
 For content-only edits, the existing Stow link exposes the change immediately.
@@ -118,8 +128,8 @@ Inspect the selected profile and preview all link operations first:
 
 #+begin_src bash
 make help
-make list-profile PROFILE=macos
-make dry-run PROFILE=macos
+make list-profile
+make dry-run
 #+end_src
 
 A bare =make= remains a generation-only operation for compatibility with the
@@ -128,9 +138,9 @@ existing =~/opt= bootstrap; it never changes =$HOME=.
 Deploy, update, or remove a profile:
 
 #+begin_src bash
-make stow PROFILE=macos
-make restow PROFILE=macos
-make unstow PROFILE=macos
+make stow
+make restow
+make unstow
 #+end_src
 
 All operations use Stow's =--no-folding= mode.  Target directories such as
@@ -168,7 +178,7 @@ make generate FONT_SIZE=12
 
 Template files are excluded from Stow.  Generated outputs must exist before
 deployment, so =stow=, =restow=, =dry-run=, and =verify= run generation first.
-Run =make unstow PROFILE=...= before =make clean= to avoid dangling links.
+Run =make unstow= before =make clean= to avoid dangling links.
 
 ** Verification
 
@@ -179,8 +189,7 @@ that no links remain:
 
 #+begin_src bash
 make verify PROFILE=macos
-make verify PROFILE=linux-i3
-make verify PROFILE=linux-hypr
+make verify PROFILE=linux
 #+end_src
 
 After editing a tool configuration, also run the tool-specific check where
