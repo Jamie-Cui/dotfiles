@@ -93,10 +93,12 @@ make restow
 make unstow
 #+end_src
 
-The deployment uses =--no-folding=.  Managed files become symbolic links while
-skills installed from other sources can coexist in =~/.agents/skills=.  Run the
-profile's =restow= target after adding or removing a skill; edits inside an
-existing skill are visible immediately.
+The deployment uses =--no-folding= for regular dotfile packages.  The =skills=
+package is stowed separately with folding enabled, so each managed skill
+directory becomes a symbolic link that Codex can discover while skills from
+other sources can coexist in =~/.agents/skills=.  Run the profile's =restow=
+target after adding or removing a skill; edits inside an existing skill are
+visible immediately.
 
 This repository is the source of truth for the managed skills.  Do not edit the
 installed files below =~/.agents/skills=; edit the matching source directory in

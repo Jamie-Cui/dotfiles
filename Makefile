@@ -1,7 +1,8 @@
 .DEFAULT_GOAL := all
 
 .PHONY: all clean dry-run generate help list-profile restow stow unstow verify \
-	_check-profile _check-stow _preflight _restow _stow
+	_check-profile _check-stow _deploy-skills _preflight _prepare-skills \
+	_restow _stow
 
 -include local.mk
 FONT_SIZE ?= 10
@@ -25,8 +26,13 @@ RIME_TARGET_macos ?= $(DEPLOY_HOME)/Library/Rime
 RIME_TARGET_linux ?= $(DEPLOY_HOME)/.local/share/fcitx5/rime
 
 PACKAGES := $(sort $(PACKAGES_$(PROFILE)) $(EXTRA_PACKAGES))
+REGULAR_PACKAGES := $(filter-out skills,$(PACKAGES))
+SKILLS_ENABLED := $(filter skills,$(PACKAGES))
+SKILLS_SOURCE_ROOT := $(PACKAGES_DIR)/skills/.agents/skills
+SKILLS_INSTALL_DIR := $(TARGET)/.agents/skills
 RIME_TARGET ?= $(RIME_TARGET_$(PROFILE))
 STOW_BASE := $(STOW) --dir="$(PACKAGES_DIR)" --no-folding --ignore='.*[.]in'
+SKILLS_STOW_BASE := $(STOW) --dir="$(PACKAGES_DIR)" --ignore='.*[.]in'
 
 # -- Help ---------------------------------------------------------------------
 
@@ -78,7 +84,16 @@ clean: ## Remove generated package files; unstow first to avoid dangling links
 # -- Stow ---------------------------------------------------------------------
 
 dry-run: generate _check-profile _check-stow ## Preview the selected profile
-	@$(STOW_BASE) --target="$(TARGET)" --simulate --verbose=2 $(PACKAGES)
+	@if [ -n "$(REGULAR_PACKAGES)" ]; then \
+		$(STOW_BASE) --target="$(TARGET)" --simulate --verbose=2 $(REGULAR_PACKAGES); \
+	fi
+	@if [ -n "$(SKILLS_ENABLED)" ]; then \
+		if [ -d "$(SKILLS_INSTALL_DIR)" ]; then \
+			$(SKILLS_STOW_BASE) --target="$(TARGET)" --simulate --verbose=2 skills; \
+		else \
+			echo "Skills target does not exist yet; stow will create it: $(SKILLS_INSTALL_DIR)"; \
+		fi; \
+	fi
 	@if [ "$(RIME)" = "1" ]; then \
 		if [ -d "$(RIME_TARGET)" ]; then \
 			$(STOW_BASE) --target="$(RIME_TARGET)" --simulate --verbose=2 rime; \
@@ -89,6 +104,7 @@ dry-run: generate _check-profile _check-stow ## Preview the selected profile
 
 stow: generate _check-profile _check-stow ## Deploy the selected profile
 	@mkdir -p "$(TARGET)"
+	@if [ -n "$(SKILLS_ENABLED)" ]; then mkdir -p "$(SKILLS_INSTALL_DIR)"; fi
 	@if [ "$(RIME)" = "1" ]; then mkdir -p "$(RIME_TARGET)"; fi
 	@$(MAKE) --no-print-directory _preflight PROFILE="$(PROFILE)" DEPLOY_HOME="$(DEPLOY_HOME)" TARGET="$(TARGET)" RIME="$(RIME)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)"
 	@$(MAKE) --no-print-directory _stow PROFILE="$(PROFILE)" DEPLOY_HOME="$(DEPLOY_HOME)" TARGET="$(TARGET)" RIME="$(RIME)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)"
@@ -96,6 +112,7 @@ stow: generate _check-profile _check-stow ## Deploy the selected profile
 
 restow: generate _check-profile _check-stow ## Restow and prune stale links
 	@mkdir -p "$(TARGET)"
+	@if [ -n "$(SKILLS_ENABLED)" ]; then mkdir -p "$(SKILLS_INSTALL_DIR)"; fi
 	@if [ "$(RIME)" = "1" ]; then mkdir -p "$(RIME_TARGET)"; fi
 	@$(MAKE) --no-print-directory _preflight PROFILE="$(PROFILE)" DEPLOY_HOME="$(DEPLOY_HOME)" TARGET="$(TARGET)" RIME="$(RIME)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)"
 	@$(MAKE) --no-print-directory _restow PROFILE="$(PROFILE)" DEPLOY_HOME="$(DEPLOY_HOME)" TARGET="$(TARGET)" RIME="$(RIME)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)"
@@ -106,26 +123,74 @@ unstow: _check-profile _check-stow ## Remove links for the selected profile
 		$(STOW_BASE) --target="$(RIME_TARGET)" --delete rime; \
 	fi
 	@if [ -d "$(TARGET)" ]; then \
-		$(STOW_BASE) --target="$(TARGET)" --delete $(PACKAGES); \
+		if [ -n "$(REGULAR_PACKAGES)" ]; then \
+			$(STOW_BASE) --target="$(TARGET)" --delete $(REGULAR_PACKAGES); \
+		fi; \
+		if [ -n "$(SKILLS_ENABLED)" ] && [ -d "$(SKILLS_INSTALL_DIR)" ]; then \
+			$(SKILLS_STOW_BASE) --target="$(TARGET)" --delete skills; \
+		fi; \
+	fi
+	@if [ -n "$(SKILLS_ENABLED)" ] && [ -d "$(SKILLS_INSTALL_DIR)" ]; then \
+		$(MAKE) --no-print-directory _prepare-skills PROFILE="$(PROFILE)" TARGET="$(TARGET)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)" CHECK_SKILL_CONFLICTS=0; \
 	fi
 	@echo "Unstowed profile $(PROFILE) from $(TARGET)"
 
 _preflight:
-	@$(STOW_BASE) --target="$(TARGET)" --simulate --verbose=1 $(PACKAGES)
+	@if [ -n "$(REGULAR_PACKAGES)" ]; then \
+		$(STOW_BASE) --target="$(TARGET)" --simulate --verbose=1 $(REGULAR_PACKAGES); \
+	fi
+	@if [ -n "$(SKILLS_ENABLED)" ]; then \
+		$(SKILLS_STOW_BASE) --target="$(TARGET)" --simulate --verbose=1 skills; \
+	fi
 	@if [ "$(RIME)" = "1" ]; then \
 		$(STOW_BASE) --target="$(RIME_TARGET)" --simulate --verbose=1 rime; \
 	fi
 
 _stow:
-	@$(STOW_BASE) --target="$(TARGET)" $(PACKAGES)
+	@if [ -n "$(REGULAR_PACKAGES)" ]; then \
+		$(STOW_BASE) --target="$(TARGET)" $(REGULAR_PACKAGES); \
+	fi
+	@if [ -n "$(SKILLS_ENABLED)" ]; then \
+		$(MAKE) --no-print-directory _deploy-skills PROFILE="$(PROFILE)" TARGET="$(TARGET)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)"; \
+	fi
 	@if [ "$(RIME)" = "1" ]; then \
 		$(STOW_BASE) --target="$(RIME_TARGET)" rime; \
 	fi
 
 _restow:
-	@$(STOW_BASE) --target="$(TARGET)" --restow $(PACKAGES)
+	@if [ -n "$(REGULAR_PACKAGES)" ]; then \
+		$(STOW_BASE) --target="$(TARGET)" --restow $(REGULAR_PACKAGES); \
+	fi
+	@if [ -n "$(SKILLS_ENABLED)" ]; then \
+		$(MAKE) --no-print-directory _deploy-skills PROFILE="$(PROFILE)" TARGET="$(TARGET)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)"; \
+	fi
 	@if [ "$(RIME)" = "1" ]; then \
 		$(STOW_BASE) --target="$(RIME_TARGET)" --restow rime; \
+	fi
+
+_deploy-skills:
+	@if [ -d "$(SKILLS_INSTALL_DIR)" ]; then \
+		$(SKILLS_STOW_BASE) --target="$(TARGET)" --delete skills; \
+	fi
+	@$(MAKE) --no-print-directory _prepare-skills PROFILE="$(PROFILE)" TARGET="$(TARGET)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)"
+	@$(SKILLS_STOW_BASE) --target="$(TARGET)" skills
+
+_prepare-skills:
+	@mkdir -p "$(SKILLS_INSTALL_DIR)"
+	@find "$(SKILLS_SOURCE_ROOT)" -mindepth 1 -depth -type d -print | \
+	while IFS= read -r source_dir; do \
+		relative=$${source_dir#"$(SKILLS_SOURCE_ROOT)/"}; \
+		rmdir "$(SKILLS_INSTALL_DIR)/$$relative" 2>/dev/null || true; \
+	done
+	@if [ "$(CHECK_SKILL_CONFLICTS)" != "0" ]; then \
+		for source_dir in "$(SKILLS_SOURCE_ROOT)"/*; do \
+			name=$${source_dir##*/}; \
+			target_dir="$(SKILLS_INSTALL_DIR)/$$name"; \
+			if [ -d "$$target_dir" ] && [ ! -L "$$target_dir" ]; then \
+				echo "Cannot deploy managed skill $$name: $$target_dir contains non-Stow files" >&2; \
+				exit 1; \
+			fi; \
+		done; \
 	fi
 
 # -- Verification -------------------------------------------------------------
@@ -134,12 +199,16 @@ verify: generate _check-profile _check-stow ## Test deployment in a temporary HO
 	@tmp=$$(mktemp -d); \
 	trap 'rm -rf "$$tmp"' EXIT HUP INT TERM; \
 	echo "Verifying profile $(PROFILE) in $$tmp"; \
+	mkdir -p "$$tmp/.agents/skills/external-skill"; \
+	touch "$$tmp/.agents/skills/external-skill/SKILL.md"; \
 	$(MAKE) --no-print-directory stow PROFILE="$(PROFILE)" DEPLOY_HOME="$$tmp" TARGET="$$tmp" RIME="$(RIME)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)" FONT_SIZE="$(FONT_SIZE)"; \
 	$(MAKE) --no-print-directory restow PROFILE="$(PROFILE)" DEPLOY_HOME="$$tmp" TARGET="$$tmp" RIME="$(RIME)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)" FONT_SIZE="$(FONT_SIZE)"; \
 	test -L "$$tmp/.vimrc"; \
 	test -L "$$tmp/.config/kitty/kitty.conf"; \
 	test -L "$$tmp/.local/bin/proxyctl"; \
-	test -L "$$tmp/.agents/skills/project-plan/SKILL.md"; \
+	test -L "$$tmp/.agents/skills/project-plan"; \
+	test -f "$$tmp/.agents/skills/project-plan/SKILL.md"; \
+	test -f "$$tmp/.agents/skills/external-skill/SKILL.md"; \
 	init_block=$$("$$tmp/.local/bin/proxyctl" init --print); \
 	printf '%s\n' "$$init_block" | grep -Fq "fpath=($$tmp/.local/bin \$$fpath)" || { \
 		echo "proxyctl init resolved the Stow link outside $$tmp/.local/bin" >&2; \
@@ -153,6 +222,7 @@ verify: generate _check-profile _check-stow ## Test deployment in a temporary HO
 		exit 1; \
 	fi; \
 	$(MAKE) --no-print-directory unstow PROFILE="$(PROFILE)" DEPLOY_HOME="$$tmp" TARGET="$$tmp" RIME="$(RIME)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)"; \
+	test -f "$$tmp/.agents/skills/external-skill/SKILL.md"; \
 	if find "$$tmp" -type l -print -quit | grep -q .; then \
 		echo "Unstow left symbolic links behind" >&2; \
 		exit 1; \
