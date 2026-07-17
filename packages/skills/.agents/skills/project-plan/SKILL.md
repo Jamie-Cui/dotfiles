@@ -1,6 +1,6 @@
 ---
 name: project-plan
-description: Use when the project's plan, TODO/PROJ items, deadlines, notes, or summaries live in the central project org file, usually `project.org`. Also use when Codex should write an agreed plan into that file, update it after technical review or status discussion, mark finished work as DONE, record notes or summaries under `* Note`, or when the user explicitly invokes `$project-plan`. If `$project-plan` is invoked without any follow-up prompt, switch to plan mode, list the current active plans from the project org file, and ask the user which one to execute or review.
+description: Manage plans, TODO/PROJ items, deadlines, notes, and summaries in the central project org file, usually `project.org`. Use only when the user explicitly invokes `$project-plan`; never trigger implicitly from planning language, the presence of a plan or project org file, or a request to create, review, or update a plan. If invoked without any follow-up prompt, switch to plan mode, list the current active plans, and ask the user which one to execute or review.
 ---
 
 # Project Plan
@@ -9,20 +9,21 @@ Treat the project's central org file as the source of truth for project plans, d
 
 ## Working Rules
 
-1. Resolve the active project root first. Prefer the live Emacs project context over guessing from filesystem paths.
-2. Resolve the central project org file next. Prefer `(+org-project-current-file)` or `(+org-project-file-dwim)` when available. If no helper is available, fall back to `project.org` in the active project root.
-3. When the resolved file is `project.org`, detect whether the project root uses version control. If it does, add the project-relative file to the backend's standard ignore file before creating or writing it. Preserve existing ignore rules, avoid duplicate entries, and verify that the backend reports the file as ignored.
-4. If `project.org` is already tracked, an ignore rule is insufficient. Stop tracking it with the backend-specific operation that preserves the working copy (for Git, `git rm --cached -- project.org`), never delete the local org file, and verify the resulting state.
-5. Read before writing. For planning or review work, inspect the active task headings plus `* Note` and any active project subtree. For note-only requests, read `* Note` first and ignore task sections unless they are directly relevant.
-6. Treat an explicit `$project-plan` invocation with no follow-up prompt as a request to enter plan mode. Enumerate the active `PROJ`, `TODO`, `WAIT`, and imminent deadline items from the project org file, then ask the user which item to execute, continue, or review.
-7. Treat an explicit `$project-plan` invocation with follow-up text as an update request. Classify the content before editing: actionable work belongs in plan/task headings, while non-actionable facts, notes, and summaries belong under `* Note`.
-8. Write agreed plans into the project org file instead of leaving them only in chat. When the user asks to make or refine a plan, convert the outcome into org entries that match the existing file structure.
-9. Represent multi-step efforts as `PROJ` entries with child `TODO` or `WAIT` items when that matches the existing file. Add `DEADLINE:` when a due date is known.
-10. Update the corresponding org entries after technical discussion changes the plan. Adjust task state, wording, order, deadlines, or notes so the file stays current after review.
-11. Mark completed work as `DONE` when execution finishes. Do not leave finished plan items open unless the user explicitly wants to defer that update.
-12. Keep remembered facts, design notes, meeting notes, and summaries under `* Note` unless they are actionable tasks. Do not silently convert note content into TODO items.
-13. Preserve human-authored task wording when possible. Apply the authorship-tag invariant below to every actionable heading created or substantially rewritten by the agent.
-14. Do not silently delete human-captured tasks. Close, rewrite, or archive them only when the conversation or the existing org workflow supports that change.
+1. Run this workflow only after the user explicitly invokes `$project-plan`. Do not infer invocation from planning language or project context.
+2. Resolve the active project root first. Prefer the live Emacs project context over guessing from filesystem paths.
+3. Resolve the central project org file next. Prefer `(+org-project-current-file)` or `(+org-project-file-dwim)` when available. If no helper is available, fall back to `project.org` in the active project root.
+4. When the resolved file is `project.org`, detect whether the project root uses version control. If it does, add the project-relative file to the backend's standard ignore file before creating or writing it. Preserve existing ignore rules, avoid duplicate entries, and verify that the backend reports the file as ignored.
+5. If `project.org` is already tracked, an ignore rule is insufficient. Stop tracking it with the backend-specific operation that preserves the working copy (for Git, `git rm --cached -- project.org`), never delete the local org file, and verify the resulting state.
+6. Read before writing. For planning or review work, inspect the active task headings plus `* Note` and any active project subtree. For note-only requests, read `* Note` first and ignore task sections unless they are directly relevant.
+7. Treat an explicit `$project-plan` invocation with no follow-up prompt as a request to enter plan mode. Enumerate the active `PROJ`, `TODO`, `WAIT`, and imminent deadline items from the project org file, then ask the user which item to execute, continue, or review.
+8. Treat an explicit `$project-plan` invocation with follow-up text as an update request. Classify the content before editing: actionable work belongs in plan/task headings, while non-actionable facts, notes, and summaries belong under `* Note`.
+9. Write agreed plans into the project org file instead of leaving them only in chat. When the user asks to make or refine a plan, convert the outcome into org entries that match the existing file structure.
+10. Represent multi-step efforts as `PROJ` entries with child `TODO` or `WAIT` items when that matches the existing file. Add `DEADLINE:` when a due date is known.
+11. Update the corresponding org entries after technical discussion changes the plan. Adjust task state, wording, order, deadlines, or notes so the file stays current after review.
+12. Mark completed work as `DONE` when execution finishes. Do not leave finished plan items open unless the user explicitly wants to defer that update.
+13. Keep remembered facts, design notes, meeting notes, and summaries under `* Note` unless they are actionable tasks. Do not silently convert note content into TODO items.
+14. Preserve human-authored task wording when possible. Apply the authorship-tag invariant below to every actionable heading created or substantially rewritten by the agent.
+15. Do not silently delete human-captured tasks. Close, rewrite, or archive them only when the conversation or the existing org workflow supports that change.
 
 ## Authorship-Tag Invariant
 
