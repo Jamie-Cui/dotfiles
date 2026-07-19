@@ -20,7 +20,7 @@ EXTRA_PACKAGES ?=
 PROFILES := macos linux
 
 PACKAGES_macos := vim kitty aerospace bin skills
-PACKAGES_linux := vim tmux nvim kitty bin x11 rofi i3 i3blocks hypr waybar dunst flameshot fcitx5 gtk-2.0 gtk-3.0 gtk-4.0 imsettings davmail skills
+PACKAGES_linux := vim tmux nvim kitty bin x11 rofi i3 i3blocks hypr waybar dunst flameshot fcitx5 gtk-2.0 gtk-3.0 gtk-4.0 imsettings davmail isync skills
 
 RIME_TARGET_macos ?= $(DEPLOY_HOME)/Library/Rime
 RIME_TARGET_linux ?= $(DEPLOY_HOME)/.local/share/fcitx5/rime
@@ -208,6 +208,7 @@ verify: generate _check-profile _check-stow ## Test deployment in a temporary HO
 	if [ "$(PROFILE)" = "linux" ]; then \
 		test -L "$$tmp/.config/davmail/davmail.properties"; \
 		test -L "$$tmp/.config/systemd/user/davmail.service"; \
+		test -L "$$tmp/.config/isyncrc"; \
 		test -L "$$tmp/.config/fcitx5/config"; \
 		test -L "$$tmp/.config/fcitx5/profile"; \
 		test -L "$$tmp/.gtkrc-2.0"; \

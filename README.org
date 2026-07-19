@@ -28,7 +28,7 @@ On Fedora:
 #+begin_src bash
 sudo dnf install stow make
 sudo dnf copr enable mguessan/davmail
-sudo dnf install davmail java-latest-openjdk-headless
+sudo dnf install davmail java-latest-openjdk-headless isync maildir-utils
 #+end_src
 
 ** Package layout
@@ -50,6 +50,7 @@ packages/
 ├── fcitx5/.config/fcitx5/
 ├── gtk-2.0/.gtkrc-2.0
 ├── davmail/.config/{davmail,systemd/user}/
+├── isync/.config/isyncrc
 └── bin/.local/bin/
 #+end_example
 
@@ -64,7 +65,7 @@ only when testing another platform's package set.
 | Profile | Regular packages                                                                                                             | Rime target                |
 |---------+------------------------------------------------------------------------------------------------------------------------------+----------------------------|
 | =macos=   | =vim kitty aerospace bin skills=                                                                                               | =~/Library/Rime=             |
-| =linux=   | =vim tmux nvim kitty bin x11 rofi i3 i3blocks hypr waybar dunst flameshot fcitx5 gtk-2.0 gtk-3.0 gtk-4.0 imsettings davmail skills= | =~/.local/share/fcitx5/rime= |
+| =linux=   | =vim tmux nvim kitty bin x11 rofi i3 i3blocks hypr waybar dunst flameshot fcitx5 gtk-2.0 gtk-3.0 gtk-4.0 imsettings davmail isync skills= | =~/.local/share/fcitx5/rime= |
 
 The Linux profile installs both i3 and Hyprland configuration.  Missing either
 desktop environment does not affect Stow deployment.  Linux defaults to the
@@ -98,6 +99,13 @@ outside the repository.  After stowing, enable the service with:
 mkdir -p ~/.local/state/davmail
 systemctl --user enable --now davmail.service
 #+end_src
+
+The Linux =isync= package configures =mbsync= to mirror Outlook mail from the
+local DavMail IMAP listener into =~/.local/share/mail/outlook=.  It reads the
+login and DavMail token-encryption key from the existing mode-0600
+=~/.authinfo= file; no account or secret is stored in dotfiles.  Run
+=mbsync outlook= to synchronize.  Emacs mu4e then indexes and reads only this
+local Maildir, while outgoing mail continues through DavMail SMTP.
 
 ** Agent skills
 

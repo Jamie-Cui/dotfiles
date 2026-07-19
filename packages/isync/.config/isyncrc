@@ -1,0 +1,45 @@
+# Outlook.com Maildir mirror for Emacs mu4e.
+#
+# External dependencies:
+# - isync >= 1.5 (`mbsync')
+# - DavMail >= 6.8.1 listening on loopback IMAP port 1143
+# - ~/.authinfo mode 0600 with the matching machine/login/password/port entry
+#
+# UserCmd and PassCmd deliberately read machine-local identity and credentials
+# from authinfo, so neither the Outlook address nor LOCAL_KEY enters dotfiles.
+
+IMAPAccount outlook-davmail
+Host 127.0.0.1
+Port 1143
+UserCmd "awk '$1 == \"machine\" && $2 == \"127.0.0.1\" && $8 == \"1143\" { print $4; exit }' ~/.authinfo"
+PassCmd "awk '$1 == \"machine\" && $2 == \"127.0.0.1\" && $8 == \"1143\" { print $6; exit }' ~/.authinfo"
+AuthMechs LOGIN
+# Plain transport is acceptable only because DavMail is bound to loopback.
+TLSType None
+Timeout 120
+# Use modest pipelining to speed up the initial mirror without applying isync's
+# unlimited default pressure to the Exchange-compatible DavMail gateway.
+PipelineDepth 4
+
+IMAPStore outlook-remote
+Account outlook-davmail
+
+MaildirStore outlook-local
+SubFolders Verbatim
+Path ~/.local/share/mail/outlook/
+Inbox ~/.local/share/mail/outlook/INBOX
+
+Channel outlook
+Far :outlook-remote:
+Near :outlook-local:
+# INBOX is not covered by the wildcard.  Skip Outlook's internal sync-problem
+# hierarchy and Outbox; synchronize all normal and user-created folders.
+Patterns INBOX * !"同步问题" !"同步问题/*" !"发件箱"
+Sync Full
+Create Both
+Remove None
+# Keep the first synchronization non-destructive.  Switch to Both only after
+# verifying that local moves/deletions target the intended Outlook folders.
+Expunge None
+CopyArrivalDate yes
+SyncState *
