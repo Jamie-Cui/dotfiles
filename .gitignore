@@ -24,6 +24,7 @@ dist/
 
 # Generated package files (from *.in templates via make generate)
 /packages/kitty/.config/kitty/kitty.conf
+/packages/gtk-2.0/.gtkrc-2.0
 /packages/gtk-3.0/.config/gtk-3.0/settings.ini
 /packages/gtk-3.0/.config/gtk-3.0/bookmarks
 /packages/gtk-4.0/.config/gtk-4.0/settings.ini

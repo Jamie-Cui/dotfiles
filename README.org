@@ -27,6 +27,8 @@ On Fedora:
 
 #+begin_src bash
 sudo dnf install stow make
+sudo dnf copr enable mguessan/davmail
+sudo dnf install davmail java-latest-openjdk-headless
 #+end_src
 
 ** Package layout
@@ -45,6 +47,9 @@ packages/
 ├── hypr/.config/hypr/
 ├── i3/.config/i3/
 ├── rofi/.config/rofi/
+├── fcitx5/.config/fcitx5/
+├── gtk-2.0/.gtkrc-2.0
+├── davmail/.config/{davmail,systemd/user}/
 └── bin/.local/bin/
 #+end_example
 
@@ -59,7 +64,7 @@ only when testing another platform's package set.
 | Profile | Regular packages                                                                                                             | Rime target                |
 |---------+------------------------------------------------------------------------------------------------------------------------------+----------------------------|
 | =macos=   | =vim kitty aerospace bin skills=                                                                                               | =~/Library/Rime=             |
-| =linux=   | =vim tmux nvim kitty bin x11 rofi i3 i3blocks hypr waybar dunst flameshot gtk-3.0 gtk-4.0 imsettings skills=                      | =~/.local/share/fcitx5/rime= |
+| =linux=   | =vim tmux nvim kitty bin x11 rofi i3 i3blocks hypr waybar dunst flameshot fcitx5 gtk-2.0 gtk-3.0 gtk-4.0 imsettings davmail skills= | =~/.local/share/fcitx5/rime= |
 
 The Linux profile installs both i3 and Hyprland configuration.  Missing either
 desktop environment does not affect Stow deployment.  Linux defaults to the
@@ -68,6 +73,11 @@ Fcitx5 Rime directory; an IBus host can override it in =local.mk=:
 #+begin_src makefile
 RIME_TARGET_linux = $(DEPLOY_HOME)/.config/ibus/rime
 #+end_src
+
+The Linux =fcitx5= package manages input-method hotkeys, the active Rime and US
+keyboard profile, and stable addon UI settings.  Generated layout caches and
+Rime user data remain outside the package.  The =gtk-2.0= package complements
+the GTK 3 and GTK 4 packages and uses the same generated =FONT_SIZE= value.
 
 Reference-only Clang and CMake configuration lives under =templates/=.  These
 files are not Stow packages and are never deployed by the Makefile.
@@ -79,6 +89,15 @@ make stow EXTRA_PACKAGES="nvim tmux"
 #+end_src
 
 Set =RIME=0= to skip Rime for a command.
+
+The Linux =davmail= package manages the loopback-only gateway configuration and
+its systemd user unit.  OAuth tokens, logs, and =~/.authinfo= credentials remain
+outside the repository.  After stowing, enable the service with:
+
+#+begin_src bash
+mkdir -p ~/.local/state/davmail
+systemctl --user enable --now davmail.service
+#+end_src
 
 ** Agent skills
 
@@ -158,6 +177,7 @@ into the package tree.  Compare and reconcile existing files explicitly.
 Files ending in =.in= are tracked sources.  =make generate= replaces
 =@FONT_SIZE@= and writes ignored output files beside the templates:
 
+- =packages/gtk-2.0/.gtkrc-2.0.in= -> =.gtkrc-2.0=
 - =packages/gtk-3.0/.config/gtk-3.0/settings.ini.in= -> =settings.ini=
 - =packages/gtk-4.0/.config/gtk-4.0/settings.ini.in= -> =settings.ini=
 - =packages/hypr/.config/hypr/hyprland.conf.in= -> =hyprland.conf=

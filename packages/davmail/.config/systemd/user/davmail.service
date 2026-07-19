@@ -1,0 +1,16 @@
+[Unit]
+Description=DavMail gateway for Emacs Outlook mail
+Documentation=https://davmail.sourceforge.net/serversetup.html
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+UMask=0077
+WorkingDirectory=%h
+ExecStart=/usr/bin/davmail -server %h/.config/davmail/davmail.properties
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
