@@ -1,7 +1,7 @@
 interface:
   display_name: "Project Plan"
-  short_description: "Manage project.org plans and notes"
-  default_prompt: "Use $project-plan to review or update the central project plan, marking agent-generated actionable subtrees with :agent:."
+  short_description: "Manage helper-resolved project plans"
+  default_prompt: "Use $project-plan to review or update the Emacs-resolved central project plan, marking agent-generated actionable subtrees with :agent:."
 
 policy:
   allow_implicit_invocation: false
