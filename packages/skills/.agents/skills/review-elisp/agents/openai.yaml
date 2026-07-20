@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Elisp"
+  short_description: "Review Elisp correctness, packaging, and style"
+  default_prompt: "Use $review-elisp to review this Emacs Lisp code and report prioritized findings without modifying it."
