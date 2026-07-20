@@ -1,0 +1,7 @@
+interface:
+  display_name: "Submit PR"
+  short_description: "Commit, push, and open a pull request"
+  default_prompt: "Use $submit-pr to create or reuse a submit-pr branch, commit and push all project changes, and open a pull request."
+
+policy:
+  allow_implicit_invocation: false
