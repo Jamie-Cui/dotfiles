@@ -97,6 +97,10 @@
         (format "Buffer: %s\nMode: %s\nFile: %s\nPoint: %d\nLine: %d\nColumn: %d\nNarrowed: %S\nRegion active: %S"
                 name mode file point line column narrowed region-active)))))
 
+(cl-defun agent-skills/buffer-count ()
+  "Return the number of live buffers without exposing their contents."
+  (length (buffer-list)))
+
 (cl-defun agent-skills/special-buffer (name &optional limit)
   "Return a bounded excerpt of an allowlisted special buffer NAME."
   (unless (member name agent-skills--allowed-special-buffers)
