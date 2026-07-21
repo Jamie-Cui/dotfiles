@@ -8,3 +8,7 @@ patch:
             Shift_R: noop
             Control_L: noop
             Control_R: noop
+    "key_binder/bindings/@before 0":
+        when: always
+        accept: Shift+space
+        send: space
