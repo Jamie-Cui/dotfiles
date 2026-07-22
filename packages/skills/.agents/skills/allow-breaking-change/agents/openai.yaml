@@ -1,0 +1,7 @@
+interface:
+  display_name: "Allow Breaking Change"
+  short_description: "Allow clean breaking changes for this session"
+  default_prompt: "Use $allow-breaking-change to allow architecturally justified breaking changes for the rest of this session."
+
+policy:
+  allow_implicit_invocation: false
