@@ -11,9 +11,9 @@ config-version = 2
 # Start AeroSpace at login
 start-at-login = true
 
-accordion-padding = 0
-default-root-container-layout = 'tiles'
-default-root-container-orientation = 'auto'
+accordion-padding = 10
+default-root-container-layout = 'accordion'
+default-root-container-orientation = 'horizontal'
 automatically-unhide-macos-hidden-apps = false
 on-focused-monitor-changed = ['move-mouse monitor-lazy-center']
 
@@ -41,6 +41,8 @@ alt-h = 'focus left'
 alt-j = 'focus down'
 alt-k = 'focus up'
 alt-l = 'focus right'
+alt-left = 'focus left'
+alt-right = 'focus right'
 
 alt-shift-h = 'move left'
 alt-shift-j = 'move down'
