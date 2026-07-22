@@ -1,4 +1,4 @@
 interface:
   display_name: "Unixify"
   short_description: "Apply Unix composition and Linux pragmatism"
-  default_prompt: "Use $unixify to reshape this design around composable interfaces and pragmatic Linux engineering."
+  default_prompt: "Use $unixify to reshape this design around deep tools, explicit data, composable interfaces, and pragmatic Linux engineering."
