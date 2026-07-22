@@ -1,0 +1,6 @@
+interface:
+  display_name: "Grill with Docs"
+  short_description: "Grill a design and document its domain decisions"
+  default_prompt: "Use $grill-with-docs to stress-test this design and document the domain terms and architectural decisions we resolve."
+policy:
+  allow_implicit_invocation: false
