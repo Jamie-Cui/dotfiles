@@ -110,6 +110,7 @@ When the request needs deeper workflow detail, route to the relevant reference f
 
 Apply these rules to generated or edited research paper prose and research notes:
 
+- Do not coin terminology casually. Introduce a term only when its meaning is immediately clear from common knowledge, or when another research paper already uses the same term. In the latter case, cite that paper. If prior use cannot be verified, do not present it as an established term.
 - Do not use double-hyphen punctuation (`--`). Rewrite with commas, colons, parentheses, or separate clauses. Command-line flags and required code or drawing syntax are exempt.
 - Do not use semicolons. Split the sentence or use commas, colons, parentheses, or separate clauses. Required code, math, drawing syntax, and command-line syntax are exempt.
 - Preserve citation keys and bibliography markers exactly as written.
