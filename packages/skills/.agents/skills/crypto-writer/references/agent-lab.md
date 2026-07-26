@@ -19,13 +19,13 @@ Summarize the Agent Laboratory process as a Codex-native research workflow. Use 
 ## Workflow
 
 1. Frame the objective: restate the research goal, expected deliverables, constraints, and success criteria.
-2. Literature pass: inspect local docs first; search external sources only when requested or needed. Summarize related work, methods, datasets, and implementation details.
+2. Literature pass: use `crypto-reviewer` to inspect local citations and search external sources when requested or needed. Consume its evidence map rather than duplicating novelty or prior-art analysis.
 3. Plan formulation: propose a simple experiment with dataset, baseline, method, metrics, expected outputs, and risks.
 4. Data preparation: write or adapt data loading code using real datasets. Prefer existing project patterns and keep generated scripts small.
 5. Experiment execution: implement the experiment. Run commands only when the user asked for execution, or after showing the exact command and why it is needed. Capture commands and logs, then iterate only on concrete failures or weak results.
 6. Results interpretation: report metrics, compare against the plan, explain failures, and separate measured results from speculation.
 7. Research-note writing: produce a concise note with background, method, setup, results, limitations, and reproduction commands.
-8. Review loop: self-check novelty, soundness, reproducibility, claim support, missing citations, ethical concerns, and whether another experiment pass is justified.
+8. Author QA: check reproducibility, claim support, missing citations, ethical concerns, and whether another experiment pass is justified. Use `crypto-reviewer` for independent novelty, soundness, and venue-readiness review.
 
 ## Output Rules
 
@@ -35,7 +35,7 @@ Summarize the Agent Laboratory process as a Codex-native research workflow. Use 
 - Do not commit or print real API keys. Prefer `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`, `ANTHROPIC_API_KEY`, or `GEMINI_API_KEY` from the environment.
 - Do not upload local drafts, data, or results to external services unless the user explicitly requested that destination.
 - Do not claim experimental success unless commands were run or the limitation is clearly stated.
-- Apply the main skill's Writing Constraints to generated paper prose and research notes.
+- Apply `crypto-writer`'s Writing Constraints to generated paper prose and research notes.
 - Use lowercase, date-prefixed filenames for working notes.
 - Keep generated research outputs in an explicit project directory, for example `research_dir/`, `research-notes/`, or the user-provided path.
 

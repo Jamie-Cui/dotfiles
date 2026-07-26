@@ -1,0 +1,4 @@
+interface:
+  display_name: "Crypto Writer"
+  short_description: "Draft and revise crypto research papers"
+  default_prompt: "Use $crypto-writer to plan, draft, or revise a cryptography, ZK, security, confidential-computing, MCP, or LLM-security research paper or research note."

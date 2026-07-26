@@ -43,7 +43,7 @@ Use paths from the outline when present:
 - `{fields_path}`: absolute path to `{topic}/fields.yaml`
 - `{validate_script}`: absolute path to `scripts/validate_json.py`
 
-Do not assume a home-directory skill path. Locate `scripts/validate_json.py` relative to the `cryptographer` skill directory.
+Do not assume a home-directory skill path. Locate `scripts/validate_json.py` relative to the `crypto-writer` skill directory.
 
 ## Add Mode
 
@@ -118,13 +118,13 @@ Task is complete only after validation passes.
 Run the bundled validator against one or more JSON result files:
 
 ```sh
-python /path/to/skills/cryptographer/scripts/validate_json.py -f /abs/path/to/fields.yaml -j /abs/path/to/item.json
+python /path/to/skills/crypto-writer/scripts/validate_json.py -f /abs/path/to/fields.yaml -j /abs/path/to/item.json
 ```
 
 For a whole output directory:
 
 ```sh
-python /path/to/skills/cryptographer/scripts/validate_json.py -f /abs/path/to/fields.yaml -d /abs/path/to/results
+python /path/to/skills/crypto-writer/scripts/validate_json.py -f /abs/path/to/fields.yaml -d /abs/path/to/results
 ```
 
 Treat validation failure as incomplete work. Fix missing required fields or malformed JSON before reporting completion.
@@ -152,7 +152,7 @@ Use when converting structured JSON results into a readable report.
 - Read all JSON from `output_dir`.
 - Read `fields.yaml` for field structure.
 - Cover all field values from each JSON.
-- Apply the main skill's Writing Constraints to generated report prose.
+- Apply `crypto-writer`'s Writing Constraints to generated report prose.
 - Skip fields whose value contains `[uncertain]`.
 - Skip fields listed in the JSON `uncertain` array.
 - Save `{topic}/report.md`.

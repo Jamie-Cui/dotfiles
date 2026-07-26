@@ -1,0 +1,4 @@
+interface:
+  display_name: "Crypto Reviewer"
+  short_description: "Audit novelty and soundness in crypto papers"
+  default_prompt: "Use $crypto-reviewer to audit novelty, prior art, threat models, proofs, evaluation, and venue readiness in a cryptography, ZK, security, confidential-computing, MCP, or LLM-security paper."
