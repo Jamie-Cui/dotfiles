@@ -1,4 +1,4 @@
-.DEFAULT_GOAL := all
+
 
 .PHONY: all clean dry-run generate help list-profile restow stow unstow verify \
 	_check-profile _check-stow _deploy-skills _preflight _prepare-skills \
