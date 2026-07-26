@@ -4,7 +4,7 @@
 CURRENT=$(aerospace list-windows --focused --format '%{window-layout}' 2>/dev/null)
 
 if [[ "$CURRENT" == *accordion* ]]; then
-  aerospace layout tiles horizontal vertical
+  aerospace layout h_tiles
 else
   aerospace layout v_accordion
 fi
