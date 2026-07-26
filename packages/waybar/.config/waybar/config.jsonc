@@ -21,11 +21,12 @@
   "group/system": {
     "orientation": "horizontal",
     "modules": [
+    "custom/workspace-layout",
     "privacy",
     "bluetooth",
     "network",
     "pulseaudio",
-    "backlight",
+    // "backlight",
     "battery",
     "idle_inhibitor",
     "custom/lock"
@@ -101,6 +102,13 @@
     "on-click": "nm-connection-editor",
     "on-click-right": "kitty -e nmtui"
  },
+
+  "custom/workspace-layout": {
+    "exec": "hyprctl -j activeworkspace | jq -r '.tiledLayout'",
+    "format": "[{}]",
+    "interval": 1,
+    "tooltip": false
+  },
 
   "cpu": {
     "interval": 1,

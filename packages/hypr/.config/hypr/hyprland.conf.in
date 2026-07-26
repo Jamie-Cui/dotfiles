@@ -273,8 +273,8 @@ bind = $mainMod, return, exec, $terminal
 bind = $mainMod SHIFT, return, togglefloating
 bind = $metaMod, space, exec, $menu
 
-# Toggle between dwindle and master layout
-bind = $metaMod, t, exec, $HOME/.config/hypr/toggle-layout.sh
+# Toggle the focused workspace between dwindle and monocle layout
+bind = $mainMod, t, exec, $HOME/.config/hypr/toggle-layout.sh
 
 # Focus movement (vim-style)
 bind = $mainMod, h, movefocus, l

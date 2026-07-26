@@ -1,10 +1,22 @@
 #!/bin/bash
-# Toggle between dwindle (tiles) and master (accordion) layout
+# Toggle the focused workspace between dwindle and monocle layout
 
-LAYOUT=$(hyprctl getoption general:layout | grep -oP 'str: "\K[^"]+')
+set -euo pipefail
 
-if [ "$LAYOUT" = "dwindle" ]; then
-  hyprctl keyword general:layout master
-else
-  hyprctl keyword general:layout dwindle
-fi
+workspace_json=$(hyprctl -j activeworkspace)
+workspace_id=$(jq -r '.id' <<<"$workspace_json")
+layout=$(jq -r '.tiledLayout' <<<"$workspace_json")
+
+case "$layout" in
+  dwindle)
+    next_layout=monocle
+    ;;
+  monocle)
+    next_layout=dwindle
+    ;;
+  *)
+    exit 1
+    ;;
+esac
+
+hyprctl keyword workspace "$workspace_id,layout:$next_layout"
