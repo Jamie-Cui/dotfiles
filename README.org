@@ -5,7 +5,42 @@
 
 Personal Linux and macOS config deployed with [[https://www.gnu.org/software/stow/][GNU Stow]].
 
-** Prequisites
+** Contents
+
+- [[*Prerequisites][Prerequisites]]
+  - [[*macOS][macOS]]
+  - [[*Fedora][Fedora]]
+  - [[*Deploy][Deploy]]
+- [[*Cross-platform apps][Cross-platform apps]]
+  - [[*Oh My Zsh][Oh My Zsh]]
+  - [[*Vim (=vim=)][Vim]]
+  - [[*Neovim (=nvim=)][Neovim]]
+  - [[*Emacs (=emacs=)][Emacs]]
+  - [[*Kitty (=kitty=)][Kitty]]
+  - [[*Rime (=rime=)][Rime]]
+  - [[*proxyctl (=bin=)][proxyctl]]
+  - [[*Codex skills (=skills=)][Codex skills]]
+- [[*GNU/Linux (Fedora) apps][GNU/Linux (Fedora) apps]]
+  - [[*tmux (=tmux=)][tmux]]
+  - [[*X11 (=x11=)][X11]]
+  - [[*i3 (=i3=)][i3]]
+  - [[*i3blocks (=i3blocks=)][i3blocks]]
+  - [[*Rofi (=rofi=)][Rofi]]
+  - [[*Hyprland (=hypr=)][Hyprland]]
+  - [[*Waybar (=waybar=)][Waybar]]
+  - [[*Dunst (=dunst=)][Dunst]]
+  - [[*Flameshot (=flameshot=)][Flameshot]]
+  - [[*Fcitx5 (=fcitx5=)][Fcitx5]]
+  - [[*GTK 2 (=gtk-2.0=)][GTK 2]]
+  - [[*GTK 3 (=gtk-3.0=)][GTK 3]]
+  - [[*GTK 4 (=gtk-4.0=)][GTK 4]]
+  - [[*imsettings (=imsettings=)][imsettings]]
+  - [[*DavMail (=davmail=)][DavMail]]
+  - [[*isync (=isync=)][isync]]
+- [[*MacOS apps][MacOS apps]]
+  - [[*AeroSpace (=aerospace=)][AeroSpace]]
+
+** Prerequisites
 
 *** macOS
 
@@ -58,15 +93,51 @@ sudo dnf install neovim          # Fedora
 *** Emacs (=emacs=)
 
 #+begin_src bash
-brew install --cask emacs-app    # macOS
-sudo dnf install emacs           # Fedora
+git clone --branch emacs-31 --single-branch https://github.com/emacs-mirror/emacs.git ~/opt/emacs-src
+#+end_src
+
+**** macOS
+
+#+begin_src bash
+brew install autoconf automake texinfo libgccjit gcc gnutls tree-sitter@0.25 pkg-config coreutils sqlite librsvg
+
+cd ~/opt/emacs-src
+export PATH="$(brew --prefix texinfo)/bin:$PATH"
+export PKG_CONFIG_PATH="$(brew --prefix tree-sitter@0.25)/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+./autogen.sh
+./configure --with-ns --with-native-compilation --with-tree-sitter --with-sqlite3 --with-rsvg --without-pop --without-mailutils
+make -j"$(sysctl -n hw.logicalcpu)"
+make install
+cp -R nextstep/Emacs.app /Applications/
+sudo mkdir -p /usr/local/bin
+sudo ln -sf /Applications/Emacs.app/Contents/MacOS/Emacs /usr/local/bin/emacs
+sudo ln -sf /Applications/Emacs.app/Contents/MacOS/bin/emacsclient /usr/local/bin/emacsclient
+#+end_src
+
+**** Fedora
+
+#+begin_src bash
+sudo dnf install dnf-plugins-core gcc gcc-c++ make autoconf automake texinfo
+sudo dnf builddep emacs
+sudo dnf install libgccjit-devel tree-sitter-devel sqlite-devel librsvg2-devel gtk3-devel
+
+cd ~/opt/emacs-src
+./autogen.sh
+./configure --with-pgtk --with-native-compilation --with-tree-sitter --with-sqlite3 --with-rsvg --without-pop --without-mailutils
+make -j"$(nproc)"
+sudo make install
+#+end_src
+
+**** Configure
+
+#+begin_src bash
+emacs --version
 
 cp ~/.emacs.d/local.el.example ~/.emacs.d/local.el
 cp ~/.emacs.d/early-local.el.example ~/.emacs.d/early-local.el
 #+end_src
 
-Requires Emacs 30.1 or newer.  Edit only the copied =local.el= files for
-machine-specific settings.
+Edit only the copied =local.el= files for machine-specific settings.
 
 *** Kitty (=kitty=)
 
