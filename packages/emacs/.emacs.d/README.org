@@ -1,0 +1,179 @@
+#+startup: showall nohideblocks
+
+* Emacs.d
+
+#+begin_src
+░▒▓████████▓▒░▒▓██████████████▓▒░ ░▒▓██████▓▒░ ░▒▓██████▓▒░ ░▒▓███████▓▒░
+░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░
+░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░
+░▒▓██████▓▒░ ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓████████▓▒░▒▓█▓▒░       ░▒▓██████▓▒░
+░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░             ░▒▓█▓▒░
+░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░      ░▒▓█▓▒░
+░▒▓████████▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░░▒▓██████▓▒░░▒▓███████▓▒░
+#+end_src
+
+This is the Emacs package inside the parent dotfiles repository.  GNU Stow
+deploys its managed files into the conventional =~/.emacs.d= directory while
+runtime state and machine-local files remain outside Git.  It uses two-level
+deferred loading, Evil mode, and gptel LLM integration. Targets Emacs 30.1+.
+
+** What this config does?
+1. Use melpa only.
+2. Use emacs version 30.1.
+3. Use Maple Mono NF CN (NO Ligature!): [[https://github.com/subframe7536/maple-font][repo]], [[https://github.com/subframe7536/maple-font/releases/download/v7.8/MapleMonoNL-NF-CN-unhinted.zip][download]].
+4. Use Plantuml for uml drawing: [[https://github.com/plantuml/plantuml/releases/download/v1.2024.7/plantuml-1.2024.7.jar][download]].
+5. Use emacs build-in tree-sitter.
+
+* Architecture
+
+The configuration loads in three layers:
+
+1. *Bootstrap*. ~early-init.el~ runs first (GC tuning, early UI chrome, optional
+   ~early-local.el~).  ~init.el~ locates the managed source, loads optional
+   ~local.el~, then loads the core layer and feature-module manifest.
+2. *Core* (~lisp/core/~). Foundational mechanics, loaded with ~require~ in a fixed
+   order: ~core-vars~ (user variables, ~+emacs~ group), ~core-paths~ (load paths and
+   directory helpers), ~core-startup~ (version gate, startup restore, proxy,
+   workarounds, server), ~core-package~ (package.el + use-package), ~core-loader~
+   (the module loader), ~core-util~ (cross-cutting commands).
+3. *Modules* (~lisp/modules/~). One file per capability domain, each providing a
+   feature named ~init-<module>~. Language packages live in ~lisp/modules/lang/~,
+   loaded by path-like names such as ~lang/cmake~.
+
+Modules load in manifest order; ~keys~ loads last so every command it binds is
+already defined. Set ~+emacs/disabled-modules~ (in untracked ~local.el~) to a
+list of module names to skip, e.g. ~'("llm" "lang/lean")~.
+
+** Module boundaries
+
+| Module                 | Responsibility                                            |
+|------------------------+-----------------------------------------------------------|
+| ~os~                     | OS-specific tweaks (Linux/macOS/Windows/WSL), shell env   |
+| ~ui~                     | frames, fonts, cnfonts, modeline, dashboard, themes, TTY  |
+| ~editor~                 | editing defaults, smartparens, yasnippet, text commands   |
+| ~completion~             | vertico/corfu/consult/orderless/marginalia, embark        |
+| ~files~                  | dired, tramp, eshell, eat, backups, auto-save, proced     |
+| ~project~                | projectile, perspective, envrc                            |
+| ~vc~                     | magit, diff-hl                                            |
+| ~prog~                   | eglot, flycheck, citre, compilation, treesit              |
+| ~lang/*~                 | per-language config (cmake, bazel, markdown, lean, ...)   |
+| ~org~                    | Org core, babel, export, plantuml                         |
+| ~notes~                  | org-project, journal, roam, denote, agenda hygiene        |
+| ~bibliography~           | citar, ebib, bibtex                                       |
+| ~latex~                  | auctex, pdf-tools, xenops, git-overleaf (GUI)             |
+| ~reading~                | elfeed                                                    |
+| ~llm~                    | gptel, agent-shell, magent, magit-gptel                   |
+| ~input~                  | PDF/text zoom, pinch and mouse-wheel handlers             |
+| ~keys~                   | which-key, general.el, the SPC leader map (loaded last)   |
+
+Local and forked packages live in ~site-lisp/~ and keep their own ~init-config-*~
+helper files in ~lisp/~.
+
+* Getting started
+
+Ubuntu:
+
+#+begin_src bash :results verbatim :dir ~
+curl -sSL https://gist.githubusercontent.com/Jamie-Cui/e0c613bad06e17f34be591efb7615896/raw/00e86159e15191698f038d2be4367358f46fa66c/install-emacs-and-deps.sh | bash
+#+end_src
+
+** Install
+
+#+begin_src bash
+cd ~/opt/dotfiles
+make dry-run
+make bootstrap
+#+end_src
+
+The parent repository links only managed source files into =~/.emacs.d= with
+Stow's no-folding mode.  ELPA packages, caches, history, databases, backups,
+and other runtime files remain ordinary files in =~/.emacs.d= and are not part
+of Git.
+
+For machine-local settings, copy the examples and edit the untracked copies:
+
+#+begin_src bash
+cp ~/.emacs.d/local.el.example ~/.emacs.d/local.el
+cp ~/.emacs.d/early-local.el.example ~/.emacs.d/early-local.el
+#+end_src
+
+=local.el= is for identity, proxy, paths, package mirrors, theme, and disabled
+modules.  =early-local.el= is only for settings needed before the first frame.
+Customize writes to the untracked =~/.emacs.d/custom.el=.
+
+Useful checks: ~make smoke~ (offline startup test of both chains) and
+~make compile~ (byte-compile core + modules to a temp dir).
+
+
+** Prerequisite
+- gcc toolchain (gcc, g++, cmake, makefile, autotools, ...): compile environment
+- libgccjit: for emacs's native compilation feature
+- libsqlite3: for org-roam database
+- libtree-sitter (tested with version 0.25.8, [[https://github.com/tree-sitter/tree-sitter][repo]]): for tree-sitter,
+- (optional) texlive: for latex
+- (optional) direnv: for separating project envs (~sudo dnf install direnv~)
+
+#+begin_src bash
+# macos, if you have not done so, in ~/.zshrc
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/homebrew/lib/
+# why tree-sitter@0.25? see: https://github.com/jdtsmith/emacs-mac/issues/121
+brew install autoconf texinfo libgccjit gcc gnutls tree-sitter@0.25 pkg-config coreutils
+#+end_src
+
+** Download and Compile Emacs
+
+#+begin_src bash
+# download
+wget -c https://github.com/emacs-mirror/emacs/archive/refs/tags/emacs-30.1.tar.gz
+# or the following dev branch with tty-child-frame feature
+wget -c https://github.com/emacs-mirror/emacs/archive/refs/heads/scratch/tty-child-frames.zip
+
+# unzip and enter emacs folder
+./autogen.sh
+# (opt) configure terminal emacs
+./configure --with-native-compilation --with-tree-sitter --with-gnutls --without-x-toolkit --without-xpm --without-gif --without-tiff --with-sqlite3 --without-pop --without-mailutils
+# (opt) configure gui emacs with tiling window manager (WARNING: fcitx will not be avaliable inside emacs)
+./configure --with-native-compilation --with-tree-sitter --with-sqlite3 --with-rsvg --without-pop --without-mailutils --without-x-toolkit
+# (opt) configure gui emacs with pgtk
+./configure --with-native-compilation --with-tree-sitter --with-sqlite3 --with-rsvg --without-pop --without-mailutils --with-pgtk
+# (opt) configure gui emacs with default x toolkit (for MacOS)
+./configure --with-native-compilation --with-tree-sitter --with-sqlite3 --with-rsvg --without-pop --without-mailutils --with-x-toolkit
+# compile
+make -j
+# install
+sudo make install
+#+end_src
+
+MacOS: libgccjit failed to compile and run? see: https://github.com/d12frosted/homebrew-emacs-plus/issues/680#issuecomment-2103717530
+
+Have tree-sitter problem? see: [[https://www.reddit.com/r/emacs/comments/1e57kzy/a_solution_for_getting_emacs_to_compile_with/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button][link]]. Or download tree-sitter pre-built binaries [[https://github.com/emacs-tree-sitter/tree-sitter-langs][here]].
+
+** C/C++ Dev Tools
+
+- clangd, clang-format, clang-tidy
+#+begin_src bash
+# ubuntu
+sudo apt install clangd, clang-format, clang-tidy
+# macos
+brew install clangd, clang-format, clang-tidy
+#+end_src
+
+- cpplint
+#+begin_src bash
+pip3 install cpplint
+#+end_src
+
+- cmake-format
+#+begin_src bash
+pip3 install cmake-format
+#+end_src
+
+- ctags, see: https://github.com/universal-ctags/ctags
+#+begin_src bash
+git clone https://github.com/universal-ctags/ctags.git --depth=1
+cd ctags
+./autogen.sh
+./configure --prefix=$HOME/.local
+make
+make install
+#+end_src

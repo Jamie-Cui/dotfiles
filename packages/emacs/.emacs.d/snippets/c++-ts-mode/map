@@ -1,0 +1,5 @@
+# -*- mode: c++-ts-mode -*-
+# name: std::map
+# key: map
+# --
+std::map<$1, $2> $3

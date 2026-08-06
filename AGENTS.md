@@ -7,6 +7,10 @@ lives under `packages/<package>/` and mirrors its destination below `$HOME`.
 Examples include `packages/nvim/.config/nvim/`,
 `packages/kitty/.config/kitty/`, and `packages/vim/.vimrc`.
 
+`packages/emacs/.emacs.d/` contains the complete Emacs configuration source and
+deploys managed files into `~/.emacs.d`; machine-local files and runtime state
+remain ordinary, untracked files in that directory.
+
 Repository metadata (`README.org`, `Makefile`, `.gitignore`, `LICENSE`, and this
 file) stays at the root and is never stowed.  `packages/rime/` is special: the
 Makefile deploys its files to a profile-specific Squirrel, IBus, or Fcitx5
@@ -33,6 +37,7 @@ their templates, are ignored by Git, and should not be edited directly.
 - `make list-profile`: show the auto-selected packages and Rime target.
 - `make dry-run`: preview Stow operations without changing `$HOME`.
 - `make stow`: generate, preflight, and deploy the auto-selected profile.
+- `make bootstrap`: deploy the selected profile on a new machine.
 - `make restow`: prune stale links and redeploy the selected profile.
 - `make unstow`: remove links owned by the selected profile.
 - `make verify`: test a complete stow/restow/unstow cycle in a
@@ -57,6 +62,8 @@ tool where possible, for example:
 - `bash -n packages/rofi/.config/rofi/rofi-drun.sh`
 - `bash -n packages/dunst/.config/dunst/reload-and-test.sh`
 - `nvim --headless "+checkhealth" +qa`
+- `make -C packages/emacs/.emacs.d compile`
+- `make -C packages/emacs/.emacs.d smoke`
 
 ## Stow Safety
 

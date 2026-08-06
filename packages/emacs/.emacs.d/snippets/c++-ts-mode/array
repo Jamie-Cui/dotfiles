@@ -1,0 +1,5 @@
+# -*- mode: c++-ts-mode -*-
+# name: std::array<,>
+# key: array
+# --
+std::array<$1, $2> $3

@@ -1,0 +1,92 @@
+#!/bin/bash
+
+set -euo pipefail
+
+usage() {
+	cat <<'EOF'
+Usage: ./configure --font SIZE
+
+Options:
+  --font SIZE   Persist the font size in local.mk
+  -h, --help    Show this help
+EOF
+}
+
+font_size=
+
+while (( $# > 0 )); do
+	case "$1" in
+		--font)
+			if (( $# < 2 )); then
+				echo "configure: --font requires a value" >&2
+				usage >&2
+				exit 2
+			fi
+			font_size=$2
+			shift 2
+			;;
+		--font=*)
+			font_size=${1#*=}
+			shift
+			;;
+		-h|--help)
+			usage
+			exit 0
+			;;
+		*)
+			echo "configure: unknown option: $1" >&2
+			usage >&2
+			exit 2
+			;;
+	esac
+done
+
+if [[ -z $font_size ]]; then
+	echo "configure: --font is required" >&2
+	usage >&2
+	exit 2
+fi
+
+if [[ ! $font_size =~ ^[1-9][0-9]*$ ]]; then
+	echo "configure: font size must be a positive integer: $font_size" >&2
+	exit 2
+fi
+
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+local_mk="$script_dir/local.mk"
+input=$local_mk
+
+if [[ ! -f $input ]]; then
+	input="$script_dir/local.mk.example"
+fi
+
+if [[ ! -f $input ]]; then
+	echo "configure: cannot find local.mk or local.mk.example" >&2
+	exit 1
+fi
+
+temporary=$(mktemp "$script_dir/.local.mk.tmp.XXXXXX")
+trap 'rm -f "$temporary"' EXIT
+
+awk -v font_size="$font_size" '
+	BEGIN { updated = 0 }
+	/^[[:space:]]*FONT_SIZE[[:space:]]*[:?+]?=/ {
+		if (!updated) {
+			print "FONT_SIZE := " font_size
+			updated = 1
+		}
+		next
+	}
+	{ print }
+	END {
+		if (!updated) {
+			if (NR > 0) print ""
+			print "FONT_SIZE := " font_size
+		}
+	}
+' "$input" > "$temporary"
+
+mv "$temporary" "$local_mk"
+trap - EXIT
+
+echo "Configured font size $font_size in $local_mk"

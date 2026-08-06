@@ -1,0 +1,7 @@
+# -*- mode: c++-ts-mode -*-
+# name: enum
+# key: enum
+# --
+enum class $1 {
+    $2
+};

@@ -1,8 +1,8 @@
 
 
-.PHONY: all clean dry-run generate help list-profile restow stow unstow verify \
-	_check-profile _check-stow _deploy-skills _preflight _prepare-skills \
-	_restow _stow
+.PHONY: all bootstrap clean dry-run generate help list-profile \
+	restow stow unstow verify _check-profile _check-stow _deploy-skills \
+	_preflight _prepare-skills _restow _stow
 
 -include local.mk
 FONT_SIZE ?= 10
@@ -19,8 +19,8 @@ EXTRA_PACKAGES ?=
 
 PROFILES := macos linux
 
-PACKAGES_macos := vim nvim kitty aerospace bin skills
-PACKAGES_linux := vim tmux nvim kitty bin x11 rofi i3 i3blocks hypr waybar dunst flameshot fcitx5 gtk-2.0 gtk-3.0 gtk-4.0 imsettings davmail isync skills
+PACKAGES_macos := vim nvim emacs kitty aerospace bin skills
+PACKAGES_linux := vim tmux nvim emacs kitty bin x11 rofi i3 i3blocks hypr waybar dunst flameshot fcitx5 gtk-2.0 gtk-3.0 gtk-4.0 imsettings davmail isync skills
 
 RIME_TARGET_macos ?= $(DEPLOY_HOME)/Library/Rime
 RIME_TARGET_linux ?= $(DEPLOY_HOME)/.local/share/fcitx5/rime
@@ -38,6 +38,7 @@ SKILLS_STOW_BASE := $(STOW) --dir="$(PACKAGES_DIR)" --ignore='.*[.]in'
 
 help: ## Show commands and profile selection
 	@echo "Available targets:"
+	@echo "  bootstrap     Deploy PROFILE (new-machine convenience alias)"
 	@echo "  generate      Render tracked *.in templates into ignored package files"
 	@echo "  list-profile  Show packages and the Rime target for PROFILE"
 	@echo "  dry-run       Preview links without changing the target tree"
@@ -53,6 +54,7 @@ help: ## Show commands and profile selection
 	@echo "Extra packages: $(or $(strip $(EXTRA_PACKAGES)),none)"
 	@echo "Font size: $(FONT_SIZE)"
 	@echo "Examples:"
+	@echo "  make bootstrap"
 	@echo "  make dry-run"
 	@echo "  make stow"
 	@echo "  make verify"
@@ -70,6 +72,8 @@ list-profile: _check-profile ## Show the selected profile
 # -- Generation ---------------------------------------------------------------
 
 all: generate ## Backward-compatible alias for generate
+
+bootstrap: stow ## Deploy the selected profile on a new machine
 
 generate: ## Render package files from *.in templates
 	@find "$(PACKAGES_DIR)" -type f -name "*.in" \
@@ -201,6 +205,8 @@ verify: generate _check-profile _check-stow ## Test deployment in a temporary HO
 	echo "Verifying profile $(PROFILE) in $$tmp"; \
 	mkdir -p "$$tmp/.agents/skills/external-skill"; \
 	touch "$$tmp/.agents/skills/external-skill/SKILL.md"; \
+	mkdir -p "$$tmp/.emacs.d/elpa"; \
+	touch "$$tmp/.emacs.d/local.el" "$$tmp/.emacs.d/elpa/runtime-state"; \
 	$(MAKE) --no-print-directory stow PROFILE="$(PROFILE)" DEPLOY_HOME="$$tmp" TARGET="$$tmp" RIME="$(RIME)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)" FONT_SIZE="$(FONT_SIZE)"; \
 	$(MAKE) --no-print-directory restow PROFILE="$(PROFILE)" DEPLOY_HOME="$$tmp" TARGET="$$tmp" RIME="$(RIME)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)" FONT_SIZE="$(FONT_SIZE)"; \
 	test -L "$$tmp/.vimrc"; \
@@ -214,6 +220,10 @@ verify: generate _check-profile _check-stow ## Test deployment in a temporary HO
 		test -L "$$tmp/.gtkrc-2.0"; \
 	fi; \
 	test -L "$$tmp/.local/bin/proxyctl"; \
+	test -L "$$tmp/.emacs.d/init.el"; \
+	test -L "$$tmp/.emacs.d/lisp/core/core-loader.el"; \
+	test -f "$$tmp/.emacs.d/local.el"; \
+	test -f "$$tmp/.emacs.d/elpa/runtime-state"; \
 	test -L "$$tmp/.agents/skills/project-plan"; \
 	test -f "$$tmp/.agents/skills/project-plan/SKILL.md"; \
 	test -f "$$tmp/.agents/skills/external-skill/SKILL.md"; \
@@ -231,6 +241,8 @@ verify: generate _check-profile _check-stow ## Test deployment in a temporary HO
 	fi; \
 	$(MAKE) --no-print-directory unstow PROFILE="$(PROFILE)" DEPLOY_HOME="$$tmp" TARGET="$$tmp" RIME="$(RIME)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)"; \
 	test -f "$$tmp/.agents/skills/external-skill/SKILL.md"; \
+	test -f "$$tmp/.emacs.d/local.el"; \
+	test -f "$$tmp/.emacs.d/elpa/runtime-state"; \
 	if find "$$tmp" -type l -print -quit | grep -q .; then \
 		echo "Unstow left symbolic links behind" >&2; \
 		exit 1; \
