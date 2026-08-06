@@ -3,7 +3,7 @@
 
 * dotfiles
 
-Personal Linux and macOS config deployed with [GNU Stow](https://www.gnu.org/software/stow/).
+Personal Linux and macOS config deployed with [[https://www.gnu.org/software/stow/][GNU Stow]].
 
 ** Prequisites
 
