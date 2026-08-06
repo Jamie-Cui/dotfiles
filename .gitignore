@@ -31,3 +31,8 @@ dist/
 /packages/i3/.config/i3/config
 /packages/hypr/.config/hypr/hyprland.conf
 /nvim.log
+
+# Encrypted secrets package: allow ciphertext only.
+/packages/secrets/*
+!/packages/secrets/.gitignore
+!/packages/secrets/.authinfo.gpg

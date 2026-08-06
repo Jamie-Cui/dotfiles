@@ -1,8 +1,8 @@
 ;;; core-vars.el --- User-tunable variables -*- lexical-binding: t -*-
 ;;; Commentary:
 ;; Defines the `+emacs' customization group and the small set of user-tunable
-;; variables shared across the configuration.  Machine-local values belong in
-;; the untracked `~/.emacs.d/local.el', not here.
+;; variables shared across the configuration.  Concrete values are set in
+;; `init.el'.
 ;;; Code:
 
 (defgroup +emacs nil
@@ -33,29 +33,27 @@ Derived from the Git-managed `init.el' location."
 
 (defcustom +emacs/email-address nil
   "Primary email address used by the email module.
-Set this in the untracked `~/.emacs.d/local.el'; keep account details out of
-the shared configuration."
+Set this in `init.el' when mail support is configured."
   :type '(choice (const :tag "Not configured" nil) string)
   :group '+emacs)
 
 (defcustom +emacs/email-full-name nil
   "Full name used in messages sent by the email module.
-Set this in the untracked `~/.emacs.d/local.el'."
+Set this in `init.el' when mail support is configured."
   :type '(choice (const :tag "Not configured" nil) string)
   :group '+emacs)
 
 (defcustom +emacs/email-maildir
   (expand-file-name "mail/outlook" (or (getenv "XDG_DATA_HOME") "~/.local/share"))
   "Local Maildir root used by mbsync and mu4e.
-Set this in the untracked `~/.emacs.d/local.el' when the machine uses a
-different local mail location."
+Set this in `init.el' when the machine uses a different local mail location."
   :type 'directory
   :group '+emacs)
 
 (defcustom +emacs/mu4e-load-path nil
   "Optional directory containing the system-installed mu4e Lisp files.
-Set this in the untracked `~/.emacs.d/local.el' when mu4e is installed outside
-Emacs' default `load-path'."
+Set this in `init.el' when mu4e is installed outside Emacs' default
+`load-path'."
   :type '(choice (const :tag "Use default load-path" nil) directory)
   :group '+emacs)
 

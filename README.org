@@ -11,6 +11,7 @@ Personal Linux and macOS config deployed with [[https://www.gnu.org/software/sto
     - [[#macos][macOS]]
     - [[#fedora][Fedora]]
     - [[#deploy][Deploy]]
+    - [[#encrypted-secrets][Encrypted secrets]]
 - [[#cross-platform-apps][Cross-platform apps]]
     - [[#oh-my-zsh][Oh My Zsh]]
     - [[#maple-mono-nl-nf-cn][Maple Mono NL NF CN]]
@@ -66,6 +67,61 @@ cd ~/opt/dotfiles
 make dry-run
 make bootstrap
 #+end_src
+
+*** Encrypted secrets
+
+Only GPG ciphertext is managed by Git.  The private key, its revocation
+certificate, and plaintext credentials must remain outside this repository.
+Install GnuPG with =brew install gnupg= on macOS or =sudo dnf install gnupg2=
+on Fedora, then create the ciphertext yourself (replace the placeholder with
+the fingerprint of an encryption-capable public key):
+
+#+begin_src bash
+gpg --output packages/secrets/.authinfo.gpg \
+    --encrypt --recipient YOUR_ENCRYPTION_KEY_FINGERPRINT \
+    ~/.authinfo
+#+end_src
+
+The =secrets= Stow package is selected automatically after the ciphertext
+exists.  Preview and deploy it, verify that your private key can decrypt it,
+then securely remove or archive the old plaintext file:
+
+#+begin_src bash
+make dry-run
+make restow
+gpg --decrypt ~/.authinfo.gpg >/dev/null
+#+end_src
+
+Emacs reads only =~/.authinfo.gpg= through =auth-source=.  On Linux, mbsync
+decrypts that same file through =gpg-agent=.  Import the private key from a
+separate backup before deploying on a new machine.
+
+**** Import the GPG key on a new machine
+
+The backup must be an armored OpenPGP secret key created by =gpg=, not an SSH
+key or SSH fingerprint.  Retrieve it from Bitwarden or another backup location
+outside this repository, then import it into the local GnuPG keyring:
+
+#+begin_src bash
+chmod 600 ~/Downloads/dotfiles-secrets-private.asc
+gpg --import ~/Downloads/dotfiles-secrets-private.asc
+gpg --list-secret-keys --with-subkey-fingerprint
+#+end_src
+
+Confirm that the expected primary fingerprint is present and that it has an
+encryption subkey marked =[E]=.  Test decryption before deploying the profile:
+
+#+begin_src bash
+cd ~/opt/dotfiles
+gpg --decrypt packages/secrets/.authinfo.gpg >/dev/null
+make dry-run
+make bootstrap
+#+end_src
+
+After the import and decryption test succeed, securely remove the downloaded
+private-key export.  GnuPG keeps the imported key in its own home directory
+(normally =~/.gnupg=); never copy that directory or the exported private key
+into this repository.
 
 ** Cross-platform apps
 
@@ -163,12 +219,10 @@ sudo make install
 
 #+begin_src bash
 emacs --version
-
-cp ~/.emacs.d/local.el.example ~/.emacs.d/local.el
-cp ~/.emacs.d/early-local.el.example ~/.emacs.d/early-local.el
 #+end_src
 
-Edit only the copied =local.el= files for machine-specific settings.
+Edit the managed =~/.emacs.d/init.el= and =~/.emacs.d/early-init.el= sources for
+Emacs settings.
 
 *** [[https://sw.kovidgoyal.net/kitty/][Kitty]] (=kitty=)
 
@@ -329,11 +383,12 @@ device-code prompt it prints.
 *** [[https://isync.sourceforge.io/][isync]] (=isync=)
 
 #+begin_src bash
-sudo dnf install isync maildir-utils
+sudo dnf install isync maildir-utils gnupg2
 openssl rand -hex 32
+umask 077
 touch ~/.authinfo
-chmod 600 ~/.authinfo
 $EDITOR ~/.authinfo
+# Encrypt it using the Encrypted secrets instructions, then deploy it.
 mbsync outlook
 mu index
 #+end_src

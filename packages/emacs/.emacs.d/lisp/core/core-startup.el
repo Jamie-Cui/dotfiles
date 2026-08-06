@@ -12,10 +12,19 @@
   (when (version< emacs-version minver)
     (error "Your Emacs is too old -- this config requires v%s or higher" minver)))
 
-(setq load-prefer-newer t)
-
 ;; Faster subprocess (e.g. LSP) reads.  Default is 4KB, too small for LSP.
 (setq read-process-output-max (* 1024 1024)) ; 1MB
+
+;; Let EasyPG collect passphrases through Emacs instead of relying on an
+;; external Pinentry with a usable TTY.  This keeps GUI and daemon sessions
+;; working after gpg-agent's passphrase cache expires.
+(require 'epg)
+(setopt epg-pinentry-mode 'loopback)
+
+;; Never fall back to plaintext credential files.  EasyPG decrypts this source
+;; through GnuPG when an auth-source consumer requests a secret.
+(require 'auth-source)
+(setopt auth-sources '("~/.authinfo.gpg"))
 
 ;; Quiet down development-time warning noise.
 (setopt warning-suppress-log-types '((files)))

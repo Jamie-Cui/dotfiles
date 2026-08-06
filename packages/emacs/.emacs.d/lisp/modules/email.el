@@ -12,13 +12,13 @@
 ;; - The `davmail' GNU Stow package from ~/opt/dotfiles, which deploys the user
 ;;   service and gateway settings below ~/.config.
 ;; - The `isync' GNU Stow package from ~/opt/dotfiles, which deploys
-;;   ~/.config/isyncrc and reads the local DavMail login from authinfo.
-;; - Temporary credentials in ~/.authinfo with mode 0600:
+;;   ~/.config/isyncrc and reads the local DavMail login from authinfo.gpg.
+;; - GPG-encrypted credentials in ~/.authinfo.gpg:
 ;;     machine 127.0.0.1 login you@outlook.com password LOCAL_KEY port 1143
 ;;     machine 127.0.0.1 login you@outlook.com password LOCAL_KEY port 1025
 ;;   In device-code mode LOCAL_KEY encrypts the stored OAuth refresh token; it
 ;;   is not the Microsoft account password.  Use the same random value twice.
-;;   Migrate these entries to ~/.authinfo.gpg when GnuPG is configured.
+;;   The same encrypted file is used by Emacs auth-source and mbsync.
 ;;
 ;; Useful service commands:
 ;;   systemctl --user enable --now davmail.service

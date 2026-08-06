@@ -2,7 +2,7 @@
 
 .PHONY: all bootstrap clean dry-run generate help list-profile \
 	restow stow unstow verify _check-profile _check-stow _deploy-skills \
-	_preflight _prepare-skills _restow _stow
+	_check-secrets _preflight _prepare-skills _restow _stow
 
 -include local.mk
 FONT_SIZE ?= 10
@@ -19,8 +19,9 @@ EXTRA_PACKAGES ?=
 
 PROFILES := macos linux
 
-PACKAGES_macos := vim nvim emacs kitty aerospace bin skills
-PACKAGES_linux := vim tmux nvim emacs kitty bin x11 rofi i3 i3blocks hypr waybar dunst flameshot fcitx5 gtk-2.0 gtk-3.0 gtk-4.0 imsettings davmail isync skills
+SECRETS_PACKAGE := $(if $(wildcard $(PACKAGES_DIR)/secrets/.authinfo.gpg),secrets)
+PACKAGES_macos := vim nvim emacs kitty aerospace bin skills $(SECRETS_PACKAGE)
+PACKAGES_linux := vim tmux nvim emacs kitty bin x11 rofi i3 i3blocks hypr waybar dunst flameshot fcitx5 gtk-2.0 gtk-3.0 gtk-4.0 imsettings davmail isync skills $(SECRETS_PACKAGE)
 
 RIME_TARGET_macos ?= $(DEPLOY_HOME)/Library/Rime
 RIME_TARGET_linux ?= $(DEPLOY_HOME)/.local/share/fcitx5/rime
@@ -31,7 +32,7 @@ SKILLS_ENABLED := $(filter skills,$(PACKAGES))
 SKILLS_SOURCE_ROOT := $(PACKAGES_DIR)/skills/.agents/skills
 SKILLS_INSTALL_DIR := $(TARGET)/.agents/skills
 RIME_TARGET ?= $(RIME_TARGET_$(PROFILE))
-STOW_BASE := $(STOW) --dir="$(PACKAGES_DIR)" --no-folding --ignore='.*[.]in'
+STOW_BASE := $(STOW) --dir="$(PACKAGES_DIR)" --no-folding --ignore='.*[.]in' --ignore='(^|/)[.]authinfo$$'
 SKILLS_STOW_BASE := $(STOW) --dir="$(PACKAGES_DIR)" --ignore='.*[.]in'
 
 # -- Help ---------------------------------------------------------------------
@@ -87,7 +88,7 @@ clean: ## Remove generated package files; unstow first to avoid dangling links
 
 # -- Stow ---------------------------------------------------------------------
 
-dry-run: generate _check-profile _check-stow ## Preview the selected profile
+dry-run: generate _check-profile _check-stow _check-secrets ## Preview the selected profile
 	@if [ -n "$(REGULAR_PACKAGES)" ]; then \
 		$(STOW_BASE) --target="$(TARGET)" --simulate --verbose=2 $(REGULAR_PACKAGES); \
 	fi
@@ -106,7 +107,7 @@ dry-run: generate _check-profile _check-stow ## Preview the selected profile
 		fi; \
 	fi
 
-stow: generate _check-profile _check-stow ## Deploy the selected profile
+stow: generate _check-profile _check-stow _check-secrets ## Deploy the selected profile
 	@mkdir -p "$(TARGET)"
 	@if [ -n "$(SKILLS_ENABLED)" ]; then mkdir -p "$(SKILLS_INSTALL_DIR)"; fi
 	@if [ "$(RIME)" = "1" ]; then mkdir -p "$(RIME_TARGET)"; fi
@@ -114,7 +115,7 @@ stow: generate _check-profile _check-stow ## Deploy the selected profile
 	@$(MAKE) --no-print-directory _stow PROFILE="$(PROFILE)" DEPLOY_HOME="$(DEPLOY_HOME)" TARGET="$(TARGET)" RIME="$(RIME)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)"
 	@echo "Stowed profile $(PROFILE) into $(TARGET)"
 
-restow: generate _check-profile _check-stow ## Restow and prune stale links
+restow: generate _check-profile _check-stow _check-secrets ## Restow and prune stale links
 	@mkdir -p "$(TARGET)"
 	@if [ -n "$(SKILLS_ENABLED)" ]; then mkdir -p "$(SKILLS_INSTALL_DIR)"; fi
 	@if [ "$(RIME)" = "1" ]; then mkdir -p "$(RIME_TARGET)"; fi
@@ -199,14 +200,14 @@ _prepare-skills:
 
 # -- Verification -------------------------------------------------------------
 
-verify: generate _check-profile _check-stow ## Test deployment in a temporary HOME
+verify: generate _check-profile _check-stow _check-secrets ## Test deployment in a temporary HOME
 	@tmp=$$(mktemp -d); \
 	trap 'rm -rf "$$tmp"' EXIT HUP INT TERM; \
 	echo "Verifying profile $(PROFILE) in $$tmp"; \
 	mkdir -p "$$tmp/.agents/skills/external-skill"; \
 	touch "$$tmp/.agents/skills/external-skill/SKILL.md"; \
 	mkdir -p "$$tmp/.emacs.d/elpa"; \
-	touch "$$tmp/.emacs.d/local.el" "$$tmp/.emacs.d/elpa/runtime-state"; \
+	touch "$$tmp/.emacs.d/elpa/runtime-state"; \
 	$(MAKE) --no-print-directory stow PROFILE="$(PROFILE)" DEPLOY_HOME="$$tmp" TARGET="$$tmp" RIME="$(RIME)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)" FONT_SIZE="$(FONT_SIZE)"; \
 	$(MAKE) --no-print-directory restow PROFILE="$(PROFILE)" DEPLOY_HOME="$$tmp" TARGET="$$tmp" RIME="$(RIME)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)" FONT_SIZE="$(FONT_SIZE)"; \
 	test -L "$$tmp/.vimrc"; \
@@ -220,9 +221,11 @@ verify: generate _check-profile _check-stow ## Test deployment in a temporary HO
 		test -L "$$tmp/.gtkrc-2.0"; \
 	fi; \
 	test -L "$$tmp/.local/bin/proxyctl"; \
+	if [ -f "$(PACKAGES_DIR)/secrets/.authinfo.gpg" ]; then \
+		test -L "$$tmp/.authinfo.gpg"; \
+	fi; \
 	test -L "$$tmp/.emacs.d/init.el"; \
 	test -L "$$tmp/.emacs.d/lisp/core/core-loader.el"; \
-	test -f "$$tmp/.emacs.d/local.el"; \
 	test -f "$$tmp/.emacs.d/elpa/runtime-state"; \
 	test -L "$$tmp/.agents/skills/project-plan"; \
 	test -f "$$tmp/.agents/skills/project-plan/SKILL.md"; \
@@ -241,7 +244,6 @@ verify: generate _check-profile _check-stow ## Test deployment in a temporary HO
 	fi; \
 	$(MAKE) --no-print-directory unstow PROFILE="$(PROFILE)" DEPLOY_HOME="$$tmp" TARGET="$$tmp" RIME="$(RIME)" EXTRA_PACKAGES="$(EXTRA_PACKAGES)"; \
 	test -f "$$tmp/.agents/skills/external-skill/SKILL.md"; \
-	test -f "$$tmp/.emacs.d/local.el"; \
 	test -f "$$tmp/.emacs.d/elpa/runtime-state"; \
 	if find "$$tmp" -type l -print -quit | grep -q .; then \
 		echo "Unstow left symbolic links behind" >&2; \
@@ -265,3 +267,9 @@ _check-stow:
 		echo "GNU Stow is required. Install it with 'brew install stow' or your system package manager." >&2; \
 		exit 2; \
 	}
+
+_check-secrets:
+	@if [ -e "$(PACKAGES_DIR)/secrets/.authinfo" ]; then \
+		echo "Refusing to continue: packages/secrets/.authinfo must never contain plaintext secrets" >&2; \
+		exit 2; \
+	fi

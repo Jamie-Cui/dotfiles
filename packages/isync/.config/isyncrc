@@ -2,17 +2,18 @@
 #
 # External dependencies:
 # - isync >= 1.5 (`mbsync')
+# - GnuPG (`gpg') with the matching private key available to gpg-agent
 # - DavMail >= 6.8.1 listening on loopback IMAP port 1143
-# - ~/.authinfo mode 0600 with the matching machine/login/password/port entry
+# - ~/.authinfo.gpg with the matching machine/login/password/port entry
 #
 # UserCmd and PassCmd deliberately read machine-local identity and credentials
-# from authinfo, so neither the Outlook address nor LOCAL_KEY enters dotfiles.
+# from GPG ciphertext, so neither value appears in process arguments or config.
 
 IMAPAccount outlook-davmail
 Host 127.0.0.1
 Port 1143
-UserCmd "awk '$1 == \"machine\" && $2 == \"127.0.0.1\" && $8 == \"1143\" { print $4; exit }' ~/.authinfo"
-PassCmd "awk '$1 == \"machine\" && $2 == \"127.0.0.1\" && $8 == \"1143\" { print $6; exit }' ~/.authinfo"
+UserCmd "gpg --batch --quiet --decrypt ~/.authinfo.gpg | awk '$1 == \"machine\" && $2 == \"127.0.0.1\" && $8 == \"1143\" { print $4; exit }'"
+PassCmd "gpg --batch --quiet --decrypt ~/.authinfo.gpg | awk '$1 == \"machine\" && $2 == \"127.0.0.1\" && $8 == \"1143\" { print $6; exit }'"
 AuthMechs LOGIN
 # Plain transport is acceptable only because DavMail is bound to loopback.
 TLSType None

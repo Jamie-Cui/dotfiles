@@ -252,6 +252,21 @@ the isolated request, so they do not mutate global gptel model state."
         (magit-git-string "rev-parse" "--short" "HEAD")
         "HEAD")))
 
+(defun magit-gptel--json-safe-string (text)
+  "Return TEXT with characters invalid in JSON strings replaced.
+Git can classify small binary files as text and return their raw bytes in a
+diff.  Emacs represents undecodable bytes outside the Unicode range, which
+`json-serialize' rejects even though the surrounding value is a string."
+  (with-temp-buffer
+    (mapc (lambda (char)
+            (insert-char
+             (if (or (> char #x10ffff)
+                     (and (>= char #xd800) (<= char #xdfff)))
+                 #xfffd
+               char)))
+          (or text ""))
+    (buffer-string)))
+
 (defun magit-gptel--truncate-diff (diff)
   "Truncate DIFF when it is larger than `magit-gptel-max-diff-chars'."
   (if (and magit-gptel-max-diff-chars
@@ -268,19 +283,23 @@ the isolated request, so they do not mutate global gptel model state."
          (repo-name (file-name-nondirectory
                      (directory-file-name repo-root)))
          (branch (magit-gptel--current-branch repo-root))
-         (summary (magit-git-output "diff" "--cached"
-                                    "--stat=80,120"
-                                    "--summary"
-                                    "--no-ext-diff"
-                                    "--no-color"
-                                    "--submodule=diff"
-                                    "-M"))
-         (patch (magit-git-output "diff" "--cached"
-                                  "--patch"
-                                  "--no-ext-diff"
-                                  "--no-color"
-                                  "--submodule=diff"
-                                  "-M")))
+         (summary
+          (magit-gptel--json-safe-string
+           (magit-git-output "diff" "--cached"
+                             "--stat=80,120"
+                             "--summary"
+                             "--no-ext-diff"
+                             "--no-color"
+                             "--submodule=diff"
+                             "-M")))
+         (patch
+          (magit-gptel--json-safe-string
+           (magit-git-output "diff" "--cached"
+                             "--patch"
+                             "--no-ext-diff"
+                             "--no-color"
+                             "--submodule=diff"
+                             "-M"))))
     (unless (string-match-p "[^[:space:]]" patch)
       (user-error "No staged changes to summarize"))
     (list :repo-root repo-root
@@ -311,18 +330,20 @@ the isolated request, so they do not mutate global gptel model state."
          (diff-type (magit-diff-type section))
          (regionp (eq scope 'region))
          (owner-section (if regionp section section))
-         (raw-text (cond
-                    ((null scope)
-                     (user-error "Point is not on a diff or hunk section"))
-                    (regionp
-                     ;; When Magit reports a region, explain the enclosing hunk.
-                     (buffer-substring-no-properties
-                      (oref owner-section start)
-                      (oref owner-section end)))
-                    (t
-                     (buffer-substring-no-properties
-                      (oref owner-section start)
-                      (oref owner-section end))))))
+         (raw-text
+          (magit-gptel--json-safe-string
+           (cond
+            ((null scope)
+             (user-error "Point is not on a diff or hunk section"))
+            (regionp
+             ;; When Magit reports a region, explain the enclosing hunk.
+             (buffer-substring-no-properties
+              (oref owner-section start)
+              (oref owner-section end)))
+            (t
+             (buffer-substring-no-properties
+              (oref owner-section start)
+              (oref owner-section end)))))))
     (unless (string-match-p "[^[:space:]]" raw-text)
       (user-error "No diff text available at point"))
     (list :repo-root repo-root

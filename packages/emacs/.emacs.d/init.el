@@ -1,9 +1,11 @@
 ;;; init.el --- Configuration manifest -*- lexical-binding: t -*-
 ;;; Commentary:
 ;; Entry point for the Stow-managed configuration.  Loads the core layer, then
-;; the feature modules via `+emacs/load-modules'.  Machine-local settings live
-;; in the untracked ~/.emacs.d/local.el.
+;; the feature modules via `+emacs/load-modules'.
 ;;; Code:
+
+;; Prefer managed source changes even when an ignored .elc is stale.
+(setq load-prefer-newer t)
 
 ;; --- Bootstrap: locate the repository and the core layer. ---
 (let ((repo (file-name-directory
@@ -16,17 +18,35 @@
 ;; --- Core layer (fixed order). ---
 (require 'core-vars)
 
-;; Defaults may be overridden by the untracked machine-local file before the
-;; package system and feature modules initialize.
+;; --- User settings ---------------------------------------------------------
+(setopt +emacs/org-root-dir (expand-file-name "~/opt/org-root")
+        +emacs/proxy "127.0.0.1:10808"
+        +emacs/theme 'zenburn
+        +emacs/disabled-modules nil)
+
+;; Mail identity and installation-specific mu4e path.
+;; (setopt +emacs/email-address "you@outlook.com"
+;;         +emacs/email-full-name "Your Name"
+;;         +emacs/email-maildir (expand-file-name "~/.local/share/mail/outlook")
+;;         +emacs/mu4e-load-path "/usr/share/emacs/site-lisp/mu4e")
+;; Apple Silicon Homebrew alternative:
+;; (setopt +emacs/mu4e-load-path
+;;         "/opt/homebrew/share/emacs/site-lisp/mu/mu4e")
+
+;; If you use an Apple keyboard, map the Super key to Meta.
+;; (setq x-super-keysym 'meta)
+
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
 (require 'package)
 (setq package-archives
       '(("gnu"    . "https://elpa.gnu.org/packages/")
         ("nongnu" . "https://elpa.nongnu.org/nongnu/")
         ("melpa"  . "https://melpa.org/packages/")))
-(let ((local-file (expand-file-name "local.el" user-emacs-directory)))
-  (when (file-readable-p local-file)
-    (load local-file nil 'nomessage)))
+;; If the official package hosts are slow:
+;; (setq package-archives
+;;       '(("gnu"    . "https://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")
+;;         ("nongnu" . "https://mirrors.tuna.tsinghua.edu.cn/elpa/nongnu/")
+;;         ("melpa"  . "https://mirrors.tuna.tsinghua.edu.cn/elpa/melpa/")))
 
 (require 'core-paths)
 (require 'core-startup)

@@ -6,9 +6,7 @@ cnfonts/cnfonts.conf
 
 .agent-shell
 
-## machine-local configuration
-local.el
-early-local.el
+## local runtime configuration
 custom.el
 
 ## emacs

@@ -103,6 +103,8 @@ screenshots or short notes for visible desktop changes.
 
 ## Security & Configuration Tips
 
-Do not commit machine-specific secrets, proxy credentials, private keys,
-generated Rime user data, or local build/cache directories.  Keep host-specific
-values in local files outside the repository when possible.
+Do not commit plaintext machine-specific secrets, proxy credentials, private
+keys, generated Rime user data, or local build/cache directories.  The sole
+exception is public-key-encrypted ciphertext under `packages/secrets`; its
+private key and recovery material must remain outside the repository.  Keep
+host-specific values in local files outside the repository when possible.

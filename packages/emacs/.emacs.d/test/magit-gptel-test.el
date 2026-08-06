@@ -10,6 +10,7 @@
 
 (require 'cl-lib)
 (require 'ert)
+(require 'json)
 
 (add-to-list 'load-path
              (expand-file-name "../site-lisp"
@@ -17,6 +18,13 @@
                                 (or load-file-name buffer-file-name))))
 
 (require 'magit-gptel)
+
+(ert-deftest magit-gptel-json-safe-string-replaces-raw-bytes ()
+  (let* ((raw-byte (string (unibyte-char-to-multibyte #x80)))
+         (safe (magit-gptel--json-safe-string
+                (concat "before" raw-byte "after"))))
+    (should (equal safe "before�after"))
+    (should (stringp (json-serialize (list :prompt safe))))))
 
 (ert-deftest magit-gptel-normalize-removes-inline-code-markers ()
   (should

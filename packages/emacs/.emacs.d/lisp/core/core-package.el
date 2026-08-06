@@ -1,7 +1,7 @@
 ;;; core-package.el --- Package system bootstrap -*- lexical-binding: t -*-
 ;;; Commentary:
-;; Initializes package.el and use-package.  Machine-local `package-archives'
-;; and theme selection may be set in the untracked `~/.emacs.d/local.el'.
+;; Initializes package.el and use-package.  User-facing package and theme
+;; settings live in `init.el'.
 ;;; Code:
 
 (require 'cl-lib)

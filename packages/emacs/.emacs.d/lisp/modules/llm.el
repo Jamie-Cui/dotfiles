@@ -19,10 +19,7 @@
 (use-package agent-switch
   :vc (:url "https://github.com/Jamie-Cui/agent-switch.el" :rev "main")
   :ensure t
-  :commands agent-switch
-  :custom
-  (agent-switch-authinfo-file (expand-file-name "~/.authinfo"))
-  )
+  :commands agent-switch)
 
 ;; (use-package gptel-agent
 ;;   :ensure t
@@ -254,13 +251,15 @@
   ;; register deepseek backend
   (defvar +llm/deepseek
     (gptel-make-deepseek "DeepSeek"
-      :key (auth-source-pick-first-password :host "deepseek")
+      :key (lambda ()
+             (auth-source-pick-first-password :host "deepseek"))
       :stream t))
 
   ;; register gemini backend
   (defvar +llm/gemini
     (gptel-make-gemini "Gemini"
-      :key (auth-source-pick-first-password :host "gemini")
+      :key (lambda ()
+             (auth-source-pick-first-password :host "gemini"))
       :stream t))
 
   ;; register aliyun backend
@@ -269,7 +268,8 @@
       :host "dashscope.aliyuncs.com/compatible-mode/v1"
       :endpoint "/chat/completions"
       :stream t
-      :key (auth-source-pick-first-password :host "aliyun")
+      :key (lambda ()
+             (auth-source-pick-first-password :host "aliyun"))
       :models '(
                 qwen3.7-plus
                 (qwen3.7-max :request-params (:enable_thinking t))
@@ -280,7 +280,8 @@
       :host "https://codex1.sssaicode.com/api/v1"
       :endpoint "/chat/completions"
       :stream t
-      :key (auth-source-pick-first-password :host "sssaicode")
+      :key (lambda ()
+             (auth-source-pick-first-password :host "sssaicode"))
       :models '(gpt-5.4)))
 
   ;; register zhipu backend
@@ -289,7 +290,8 @@
       :host "open.bigmodel.cn/api/coding/paas/v4"
       :endpoint "/chat/completions"
       :stream t
-      :key (auth-source-pick-first-password :host "zhipu")
+      :key (lambda ()
+             (auth-source-pick-first-password :host "zhipu"))
       :models '(glm-4.7)))
 
   ;; register local backend
