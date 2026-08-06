@@ -64,7 +64,7 @@ only when testing another platform's package set.
 
 | Profile | Regular packages                                                                                                             | Rime target                |
 |---------+------------------------------------------------------------------------------------------------------------------------------+----------------------------|
-| =macos=   | =vim kitty aerospace bin skills=                                                                                               | =~/Library/Rime=             |
+| =macos=   | =vim nvim kitty aerospace bin skills=                                                                                          | =~/Library/Rime=             |
 | =linux=   | =vim tmux nvim kitty bin x11 rofi i3 i3blocks hypr waybar dunst flameshot fcitx5 gtk-2.0 gtk-3.0 gtk-4.0 imsettings davmail isync skills= | =~/.local/share/fcitx5/rime= |
 
 The Linux profile installs both i3 and Hyprland configuration.  Missing either

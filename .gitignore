@@ -30,3 +30,4 @@ dist/
 /packages/gtk-4.0/.config/gtk-4.0/settings.ini
 /packages/i3/.config/i3/config
 /packages/hypr/.config/hypr/hyprland.conf
+/nvim.log
