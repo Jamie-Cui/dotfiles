@@ -71,7 +71,7 @@ make bootstrap
 
 Run =make bootstrap= once after installing the apps below.
 
-*** Oh My Zsh
+*** [[https://ohmyz.sh/][Oh My Zsh]]
 
 **** macOS
 
@@ -89,7 +89,7 @@ RUNZSH=no CHSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/
 
 Log out and back in after changing the login shell.
 
-*** Maple Mono NL NF CN
+*** [[https://font.subf.dev/][Maple Mono NL NF CN]]
 
 **** macOS
 
@@ -107,21 +107,21 @@ unzip -o /tmp/MapleMonoNL-NF-CN-unhinted.zip -d ~/.local/share/fonts/maple-mono
 fc-cache -fv
 #+end_src
 
-*** Vim (=vim=)
+*** [[https://www.vim.org/][Vim]] (=vim=)
 
 #+begin_src bash
 brew install vim                 # macOS
 sudo dnf install vim-enhanced    # Fedora
 #+end_src
 
-*** Neovim (=nvim=)
+*** [[https://neovim.io/][Neovim]] (=nvim=)
 
 #+begin_src bash
 brew install neovim              # macOS
 sudo dnf install neovim          # Fedora
 #+end_src
 
-*** Emacs (=emacs=)
+*** [[https://www.gnu.org/software/emacs/][Emacs]] (=emacs=)
 
 #+begin_src bash
 git clone --branch emacs-31 --single-branch https://github.com/emacs-mirror/emacs.git ~/opt/emacs-src
@@ -170,14 +170,14 @@ cp ~/.emacs.d/early-local.el.example ~/.emacs.d/early-local.el
 
 Edit only the copied =local.el= files for machine-specific settings.
 
-*** Kitty (=kitty=)
+*** [[https://sw.kovidgoyal.net/kitty/][Kitty]] (=kitty=)
 
 #+begin_src bash
 brew install --cask kitty        # macOS
 sudo dnf install kitty           # Fedora
 #+end_src
 
-*** Flameshot (=flameshot=)
+*** [[https://flameshot.org/][Flameshot]] (=flameshot=)
 
 **** macOS
 
@@ -198,7 +198,7 @@ sudo dnf install flameshot grim
 The tracked configuration is deployed only by the Linux profile and currently
 saves screenshots below =/home/jamie/proj/magent/docs/assets/img=.
 
-*** Rime (=rime=)
+*** [[https://rime.im/][Rime]] (=rime=)
 
 **** macOS
 
@@ -219,14 +219,14 @@ im-chooser
 
 Select Fcitx 5 in =im-chooser=, then log out and back in.
 
-*** proxyctl (=bin=)
+*** [[https://github.com/Jamie-Cui/dotfiles/blob/master/packages/bin/.local/bin/proxyctl][proxyctl]] (=bin=)
 
 #+begin_src bash
 proxyctl init
 source ~/.zshrc
 #+end_src
 
-*** Codex skills (=skills=)
+*** [[https://github.com/Jamie-Cui/dotfiles/tree/master/packages/skills/.agents/skills][Codex skills]] (=skills=)
 
 No setup beyond =make bootstrap=.
 
@@ -235,85 +235,85 @@ No setup beyond =make bootstrap=.
 Run =make bootstrap= once after installing the apps needed by the chosen X11 or
 Wayland session.
 
-*** tmux (=tmux=)
+*** [[https://github.com/tmux/tmux][tmux]] (=tmux=)
 
 #+begin_src bash
 sudo dnf install tmux
 #+end_src
 
-*** X11 (=x11=)
+*** [[https://www.x.org/][X11]] (=x11=)
 
 #+begin_src bash
 sudo dnf install xorg-x11-server-Xorg xorg-x11-xinit xorg-x11-xauth
 #+end_src
 
-*** i3 (=i3=)
+*** [[https://i3wm.org/][i3]] (=i3=)
 
 #+begin_src bash
 sudo dnf install i3 i3lock picom feh xclip dex-autostart network-manager-applet pulseaudio-utils ibus jq xss-lock setxkbmap
 #+end_src
 
-*** i3blocks (=i3blocks=)
+*** [[https://vivien.github.io/i3blocks/][i3blocks]] (=i3blocks=)
 
 #+begin_src bash
 sudo dnf install i3blocks alsa-utils sysstat perl
 #+end_src
 
-*** Rofi (=rofi=)
+*** [[https://davatorium.github.io/rofi/][Rofi]] (=rofi=)
 
 #+begin_src bash
 sudo dnf install rofi firefox
 #+end_src
 
-*** Hyprland (=hypr=)
+*** [[https://hypr.land/][Hyprland]] (=hypr=)
 
 #+begin_src bash
 sudo dnf install hyprland hyprlock hyprpaper xdg-desktop-portal-hyprland brightnessctl playerctl wireplumber xclip
 #+end_src
 
-*** Waybar (=waybar=)
+*** [[https://github.com/Alexays/Waybar][Waybar]] (=waybar=)
 
 #+begin_src bash
 sudo dnf install waybar jq playerctl blueman network-manager-applet NetworkManager-tui pavucontrol htop baobab
 #+end_src
 
-*** Dunst (=dunst=)
+*** [[https://dunst-project.org/][Dunst]] (=dunst=)
 
 #+begin_src bash
 sudo dnf install dunst
 #+end_src
 
-*** Fcitx5 (=fcitx5=)
+*** [[https://fcitx-im.org/][Fcitx5]] (=fcitx5=)
 
 #+begin_src bash
 sudo dnf install fcitx5 fcitx5-rime fcitx5-gtk fcitx5-qt
 #+end_src
 
-*** GTK 2 (=gtk-2.0=)
+*** [[https://www.gtk.org/][GTK 2]] (=gtk-2.0=)
 
 #+begin_src bash
 sudo dnf install gtk2
 #+end_src
 
-*** GTK 3 (=gtk-3.0=)
+*** [[https://www.gtk.org/][GTK 3]] (=gtk-3.0=)
 
 #+begin_src bash
 sudo dnf install gtk3
 #+end_src
 
-*** GTK 4 (=gtk-4.0=)
+*** [[https://www.gtk.org/][GTK 4]] (=gtk-4.0=)
 
 #+begin_src bash
 sudo dnf install gtk4
 #+end_src
 
-*** imsettings (=imsettings=)
+*** [[https://gitlab.com/tagoh/imsettings][imsettings]] (=imsettings=)
 
 #+begin_src bash
 sudo dnf install imsettings
 #+end_src
 
-*** DavMail (=davmail=)
+*** [[https://davmail.sourceforge.net/][DavMail]] (=davmail=)
 
 #+begin_src bash
 sudo dnf copr enable mguessan/davmail
@@ -326,7 +326,7 @@ journalctl --user -fu davmail.service
 Keep the log open during the first =mbsync= run and complete the Microsoft
 device-code prompt it prints.
 
-*** isync (=isync=)
+*** [[https://isync.sourceforge.io/][isync]] (=isync=)
 
 #+begin_src bash
 sudo dnf install isync maildir-utils
@@ -350,7 +350,7 @@ machine 127.0.0.1 login you@outlook.com password LOCAL_KEY port 1025
 
 Run =make bootstrap= after installing the app.
 
-*** AeroSpace (=aerospace=)
+*** [[https://nikitabobko.github.io/AeroSpace/][AeroSpace]] (=aerospace=)
 
 #+begin_src bash
 brew install --cask nikitabobko/tap/aerospace
