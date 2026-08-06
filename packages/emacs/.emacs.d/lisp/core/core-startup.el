@@ -46,10 +46,13 @@
 
 (add-hook 'emacs-startup-hook #'+emacs/restore-startup-settings-h)
 
-;; Apply the configured proxy to Emacs' URL stack when it is available.
-(when (boundp 'url-proxy-services)
-  (add-to-list 'url-proxy-services `("http" . ,+emacs/proxy))
-  (add-to-list 'url-proxy-services `("https" . ,+emacs/proxy)))
+;; Load the URL variables before applying the proxy.  At startup the URL stack
+;; is normally still unloaded, so guarding this with `boundp' silently skipped
+;; the proxy and made package.el attempt a direct connection.
+(require 'url-vars)
+(dolist (scheme '("http" "https"))
+  (setf (alist-get scheme url-proxy-services nil nil #'string=)
+        +emacs/proxy))
 
 ;; Work around an Emacs 30.2+ native-comp regression in built-in Org.
 (defvar native-comp-jit-compilation-deny-list nil)

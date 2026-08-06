@@ -49,7 +49,8 @@
   (let* ((target (expand-file-name path))
          (log-buffer (get-buffer-create "*Compile-Log*")))
     (with-current-buffer log-buffer
-      (erase-buffer))
+      (let ((inhibit-read-only t))
+        (erase-buffer)))
     (byte-compile-file target)
     (let ((log-output
            (if (buffer-live-p log-buffer)
@@ -72,7 +73,8 @@
            t))
          (results-buffer (get-buffer-create "*ERT*")))
     (with-current-buffer results-buffer
-      (erase-buffer))
+      (let ((inhibit-read-only t))
+        (erase-buffer)))
     (if (null tests)
         (format "No ERT tests matched: %s" pattern)
       (let ((stats (ert-run-tests-batch tests)))
@@ -121,6 +123,45 @@
   "Set `debug-on-quit' to VALUE and report the result."
   (setq debug-on-quit (if (null value) (not debug-on-quit) value))
   (format "debug-on-quit=%S" debug-on-quit))
+
+(cl-defun agent-skills/configure-url-proxy (proxy)
+  "Configure Emacs URL access to use HTTP/HTTPS PROXY and report the result."
+  (unless (and (stringp proxy)
+               (string-match-p
+                "\\`[[:alnum:]._-]+:[[:digit:]]+\\'" proxy))
+    (error "Invalid proxy host and port: %S" proxy))
+  (require 'url-vars)
+  (dolist (scheme '("http" "https"))
+    (setf (alist-get scheme url-proxy-services nil nil #'string=) proxy))
+  (format "Configured HTTP/HTTPS proxy: %s" proxy))
+
+(cl-defun agent-skills/package-refresh-contents ()
+  "Refresh package archive metadata and report the available package count."
+  (require 'package)
+  (package-refresh-contents)
+  (format "Refreshed package archives; available packages: %d"
+          (length package-archive-contents)))
+
+(cl-defun agent-skills/package-install (names)
+  "Install packages named by the list of strings NAMES and report their state."
+  (require 'package)
+  (dolist (name names)
+    (unless (and (stringp name)
+                 (string-match-p "\\`[[:alnum:]-]+\\'" name))
+      (error "Invalid package name: %S" name))
+    (package-install (intern name)))
+  (mapconcat
+   (lambda (name)
+     (format "%s=%s" name
+             (if (package-installed-p (intern name)) "installed" "missing")))
+   names "\n"))
+
+(cl-defun agent-skills/reload-user-init ()
+  "Reload `user-init-file' and report the loaded path."
+  (unless (and user-init-file (file-readable-p user-init-file))
+    (error "User init file is not readable: %S" user-init-file))
+  (load user-init-file nil nil t)
+  (format "Reloaded user init: %s" user-init-file))
 
 (cl-defun agent-skills/feature-state (feature-name)
   "Report whether FEATURE-NAME is loaded."
