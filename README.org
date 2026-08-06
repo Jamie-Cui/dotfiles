@@ -7,38 +7,38 @@ Personal Linux and macOS config deployed with [[https://www.gnu.org/software/sto
 
 ** Contents
 
-- [[*Prerequisites][Prerequisites]]
-  - [[*macOS][macOS]]
-  - [[*Fedora][Fedora]]
-  - [[*Deploy][Deploy]]
-- [[*Cross-platform apps][Cross-platform apps]]
-  - [[*Oh My Zsh][Oh My Zsh]]
-  - [[*Vim (=vim=)][Vim]]
-  - [[*Neovim (=nvim=)][Neovim]]
-  - [[*Emacs (=emacs=)][Emacs]]
-  - [[*Kitty (=kitty=)][Kitty]]
-  - [[*Rime (=rime=)][Rime]]
-  - [[*proxyctl (=bin=)][proxyctl]]
-  - [[*Codex skills (=skills=)][Codex skills]]
-- [[*GNU/Linux (Fedora) apps][GNU/Linux (Fedora) apps]]
-  - [[*tmux (=tmux=)][tmux]]
-  - [[*X11 (=x11=)][X11]]
-  - [[*i3 (=i3=)][i3]]
-  - [[*i3blocks (=i3blocks=)][i3blocks]]
-  - [[*Rofi (=rofi=)][Rofi]]
-  - [[*Hyprland (=hypr=)][Hyprland]]
-  - [[*Waybar (=waybar=)][Waybar]]
-  - [[*Dunst (=dunst=)][Dunst]]
-  - [[*Flameshot (=flameshot=)][Flameshot]]
-  - [[*Fcitx5 (=fcitx5=)][Fcitx5]]
-  - [[*GTK 2 (=gtk-2.0=)][GTK 2]]
-  - [[*GTK 3 (=gtk-3.0=)][GTK 3]]
-  - [[*GTK 4 (=gtk-4.0=)][GTK 4]]
-  - [[*imsettings (=imsettings=)][imsettings]]
-  - [[*DavMail (=davmail=)][DavMail]]
-  - [[*isync (=isync=)][isync]]
-- [[*MacOS apps][MacOS apps]]
-  - [[*AeroSpace (=aerospace=)][AeroSpace]]
+- [[#prerequisites][Prerequisites]]
+    - [[#macos][macOS]]
+    - [[#fedora][Fedora]]
+    - [[#deploy][Deploy]]
+- [[#cross-platform-apps][Cross-platform apps]]
+    - [[#oh-my-zsh][Oh My Zsh]]
+    - [[#vim-vim][Vim]]
+    - [[#neovim-nvim][Neovim]]
+    - [[#emacs-emacs][Emacs]]
+    - [[#kitty-kitty][Kitty]]
+    - [[#rime-rime][Rime]]
+    - [[#proxyctl-bin][proxyctl]]
+    - [[#codex-skills-skills][Codex skills]]
+- [[#gnulinux-fedora-apps][GNU/Linux (Fedora) apps]]
+    - [[#tmux-tmux][tmux]]
+    - [[#x11-x11][X11]]
+    - [[#i3-i3][i3]]
+    - [[#i3blocks-i3blocks][i3blocks]]
+    - [[#rofi-rofi][Rofi]]
+    - [[#hyprland-hypr][Hyprland]]
+    - [[#waybar-waybar][Waybar]]
+    - [[#dunst-dunst][Dunst]]
+    - [[#flameshot-flameshot][Flameshot]]
+    - [[#fcitx5-fcitx5][Fcitx5]]
+    - [[#gtk-2-gtk-20][GTK 2]]
+    - [[#gtk-3-gtk-30][GTK 3]]
+    - [[#gtk-4-gtk-40][GTK 4]]
+    - [[#imsettings-imsettings][imsettings]]
+    - [[#davmail-davmail][DavMail]]
+    - [[#isync-isync][isync]]
+- [[#macos-apps][MacOS apps]]
+    - [[#aerospace-aerospace][AeroSpace]]
 
 ** Prerequisites
 
@@ -280,4 +280,10 @@ Run =make bootstrap= after installing the app.
 brew install --cask nikitabobko/tap/aerospace
 brew tap FelixKratz/formulae
 brew install borders
+
+# HACK fix mission control
+defaults write com.apple.dock expose-group-apps -bool true && killall Dock
+
+# HACK fix dock (additional turn on autohide in settings)
+defaults write com.apple.dock pinning -string start && killall Dock
 #+end_src
