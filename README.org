@@ -13,10 +13,12 @@ Personal Linux and macOS config deployed with [[https://www.gnu.org/software/sto
     - [[#deploy][Deploy]]
 - [[#cross-platform-apps][Cross-platform apps]]
     - [[#oh-my-zsh][Oh My Zsh]]
+    - [[#maple-mono-nl-nf-cn][Maple Mono NL NF CN]]
     - [[#vim-vim][Vim]]
     - [[#neovim-nvim][Neovim]]
     - [[#emacs-emacs][Emacs]]
     - [[#kitty-kitty][Kitty]]
+    - [[#flameshot-flameshot][Flameshot]]
     - [[#rime-rime][Rime]]
     - [[#proxyctl-bin][proxyctl]]
     - [[#codex-skills-skills][Codex skills]]
@@ -29,7 +31,6 @@ Personal Linux and macOS config deployed with [[https://www.gnu.org/software/sto
     - [[#hyprland-hypr][Hyprland]]
     - [[#waybar-waybar][Waybar]]
     - [[#dunst-dunst][Dunst]]
-    - [[#flameshot-flameshot][Flameshot]]
     - [[#fcitx5-fcitx5][Fcitx5]]
     - [[#gtk-2-gtk-20][GTK 2]]
     - [[#gtk-3-gtk-30][GTK 3]]
@@ -72,8 +73,38 @@ Run =make bootstrap= once after installing the apps below.
 
 *** Oh My Zsh
 
+**** macOS
+
 #+begin_src bash
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+#+end_src
+
+**** Fedora
+
+#+begin_src bash
+sudo dnf install zsh curl util-linux-user
+chsh -s "$(command -v zsh)"
+RUNZSH=no CHSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+#+end_src
+
+Log out and back in after changing the login shell.
+
+*** Maple Mono NL NF CN
+
+**** macOS
+
+#+begin_src bash
+brew install --cask font-maple-mono-nl-nf-cn
+#+end_src
+
+**** Fedora
+
+#+begin_src bash
+sudo dnf install curl unzip fontconfig
+mkdir -p ~/.local/share/fonts/maple-mono
+curl -fL https://github.com/subframe7536/maple-font/releases/latest/download/MapleMonoNL-NF-CN-unhinted.zip -o /tmp/MapleMonoNL-NF-CN-unhinted.zip
+unzip -o /tmp/MapleMonoNL-NF-CN-unhinted.zip -d ~/.local/share/fonts/maple-mono
+fc-cache -fv
 #+end_src
 
 *** Vim (=vim=)
@@ -146,12 +177,47 @@ brew install --cask kitty        # macOS
 sudo dnf install kitty           # Fedora
 #+end_src
 
-*** Rime (=rime=)
+*** Flameshot (=flameshot=)
+
+**** macOS
+
+Download the latest =.dmg= from [[https://github.com/flameshot-org/flameshot/releases/latest][Flameshot Releases]], copy Flameshot to
+=/Applications=, open it once, then enable Screen & System Audio Recording
+permission.  If macOS blocks the first launch:
 
 #+begin_src bash
-brew install --cask squirrel-app           # macOS
-sudo dnf install fcitx5 fcitx5-rime        # Fedora
+xattr -rd com.apple.quarantine /Applications/flameshot.app
 #+end_src
+
+**** Fedora
+
+#+begin_src bash
+sudo dnf install flameshot grim
+#+end_src
+
+The tracked configuration is deployed only by the Linux profile and currently
+saves screenshots below =/home/jamie/proj/magent/docs/assets/img=.
+
+*** Rime (=rime=)
+
+**** macOS
+
+#+begin_src bash
+brew install --cask squirrel-app
+#+end_src
+
+Add Squirrel in System Settings → Keyboard → Input Sources.  After =make
+bootstrap=, choose Squirrel → Redeploy from the input-method menu; log out and
+back in if Squirrel does not work in existing applications.
+
+**** Fedora
+
+#+begin_src bash
+sudo dnf install fcitx5 fcitx5-rime imsettings im-chooser
+im-chooser
+#+end_src
+
+Select Fcitx 5 in =im-chooser=, then log out and back in.
 
 *** proxyctl (=bin=)
 
@@ -184,19 +250,19 @@ sudo dnf install xorg-x11-server-Xorg xorg-x11-xinit xorg-x11-xauth
 *** i3 (=i3=)
 
 #+begin_src bash
-sudo dnf install i3 i3lock picom feh xclip dex-autostart network-manager-applet pulseaudio-utils ibus
+sudo dnf install i3 i3lock picom feh xclip dex-autostart network-manager-applet pulseaudio-utils ibus jq xss-lock setxkbmap
 #+end_src
 
 *** i3blocks (=i3blocks=)
 
 #+begin_src bash
-sudo dnf install i3blocks alsa-utils
+sudo dnf install i3blocks alsa-utils sysstat perl
 #+end_src
 
 *** Rofi (=rofi=)
 
 #+begin_src bash
-sudo dnf install rofi
+sudo dnf install rofi firefox
 #+end_src
 
 *** Hyprland (=hypr=)
@@ -215,12 +281,6 @@ sudo dnf install waybar jq playerctl blueman network-manager-applet NetworkManag
 
 #+begin_src bash
 sudo dnf install dunst
-#+end_src
-
-*** Flameshot (=flameshot=)
-
-#+begin_src bash
-sudo dnf install flameshot
 #+end_src
 
 *** Fcitx5 (=fcitx5=)
@@ -260,15 +320,31 @@ sudo dnf copr enable mguessan/davmail
 sudo dnf install davmail java-latest-openjdk-headless
 mkdir -p ~/.local/state/davmail
 systemctl --user enable --now davmail.service
+journalctl --user -fu davmail.service
 #+end_src
+
+Keep the log open during the first =mbsync= run and complete the Microsoft
+device-code prompt it prints.
 
 *** isync (=isync=)
 
 #+begin_src bash
 sudo dnf install isync maildir-utils
-# Configure ~/.authinfo before the first sync.
+openssl rand -hex 32
+touch ~/.authinfo
+chmod 600 ~/.authinfo
+$EDITOR ~/.authinfo
 mbsync outlook
+mu index
 #+end_src
+
+Use the generated value as the same =LOCAL_KEY= in both entries; it is not the
+Microsoft password:
+
+#+begin_example
+machine 127.0.0.1 login you@outlook.com password LOCAL_KEY port 1143
+machine 127.0.0.1 login you@outlook.com password LOCAL_KEY port 1025
+#+end_example
 
 ** MacOS apps
 
@@ -281,9 +357,17 @@ brew install --cask nikitabobko/tap/aerospace
 brew tap FelixKratz/formulae
 brew install borders
 
-# HACK fix mission control
-defaults write com.apple.dock expose-group-apps -bool true && killall Dock
-
-# HACK fix dock (additional turn on autohide in settings)
-defaults write com.apple.dock pinning -string start && killall Dock
+# Mission Control and Dock settings required by this layout.
+defaults write com.apple.dock expose-group-apps -bool true
+defaults write com.apple.dock autohide -bool true
+defaults write com.apple.dock pinning -string start
+killall Dock
 #+end_src
+
+If macOS blocks the first launch:
+
+#+begin_src bash
+xattr -d com.apple.quarantine /Applications/AeroSpace.app
+#+end_src
+
+The tracked bindings currently assume the macOS account name is =jamie=.
