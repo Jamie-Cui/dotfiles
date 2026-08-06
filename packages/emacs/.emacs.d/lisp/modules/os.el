@@ -43,7 +43,6 @@
 
 (when (eq system-type 'darwin)
   (setq mac-command-modifier 'meta)
-  ;; (add-to-list 'default-frame-alist '(undecorated . t))
   ;; Fix, macos dired permission
   (setq insert-directory-program "gls" dired-use-ls-dired t)
 

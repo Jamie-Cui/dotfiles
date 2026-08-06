@@ -33,4 +33,7 @@
   (when (file-readable-p local-file)
     (load local-file nil 'nomessage)))
 
+;; undecorated frame
+(add-to-list 'default-frame-alist '(undecorated . t))
+
 ;;; early-init.el ends here
