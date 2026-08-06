@@ -3,192 +3,210 @@
 
 * dotfiles
 
-Personal Linux and macOS configuration deployed with GNU Stow.  Each directory
-under =packages/= is an independently deployable package whose contents mirror
-paths below the target home directory.
+Personal Linux and macOS config deployed with [GNU Stow](https://www.gnu.org/software/stow/).
 
-Reusable Codex skills live in the =skills= Stow package and deploy into
-=~/.agents/skills=.  The complete Emacs configuration is also part of this
-repository and deploys into the conventional =~/.emacs.d= directory while
-leaving machine-local files and runtime state untracked.
+** Prequisites
 
-** New machine quick start
-
-Install the bootstrap tools first, clone this repository at =~/opt/dotfiles=,
-preview the selected operating-system profile, and deploy it:
-
-*** macOS bootstrap
-
-1. Install Apple's command-line tools.  This supplies =git=, =make=, and the
-   compiler toolchain:
+*** macOS
 
 #+begin_src bash
 xcode-select --install
-#+end_src
-
-2. Install [[https://brew.sh/][Homebrew]] using the command on its official homepage, then install Stow:
-
-#+begin_src bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 brew install stow
 #+end_src
 
-3. Install the applications managed by the macOS profile:
-
-#+begin_src bash
-brew install neovim ripgrep fd universal-ctags
-brew install --cask emacs-app kitty nikitabobko/tap/aerospace squirrel-app
-#+end_src
-
-The configuration requires Emacs 30.1 or newer.  Check it with
-=emacs --version=.  The cask is the shortest installation path; the
-[[file:packages/emacs/.emacs.d/README.org][Emacs README]] also documents a source build with native compilation and
-tree-sitter.
-
-*** Fedora Linux bootstrap
-
-Install the bootstrap tools and the applications referenced by the Linux
-profile:
+*** Fedora
 
 #+begin_src bash
 sudo dnf install git make stow
-sudo dnf install neovim emacs kitty tmux ripgrep fd-find universal-ctags
-sudo dnf install i3 rofi dunst flameshot waybar hyprland
-sudo dnf install fcitx5 fcitx5-rime fcitx5-gtk fcitx5-qt
 #+end_src
 
-Package availability follows the Fedora release in use.  If its =emacs=
-package is older than 30.1, install a newer Fedora release or build Emacs using
-the instructions in the [[file:packages/emacs/.emacs.d/README.org][Emacs README]].  Both i3 and Hyprland are installed because
-the Linux profile carries configuration for both; omit the desktop packages
-you do not intend to run without affecting Stow.
-
-Mail support uses DavMail, mbsync, and mu:
-
-#+begin_src bash
-sudo dnf copr enable mguessan/davmail
-sudo dnf install davmail java-latest-openjdk-headless isync maildir-utils
-#+end_src
-
-*** Clone and deploy
-
-These commands are the same on both systems:
+*** Deploy
 
 #+begin_src bash
 mkdir -p ~/opt
-git clone git@github.com:Jamie-Cui/dotfiles.git ~/opt/dotfiles
+git clone https://github.com/Jamie-Cui/dotfiles.git ~/opt/dotfiles
 cd ~/opt/dotfiles
-make list-profile
 make dry-run
 make bootstrap
 #+end_src
 
-=make bootstrap= generates tracked templates and deploys the selected Stow
-profile, including the managed Emacs source below =~/.emacs.d=.  It does not
-install operating-system packages or overwrite conflicting files.  On the first Emacs launch,
-=use-package= installs missing ELPA packages from the archives configured in
-=~/.emacs.d/init.el=.
-
-The SSH clone URL requires a GitHub SSH key.  On a machine where the key is not
-ready yet, use HTTPS instead:
-
-#+begin_src bash
-git clone https://github.com/Jamie-Cui/dotfiles.git ~/opt/dotfiles
-#+end_src
-
-*** Feature dependencies
-
-The bootstrap commands above are enough to deploy the files.  Install the
-following only for the corresponding Emacs or shell features:
-
-| Feature | macOS | Fedora Linux |
-|---------+-------+--------------|
-| C/C++ and native compilation | =brew install gcc libgccjit cmake ninja autoconf automake pkg-config= | =sudo dnf install gcc gcc-c++ libgccjit cmake ninja-build autoconf automake libtool pkgconf-pkg-config= |
-| clangd, formatting, linting | =brew install llvm clang-format pipx; pipx install cpplint; pipx install cmakelang= | =sudo dnf install clang-tools-extra python3-pip pipx; pipx install cpplint; pipx install cmakelang= |
-| Org PlantUML | =brew install plantuml= | =sudo dnf install plantuml= |
-| Org/LaTeX and PDF tools | =brew install --cask mactex-no-gui= | =sudo dnf install latexmk texlive-scheme-full= |
-| Mail on macOS | =brew install isync mu && brew install --cask davmail-app= | See the DavMail commands above |
-| Containers | Install [[https://docs.docker.com/desktop/setup/install/mac-install/][Docker Desktop]] | =sudo dnf install moby-engine docker-compose= |
-| GitHub workflows | =brew install gh= | =sudo dnf install gh= |
-
-Install =pipx= first on macOS when using the Python tools:
-
-#+begin_src bash
-brew install pipx
-pipx ensurepath
-#+end_src
-
-The UI expects [[https://github.com/subframe7536/maple-font/releases][Maple Mono NF CN]]; download the latest
-=MapleMonoNL-NF-CN= archive and install its font files through Font Book on
-macOS or =~/.local/share/fonts= plus =fc-cache -fv= on Linux.  Missing optional
-tools disable their associated feature but do not prevent Stow deployment.
-
 ** Cross-platform apps
 
-These packages are managed on both profiles.  The =Package= column is the
-directory below =packages/=; installation commands install the corresponding
-application, while =make bootstrap= installs its configuration.
+Run =make bootstrap= once after installing the apps below.
 
-| Package | Managed application or interface | macOS install | Fedora install |
-|---------+----------------------------------+---------------+----------------|
-| =vim= | Vim configuration in =~/.vimrc= | =brew install vim= | =sudo dnf install vim-enhanced= |
-| =nvim= | Neovim configuration and pinned plugins | =brew install neovim= | =sudo dnf install neovim= |
-| =emacs= | Emacs 30.1+ configuration in =~/.emacs.d= | =brew install --cask emacs-app= | =sudo dnf install emacs= |
-| =kitty= | Kitty terminal configuration and themes | =brew install --cask kitty= | =sudo dnf install kitty= |
-| =rime= | Shared Rime schema customizations; deployed to the profile-specific input-method directory | =brew install --cask squirrel-app= | =sudo dnf install fcitx5 fcitx5-rime= |
-| =bin= | Repository-owned =proxyctl= zsh function and completion | macOS already supplies zsh; Git comes from Command Line Tools | =sudo dnf install zsh git= |
-| =skills= | Repository-owned Codex skills under =~/.agents/skills= | No separate OS package | No separate OS package |
+*** Oh My Zsh
 
-The =emacs= package tracks only configuration source.  Keep ELPA packages,
-native-compilation output, history, databases, =local.el=, =early-local.el=,
-and =custom.el= as untracked runtime or machine-local files in =~/.emacs.d=.
-The =skills= and =bin= rows are local tools rather than third-party apps; Stow
-deploys them directly from this repository.
+#+begin_src bash
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+#+end_src
+
+*** Vim (=vim=)
+
+#+begin_src bash
+brew install vim                 # macOS
+sudo dnf install vim-enhanced    # Fedora
+#+end_src
+
+*** Neovim (=nvim=)
+
+#+begin_src bash
+brew install neovim              # macOS
+sudo dnf install neovim          # Fedora
+#+end_src
+
+*** Emacs (=emacs=)
+
+#+begin_src bash
+brew install --cask emacs-app    # macOS
+sudo dnf install emacs           # Fedora
+
+cp ~/.emacs.d/local.el.example ~/.emacs.d/local.el
+cp ~/.emacs.d/early-local.el.example ~/.emacs.d/early-local.el
+#+end_src
+
+Requires Emacs 30.1 or newer.  Edit only the copied =local.el= files for
+machine-specific settings.
+
+*** Kitty (=kitty=)
+
+#+begin_src bash
+brew install --cask kitty        # macOS
+sudo dnf install kitty           # Fedora
+#+end_src
+
+*** Rime (=rime=)
+
+#+begin_src bash
+brew install --cask squirrel-app           # macOS
+sudo dnf install fcitx5 fcitx5-rime        # Fedora
+#+end_src
+
+*** proxyctl (=bin=)
+
+#+begin_src bash
+proxyctl init
+source ~/.zshrc
+#+end_src
+
+*** Codex skills (=skills=)
+
+No setup beyond =make bootstrap=.
 
 ** GNU/Linux (Fedora) apps
 
-The Linux profile includes both the i3/X11 and Hyprland/Wayland stacks.  Install
-both groups for a fully reproducible host, or install only the session that the
-machine will actually run; Stow itself does not require the application to be
-present.
+Run =make bootstrap= once after installing the apps needed by the chosen X11 or
+Wayland session.
 
-| Package | Managed application or interface | Fedora install |
-|---------+----------------------------------+----------------|
-| =tmux= | tmux terminal multiplexer | =sudo dnf install tmux= |
-| =x11= | X11 session resources and =~/.xprofile= | =sudo dnf install xorg-x11-server-Xorg xorg-x11-xinit xorg-x11-xauth= |
-| =i3= | i3 window manager, lock screen, wallpaper, compositor, clipboard, autostart, and NetworkManager integration | =sudo dnf install i3 i3lock picom feh xclip dex-autostart network-manager-applet pulseaudio-utils= |
-| =i3blocks= | i3 status bar scripts, including ALSA volume control | =sudo dnf install i3blocks alsa-utils= |
-| =rofi= | Application launcher shared by i3 and Hyprland | =sudo dnf install rofi= |
-| =hypr= | Hyprland, hyprlock, hyprpaper, portals, media keys, and brightness control | =sudo dnf install hyprland hyprlock hyprpaper xdg-desktop-portal-hyprland brightnessctl playerctl wireplumber xclip= |
-| =waybar= | Waybar plus the programs invoked by its modules | =sudo dnf install waybar jq playerctl blueman network-manager-applet NetworkManager-tui pavucontrol htop baobab= |
-| =dunst= | Dunst notification daemon and reload helper | =sudo dnf install dunst= |
-| =flameshot= | Flameshot screenshot tool | =sudo dnf install flameshot= |
-| =fcitx5= | Fcitx5 daemon, GTK/Qt frontends, and Rime engine | =sudo dnf install fcitx5 fcitx5-rime fcitx5-gtk fcitx5-qt= |
-| =gtk-2.0=, =gtk-3.0=, =gtk-4.0= | Generated font settings for all supported GTK generations | =sudo dnf install gtk2 gtk3 gtk4= |
-| =imsettings= | Input-method selection used by the X11 session | =sudo dnf install imsettings= |
-| =davmail= | DavMail gateway and systemd user service | =sudo dnf copr enable mguessan/davmail && sudo dnf install davmail java-latest-openjdk-headless= |
-| =isync= | mbsync configuration for the local Outlook Maildir | =sudo dnf install isync maildir-utils= |
+*** tmux (=tmux=)
 
-The i3 configuration directly invokes =ibus-daemon= by default even though the
-profile also carries Fcitx5 settings.  Install =ibus= when using that default,
-or switch the startup command and =RIME_TARGET_linux= together for an Fcitx5-only
-host.  Hyprland uses Fcitx5 by default.
+#+begin_src bash
+sudo dnf install tmux
+#+end_src
+
+*** X11 (=x11=)
+
+#+begin_src bash
+sudo dnf install xorg-x11-server-Xorg xorg-x11-xinit xorg-x11-xauth
+#+end_src
+
+*** i3 (=i3=)
+
+#+begin_src bash
+sudo dnf install i3 i3lock picom feh xclip dex-autostart network-manager-applet pulseaudio-utils ibus
+#+end_src
+
+*** i3blocks (=i3blocks=)
+
+#+begin_src bash
+sudo dnf install i3blocks alsa-utils
+#+end_src
+
+*** Rofi (=rofi=)
+
+#+begin_src bash
+sudo dnf install rofi
+#+end_src
+
+*** Hyprland (=hypr=)
+
+#+begin_src bash
+sudo dnf install hyprland hyprlock hyprpaper xdg-desktop-portal-hyprland brightnessctl playerctl wireplumber xclip
+#+end_src
+
+*** Waybar (=waybar=)
+
+#+begin_src bash
+sudo dnf install waybar jq playerctl blueman network-manager-applet NetworkManager-tui pavucontrol htop baobab
+#+end_src
+
+*** Dunst (=dunst=)
+
+#+begin_src bash
+sudo dnf install dunst
+#+end_src
+
+*** Flameshot (=flameshot=)
+
+#+begin_src bash
+sudo dnf install flameshot
+#+end_src
+
+*** Fcitx5 (=fcitx5=)
+
+#+begin_src bash
+sudo dnf install fcitx5 fcitx5-rime fcitx5-gtk fcitx5-qt
+#+end_src
+
+*** GTK 2 (=gtk-2.0=)
+
+#+begin_src bash
+sudo dnf install gtk2
+#+end_src
+
+*** GTK 3 (=gtk-3.0=)
+
+#+begin_src bash
+sudo dnf install gtk3
+#+end_src
+
+*** GTK 4 (=gtk-4.0=)
+
+#+begin_src bash
+sudo dnf install gtk4
+#+end_src
+
+*** imsettings (=imsettings=)
+
+#+begin_src bash
+sudo dnf install imsettings
+#+end_src
+
+*** DavMail (=davmail=)
+
+#+begin_src bash
+sudo dnf copr enable mguessan/davmail
+sudo dnf install davmail java-latest-openjdk-headless
+mkdir -p ~/.local/state/davmail
+systemctl --user enable --now davmail.service
+#+end_src
+
+*** isync (=isync=)
+
+#+begin_src bash
+sudo dnf install isync maildir-utils
+# Configure ~/.authinfo before the first sync.
+mbsync outlook
+#+end_src
 
 ** MacOS apps
 
-The macOS-only profile package is AeroSpace.  Kitty, Emacs, Neovim, Vim, Rime,
-the local scripts, and Codex skills are already covered by the cross-platform
-table.
+Run =make bootstrap= after installing the app.
 
-| Package | Managed application or interface | macOS install |
-|---------+----------------------------------+---------------|
-| =aerospace= | AeroSpace tiling window manager and layout toggle helper | =brew install --cask nikitabobko/tap/aerospace= |
-
-The AeroSpace startup configuration also invokes JankyBorders:
+*** AeroSpace (=aerospace=)
 
 #+begin_src bash
+brew install --cask nikitabobko/tap/aerospace
 brew tap FelixKratz/formulae
 brew install borders
 #+end_src
-
-After installing the apps, use =make list-profile= to confirm the selected set,
-=make dry-run= to inspect every link, and =make bootstrap= to deploy it.
