@@ -174,7 +174,12 @@ prepare_mock_environment() {
 }
 
 @test "build-emacs adds the component and caps default jobs at four" {
-	run env DOTFILES_SETUP_OS=fedora DOTFILES_SETUP_NO_TTY=1 \
+	job_bin=$BATS_TEST_TMPDIR/job-bin
+	mkdir -p "$job_bin"
+	make_executable "$job_bin/getconf" 'printf "%s\\n" 12'
+
+	run env PATH="$job_bin:/usr/bin:/bin" \
+		DOTFILES_SETUP_OS=fedora DOTFILES_SETUP_NO_TTY=1 \
 		/bin/bash "$setup_script" --preset minimal --build-emacs --yes --dry-run
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"- emacs"* ]]
