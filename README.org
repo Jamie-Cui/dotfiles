@@ -49,14 +49,14 @@ platform profile.  With a terminal attached, the one-line command opens a
 numbered component menu:
 
 #+begin_src bash
-curl -fsSL https://raw.githubusercontent.com/Jamie-Cui/dotfiles/master/scripts/setup.sh | bash
+curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26086e1c63/raw/setup-gist.sh | bash
 #+end_src
 
 For an unattended, reproducible run, pass a preset and explicitly accept the
 two confirmations:
 
 #+begin_src bash
-curl -fsSL https://raw.githubusercontent.com/Jamie-Cui/dotfiles/master/scripts/setup.sh | \
+curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26086e1c63/raw/setup-gist.sh | \
     bash -s -- --preset recommended --yes
 #+end_src
 
@@ -67,11 +67,11 @@ shell, font, editor, terminal, and Rime tools; plus AeroSpace on macOS), and
 
 #+begin_src bash
 # Inspect without sudo, downloads, clone, generated files, or logs.
-curl -fsSL https://raw.githubusercontent.com/Jamie-Cui/dotfiles/master/scripts/setup.sh | \
+curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26086e1c63/raw/setup-gist.sh | \
     bash -s -- --preset minimal --with emacs --dry-run
 
 # Prepare Emacs through configure; add --build-emacs to compile and install it.
-curl -fsSL https://raw.githubusercontent.com/Jamie-Cui/dotfiles/master/scripts/setup.sh | \
+curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26086e1c63/raw/setup-gist.sh | \
     bash -s -- --preset minimal --with emacs --yes
 #+end_src
 
@@ -89,7 +89,7 @@ and the proxy-only sudo environment see the same settings:
 #+begin_src bash
 export http_proxy=http://127.0.0.1:10808
 export https_proxy=$http_proxy
-curl -fsSL https://raw.githubusercontent.com/Jamie-Cui/dotfiles/master/scripts/setup.sh | bash
+curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26086e1c63/raw/setup-gist.sh | bash
 #+end_src
 
 Existing configuration is never adopted or cleaned.  A dirty/diverged clone or
@@ -98,11 +98,12 @@ independent components and dotfiles continue; expected GUI, authentication,
 Rime, and logout steps are reported separately as pending work.  Full logs are
 written below =~/.local/state/dotfiles/= after the install is confirmed.
 
-To inspect the script before running it:
+The Gist is a small loader; =scripts/setup.sh= in this repository remains the
+source of truth.  To inspect the loader before running it:
 
 #+begin_src bash
 tmp=$(mktemp)
-curl -fsSL https://raw.githubusercontent.com/Jamie-Cui/dotfiles/master/scripts/setup.sh -o "$tmp"
+curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26086e1c63/raw/setup-gist.sh -o "$tmp"
 less "$tmp"
 bash "$tmp"
 #+end_src

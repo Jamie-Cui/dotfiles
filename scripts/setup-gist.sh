@@ -6,7 +6,7 @@ setup_url=https://raw.githubusercontent.com/Jamie-Cui/dotfiles/master/scripts/se
 temporary=$(mktemp -d "${TMPDIR:-/tmp}/dotfiles-setup-loader.XXXXXX")
 trap 'rm -rf -- "$temporary"' EXIT HUP INT TERM
 
-curl -fL --retry 3 --retry-delay 2 --connect-timeout 15 \
+curl -fsSL --retry 3 --retry-delay 2 --connect-timeout 15 \
 	"$setup_url" -o "$temporary/setup.sh"
 test -s "$temporary/setup.sh"
 
