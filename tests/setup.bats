@@ -242,9 +242,9 @@ prepare_mock_environment() {
 	[ "$status" -eq 0 ]
 }
 
-@test "Flameshot no longer pins a personal save path" {
+@test "Flameshot avoids personal paths and removed settings" {
 	config=$repo_root/packages/flameshot/.config/flameshot/flameshot.ini
-	run grep -E '^(savePath=|.*(/home|/Users)/jamie)' "$config"
+	run grep -E '^(savePath=|useGrimAdapter=|.*(/home|/Users)/jamie)' "$config"
 	[ "$status" -ne 0 ]
 }
 
