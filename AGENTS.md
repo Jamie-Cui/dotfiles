@@ -51,9 +51,9 @@ default.  The Linux profile includes both i3 and Hyprland packages and targets
 Fcitx5 Rime.  Set `PROFILE` only to override detection, set
 `RIME_TARGET_linux = $(DEPLOY_HOME)/.config/ibus/rime` in `local.mk` for IBus,
 use `EXTRA_PACKAGES="nvim tmux"` for opt-in packages, and use `RIME=0` to skip Rime.
-The font size defaults to 10; copy `local.mk.example` to the ignored `local.mk`
-for a persistent machine-local override, or pass `FONT_SIZE` on the command
-line for a one-off override.
+The font size defaults to 10; run `./configure [--font SIZE]` to write the
+ignored `local.mk` (with 10 as the default) for a persistent machine-local
+override, or pass `FONT_SIZE` on the command line for a one-off override.
 
 There is no application build.  After editing a tool config, validate with that
 tool where possible, for example:

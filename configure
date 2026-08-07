@@ -4,15 +4,15 @@ set -euo pipefail
 
 usage() {
 	cat <<'EOF'
-Usage: ./configure --font SIZE
+Usage: ./configure [--font SIZE]
 
 Options:
-  --font SIZE   Persist the font size in local.mk
+  --font SIZE   Persist the font size in local.mk (default: 10)
   -h, --help    Show this help
 EOF
 }
 
-font_size=
+font_size=10
 
 while (( $# > 0 )); do
 	case "$1" in
@@ -41,12 +41,6 @@ while (( $# > 0 )); do
 	esac
 done
 
-if [[ -z $font_size ]]; then
-	echo "configure: --font is required" >&2
-	usage >&2
-	exit 2
-fi
-
 if [[ ! $font_size =~ ^[1-9][0-9]*$ ]]; then
 	echo "configure: font size must be a positive integer: $font_size" >&2
 	exit 2
@@ -57,12 +51,7 @@ local_mk="$script_dir/local.mk"
 input=$local_mk
 
 if [[ ! -f $input ]]; then
-	input="$script_dir/local.mk.example"
-fi
-
-if [[ ! -f $input ]]; then
-	echo "configure: cannot find local.mk or local.mk.example" >&2
-	exit 1
+	input=/dev/null
 fi
 
 temporary=$(mktemp "$script_dir/.local.mk.tmp.XXXXXX")

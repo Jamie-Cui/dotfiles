@@ -156,6 +156,20 @@
              (if (package-installed-p (intern name)) "installed" "missing")))
    names "\n"))
 
+(cl-defun agent-skills/package-reinstall (names)
+  "Reinstall packages named by the list of strings NAMES and report their state."
+  (require 'package)
+  (dolist (name names)
+    (unless (and (stringp name)
+                 (string-match-p "\\`[[:alnum:]-]+\\'" name))
+      (error "Invalid package name: %S" name))
+    (package-reinstall (intern name)))
+  (mapconcat
+   (lambda (name)
+     (format "%s=%s" name
+             (if (package-installed-p (intern name)) "installed" "missing")))
+   names "\n"))
+
 (cl-defun agent-skills/reload-user-init ()
   "Reload `user-init-file' and report the loaded path."
   (unless (and user-init-file (file-readable-p user-init-file))

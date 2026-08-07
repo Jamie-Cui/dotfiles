@@ -1,7 +1,0 @@
-# Run ./configure --font SIZE, or copy this file to local.mk and edit it.
-# local.mk is ignored by Git; command-line variables still take precedence.
-
-FONT_SIZE := 12
-
-# Linux defaults to Fcitx5. Uncomment this when the host uses IBus Rime.
-# RIME_TARGET_linux = $(DEPLOY_HOME)/.config/ibus/rime
