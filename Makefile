@@ -2,7 +2,8 @@
 
 .PHONY: all bootstrap clean dry-run generate help list-profile \
 	restow stow unstow verify _check-profile _check-stow _deploy-skills \
-	_check-secrets _preflight _prepare-skills _restow _stow
+	_check-secrets _preflight _prepare-skills _restow _stow \
+	check-setup test-setup
 
 -include local.mk
 FONT_SIZE ?= 10
@@ -47,6 +48,8 @@ help: ## Show commands and profile selection
 	@echo "  restow        Prune stale links and redeploy PROFILE"
 	@echo "  unstow        Remove links owned by PROFILE"
 	@echo "  verify        Exercise stow/unstow in a temporary HOME"
+	@echo "  check-setup   Syntax-check and lint the setup scripts"
+	@echo "  test-setup    Run setup behavior tests with Bats"
 	@echo "  clean         Remove generated package files"
 	@echo ""
 	@echo "Profiles: $(PROFILES)"
@@ -69,6 +72,21 @@ list-profile: _check-profile ## Show the selected profile
 	else \
 		echo "Rime: disabled (RIME=$(RIME))"; \
 	fi
+
+check-setup: ## Syntax-check and lint setup scripts
+	@bash -n scripts/setup.sh scripts/setup-gist.sh
+	@command -v shellcheck >/dev/null 2>&1 || { \
+		echo "ShellCheck is required. Install it with 'brew install shellcheck' or 'sudo dnf install ShellCheck'." >&2; \
+		exit 2; \
+	}
+	@shellcheck --severity=warning scripts/setup.sh scripts/setup-gist.sh
+
+test-setup: check-setup ## Run setup behavior tests
+	@command -v bats >/dev/null 2>&1 || { \
+		echo "Bats is required. Install it with 'brew install bats-core' or 'sudo dnf install bats'." >&2; \
+		exit 2; \
+	}
+	@bats tests/setup.bats
 
 # -- Generation ---------------------------------------------------------------
 

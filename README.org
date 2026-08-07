@@ -7,6 +7,7 @@ Personal Linux and macOS config deployed with [[https://www.gnu.org/software/sto
 
 ** Contents
 
+- [[#quick-setup][Quick setup]]
 - [[#prerequisites][Prerequisites]]
     - [[#macos][macOS]]
     - [[#fedora][Fedora]]
@@ -41,6 +42,71 @@ Personal Linux and macOS config deployed with [[https://www.gnu.org/software/sto
 - [[#macos-apps][MacOS apps]]
     - [[#aerospace-aerospace][AeroSpace]]
 
+** Quick setup
+
+=scripts/setup.sh= installs selected applications and deploys the complete
+platform profile.  With a terminal attached, the one-line command opens a
+numbered component menu:
+
+#+begin_src bash
+curl -fsSL https://raw.githubusercontent.com/Jamie-Cui/dotfiles/master/scripts/setup.sh | bash
+#+end_src
+
+For an unattended, reproducible run, pass a preset and explicitly accept the
+two confirmations:
+
+#+begin_src bash
+curl -fsSL https://raw.githubusercontent.com/Jamie-Cui/dotfiles/master/scripts/setup.sh | \
+    bash -s -- --preset recommended --yes
+#+end_src
+
+The presets are =minimal= (prerequisites plus dotfiles), =recommended= (common
+shell, font, editor, terminal, and Rime tools; plus AeroSpace on macOS), and
+=all=.  Individual components can be adjusted with repeatable, comma-separated
+=--with= and =--without= arguments:
+
+#+begin_src bash
+# Inspect without sudo, downloads, clone, generated files, or logs.
+curl -fsSL https://raw.githubusercontent.com/Jamie-Cui/dotfiles/master/scripts/setup.sh | \
+    bash -s -- --preset minimal --with emacs --dry-run
+
+# Prepare Emacs through configure; add --build-emacs to compile and install it.
+curl -fsSL https://raw.githubusercontent.com/Jamie-Cui/dotfiles/master/scripts/setup.sh | \
+    bash -s -- --preset minimal --with emacs --yes
+#+end_src
+
+Components are =shell=, =font=, =vim=, =nvim=, =emacs=, =kitty=,
+=flameshot=, =rime=, =x11=, =i3=, =rofi=, =hyprland=, =waybar=,
+=dunst=, =mail=, =secrets=, =aerospace=, and =borders=.  Dependencies are
+added automatically; explicitly excluding a required dependency is an error.
+Software selection does not filter Stow packages: the complete macOS or Linux
+dotfiles profile is always previewed and deployed.
+
+The script inherits exported proxy variables without printing their values.
+Export them before the initial =curl= so that the loader, Git, package managers,
+and the proxy-only sudo environment see the same settings:
+
+#+begin_src bash
+export http_proxy=http://127.0.0.1:10808
+export https_proxy=$http_proxy
+curl -fsSL https://raw.githubusercontent.com/Jamie-Cui/dotfiles/master/scripts/setup.sh | bash
+#+end_src
+
+Existing configuration is never adopted or cleaned.  A dirty/diverged clone or
+Stow conflict stops safely.  Optional application failures are collected while
+independent components and dotfiles continue; expected GUI, authentication,
+Rime, and logout steps are reported separately as pending work.  Full logs are
+written below =~/.local/state/dotfiles/= after the install is confirmed.
+
+To inspect the script before running it:
+
+#+begin_src bash
+tmp=$(mktemp)
+curl -fsSL https://raw.githubusercontent.com/Jamie-Cui/dotfiles/master/scripts/setup.sh -o "$tmp"
+less "$tmp"
+bash "$tmp"
+#+end_src
+
 ** Prerequisites
 
 *** macOS
@@ -54,7 +120,7 @@ brew install stow
 *** Fedora
 
 #+begin_src bash
-sudo dnf install git make stow
+sudo dnf install curl git make stow
 #+end_src
 
 *** Deploy
@@ -137,7 +203,7 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/too
 **** Fedora
 
 #+begin_src bash
-sudo dnf install zsh curl util-linux-user
+sudo dnf install zsh curl util-linux
 chsh -s "$(command -v zsh)"
 RUNZSH=no CHSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
 #+end_src
@@ -177,6 +243,12 @@ sudo dnf install neovim          # Fedora
 #+end_src
 
 *** [[https://www.gnu.org/software/emacs/][Emacs]] (=emacs=)
+
+The setup script's =emacs= component installs the dependencies, safely clones
+or fast-forwards the =emacs-31= source, and runs =autogen.sh= and =configure=.
+Compilation and installation remain manual unless =--build-emacs= is supplied;
+that explicit mode uses at most four jobs by default and requires 10 GiB of
+available space.
 
 #+begin_src bash
 git clone --branch emacs-31 --single-branch https://github.com/emacs-mirror/emacs.git ~/opt/emacs-src
@@ -248,8 +320,8 @@ xattr -rd com.apple.quarantine /Applications/flameshot.app
 sudo dnf install flameshot grim
 #+end_src
 
-The tracked configuration is deployed only by the Linux profile and currently
-saves screenshots below =/home/jamie/proj/magent/docs/assets/img=.
+The tracked configuration is deployed only by the Linux profile.  It leaves the
+save directory to Flameshot instead of pinning a machine-specific path.
 
 *** [[https://rime.im/][Rime]] (=rime=)
 
@@ -402,8 +474,6 @@ Run =make bootstrap= after installing the app.
 
 #+begin_src bash
 brew install --cask nikitabobko/tap/aerospace
-brew tap FelixKratz/formulae
-brew install borders
 
 # Mission Control and Dock settings required by this layout.
 defaults write com.apple.dock expose-group-apps -bool true
@@ -412,10 +482,22 @@ defaults write com.apple.dock pinning -string start
 killall Dock
 #+end_src
 
+JankyBorders is optional.  The AeroSpace configuration starts it only when the
+=borders= executable exists:
+
+#+begin_src bash
+brew tap FelixKratz/formulae
+brew install borders
+#+end_src
+
+The setup script installs AeroSpace in the recommended macOS preset but does
+not install borders or change Dock/Mission Control defaults.  It reports the
+commands above as pending work when the current values differ.
+
 If macOS blocks the first launch:
 
 #+begin_src bash
 xattr -d com.apple.quarantine /Applications/AeroSpace.app
 #+end_src
 
-The tracked bindings currently assume the macOS account name is =jamie=.
+The tracked bindings use =${HOME}= for user-specific paths.

@@ -24,7 +24,7 @@ after-startup-command = [
   # To install:
   # brew tap FelixKratz/formulae
   # brew install borders
-  'exec-and-forget borders active_color=0xff33ccff inactive_color=0x88595959 width=4.0'
+  'exec-and-forget if command -v borders >/dev/null 2>&1; then borders active_color=0xff33ccff inactive_color=0x88595959 width=4.0; fi'
 ]
 
 [mode.main.binding]
@@ -35,7 +35,7 @@ after-startup-command = [
 # Reload config
 alt-shift-r = 'reload-config'
 
-alt-enter = 'exec-and-forget /Applications/kitty.app/Contents/MacOS/kitty --directory /Users/jamie --single-instance --instance-group aerospace'
+alt-enter = 'exec-and-forget /Applications/kitty.app/Contents/MacOS/kitty --directory "${HOME}" --single-instance --instance-group aerospace'
 
 alt-h = 'focus left'
 alt-j = 'focus down'
@@ -46,7 +46,7 @@ alt-right = 'focus right'
 alt-up = 'focus up'
 alt-down = 'focus down'
 
-alt-a = 'exec-and-forget /Users/jamie/.config/aerospace/toggle-layout.sh'
+alt-a = 'exec-and-forget "${HOME}/.config/aerospace/toggle-layout.sh"'
 
 alt-shift-h = 'move left'
 alt-shift-j = 'move down'

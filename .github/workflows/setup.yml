@@ -1,0 +1,60 @@
+name: Setup
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  fedora:
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    steps:
+      - name: Install checkout prerequisites
+        run: dnf install -y git
+      - uses: actions/checkout@v7
+      - name: Install test dependencies
+        run: dnf install -y bats ShellCheck stow flameshot python3
+      - name: Check setup
+        run: make check-setup
+      - name: Test setup
+        run: make test-setup
+      - name: Validate desktop configuration
+        run: |
+          XDG_CONFIG_HOME="$PWD/packages/flameshot/.config" flameshot config --check
+          python3 - <<'PY'
+          import pathlib
+          import tomllib
+
+          path = pathlib.Path("packages/aerospace/.config/aerospace/aerospace.toml")
+          with path.open("rb") as stream:
+              tomllib.load(stream)
+          PY
+      - name: Verify Stow profiles
+        run: |
+          make verify PROFILE=linux
+          make verify PROFILE=macos
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install test dependencies
+        run: brew install bats-core shellcheck stow
+      - name: Check setup with system Bash
+        run: |
+          /bin/bash -n scripts/setup.sh scripts/setup-gist.sh
+          make check-setup
+      - name: Test setup with system Bash
+        env:
+          BATS_TEST_SHELL: /bin/bash
+        run: make test-setup
+      - name: Validate AeroSpace TOML
+        run: python3 -c 'import tomllib; tomllib.load(open("packages/aerospace/.config/aerospace/aerospace.toml", "rb"))'
+      - name: Verify Stow profiles
+        run: |
+          make verify PROFILE=macos
+          make verify PROFILE=linux
