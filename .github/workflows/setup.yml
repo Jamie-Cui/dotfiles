@@ -17,7 +17,7 @@ jobs:
         run: dnf install -y git
       - uses: actions/checkout@v7
       - name: Install test dependencies
-        run: dnf install -y bats ShellCheck stow flameshot make python3 util-linux
+        run: dnf install -y bats ShellCheck stow flameshot make python3 util-linux zsh
       - name: Check setup
         run: make check-setup
       - name: Test setup
