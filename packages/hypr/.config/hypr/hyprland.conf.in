@@ -244,6 +244,13 @@ device {
     sensitivity = -0.5
 }
 
+# Keep the DualSense touchpad available to games through its raw HID device,
+# but do not let Hyprland use it as a desktop mouse.
+device {
+    name = dualsense-wireless-controller-touchpad
+    enabled = false
+}
+
 
 ###################
 ### KEYBINDINGS ###
