@@ -55,6 +55,7 @@ prepare_mock_environment() {
 		'"$@"'
 	make_executable "$mock_bin/make" \
 		'printf "make %s\\n" "$*" >> "$SETUP_TEST_LOG"'
+	make_executable "$mock_bin/zsh" 'exit 0'
 	make_executable "$mock_bin/chsh" \
 		'printf "chsh %s\\n" "$*" >> "$SETUP_TEST_LOG"'
 	make_executable "$mock_bin/systemctl" \

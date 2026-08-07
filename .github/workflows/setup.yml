@@ -17,11 +17,11 @@ jobs:
         run: dnf install -y git
       - uses: actions/checkout@v7
       - name: Install test dependencies
-        run: dnf install -y bats ShellCheck stow flameshot make python3
+        run: dnf install -y bats ShellCheck stow flameshot make python3 util-linux
       - name: Check setup
         run: make check-setup
       - name: Test setup
-        run: make test-setup
+        run: runuser -u nobody -- make test-setup
       - name: Validate desktop configuration
         run: |
           XDG_CONFIG_HOME="$PWD/packages/flameshot/.config" flameshot config --check
