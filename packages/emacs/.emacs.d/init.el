@@ -7,6 +7,9 @@
 ;; Prefer managed source changes even when an ignored .elc is stale.
 (setq load-prefer-newer t)
 
+;; Keep Customize-generated settings out of the tracked init.el.
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+
 ;; --- Bootstrap: locate the repository and the core layer. ---
 (let ((repo (file-name-directory
              (file-truename (or load-file-name buffer-file-name
@@ -24,24 +27,24 @@
         +emacs/theme 'zenburn
         +emacs/disabled-modules nil)
 
-;; Mail identity and installation-specific mu4e path.
-;; (setopt +emacs/email-address "you@outlook.com"
-;;         +emacs/email-full-name "Your Name"
-;;         +emacs/email-maildir (expand-file-name "~/.local/share/mail/outlook")
-;;         +emacs/mu4e-load-path "/usr/share/emacs/site-lisp/mu4e")
-;; Apple Silicon Homebrew alternative:
-;; (setopt +emacs/mu4e-load-path
-;;         "/opt/homebrew/share/emacs/site-lisp/mu/mu4e")
+;; Mail identity; the mu4e path is auto-detected from the mu binary.
+(setopt +emacs/email-address "jamie.cui@outlook.com"
+        +emacs/email-full-name "Jamie Cui"
+        +emacs/email-maildir (expand-file-name "~/.local/share/mail/outlook")
+        +emacs/mu4e-load-path (+emacs/detect-mu4e-load-path))
 
 ;; If you use an Apple keyboard, map the Super key to Meta.
 ;; (setq x-super-keysym 'meta)
 
-(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+;; Load the package manager so we can configure its archives.
 (require 'package)
+
+;; Configure ELPA archives before any package operations.
 (setq package-archives
       '(("gnu"    . "https://elpa.gnu.org/packages/")
         ("nongnu" . "https://elpa.nongnu.org/nongnu/")
         ("melpa"  . "https://melpa.org/packages/")))
+
 ;; If the official package hosts are slow:
 ;; (setq package-archives
 ;;       '(("gnu"    . "https://mirrors.tuna.tsinghua.edu.cn/elpa/gnu/")

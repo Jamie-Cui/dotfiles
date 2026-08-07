@@ -53,9 +53,23 @@ Set this in `init.el' when the machine uses a different local mail location."
 (defcustom +emacs/mu4e-load-path nil
   "Optional directory containing the system-installed mu4e Lisp files.
 Set this in `init.el' when mu4e is installed outside Emacs' default
-`load-path'."
+`load-path'.  Use `+emacs/detect-mu4e-load-path' for automatic
+detection based on the `mu' binary location."
   :type '(choice (const :tag "Use default load-path" nil) directory)
   :group '+emacs)
+
+(defun +emacs/detect-mu4e-load-path ()
+  "Auto-detect the mu4e Lisp directory from the `mu' binary location.
+Returns nil when the mu binary is not found or no mu4e directory
+exists at the expected location."
+  (when-let ((mu-bin (executable-find "mu")))
+    (let* ((prefix (file-name-directory
+                    (directory-file-name
+                     (file-name-directory mu-bin))))
+           (candidates
+            (list (expand-file-name "share/emacs/site-lisp/mu/mu4e" prefix)
+                  (expand-file-name "share/emacs/site-lisp/mu4e" prefix))))
+      (seq-find #'file-directory-p candidates))))
 
 (defcustom +emacs/disabled-modules nil
   "Modules to skip when loading the manifest.
