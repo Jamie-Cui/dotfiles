@@ -29,7 +29,7 @@ dist/
 /packages/gtk-3.0/.config/gtk-3.0/bookmarks
 /packages/gtk-4.0/.config/gtk-4.0/settings.ini
 /packages/i3/.config/i3/config
-/packages/hypr/.config/hypr/hyprland.conf
+/packages/hypr/.config/hypr/hyprland.lua
 /nvim.log
 
 # Encrypted secrets package: allow ciphertext only.

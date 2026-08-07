@@ -391,6 +391,10 @@ sudo dnf install rofi firefox
 sudo dnf install hyprland hyprlock hyprpaper xdg-desktop-portal-hyprland brightnessctl playerctl wireplumber xclip
 #+end_src
 
+The main configuration uses Hyprland's native Lua API and requires Hyprland
+0.55 or newer.  Hyprlock and Hyprpaper continue to use their own Hyprlang
+configuration files.
+
 *** [[https://github.com/Alexays/Waybar][Waybar]] (=waybar=)
 
 #+begin_src bash

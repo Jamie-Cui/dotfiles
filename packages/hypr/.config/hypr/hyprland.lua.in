@@ -1,0 +1,301 @@
+-- Hyprland configuration.
+-- https://wiki.hypr.land/Configuring/Start/
+
+------------------
+---- MONITORS ----
+------------------
+
+hl.monitor({
+    output = "",
+    mode = "preferred",
+    position = "auto",
+    scale = "auto",
+})
+
+
+---------------------
+---- MY PROGRAMS ----
+---------------------
+
+local terminal = "kitty"
+local menu = 'rofi -show drun -run-command "$HOME/.config/rofi/rofi-drun.sh {cmd}" -font "monospace @FONT_SIZE@"'
+
+
+-------------------
+---- AUTOSTART ----
+-------------------
+
+hl.on("hyprland.start", function()
+    hl.exec_cmd("waybar")
+    hl.exec_cmd("fcitx5 --replace -d")
+    hl.exec_cmd("xclip")
+    hl.exec_cmd("dunst")
+    hl.exec_cmd("hyprpaper")
+
+    -- Keep user systemd/DBus aware of the Hyprland session. Without this, the
+    -- regular xdg-desktop-portal service can fail because
+    -- graphical-session.target is inactive, which makes OBS PipeWire
+    -- monitor/window capture disappear.
+    hl.exec_cmd("dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE DESKTOP_SESSION HYPRLAND_INSTANCE_SIGNATURE")
+    hl.exec_cmd("systemctl --user import-environment DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE DESKTOP_SESSION HYPRLAND_INSTANCE_SIGNATURE")
+    hl.exec_cmd("systemctl --user start xdg-desktop-portal-hyprland.service xdg-permission-store.service xdg-document-portal.service")
+    hl.exec_cmd("systemd-run --user --unit=xdg-desktop-portal-manual --same-dir /usr/libexec/xdg-desktop-portal")
+end)
+
+
+-------------------------------
+---- ENVIRONMENT VARIABLES ----
+-------------------------------
+
+hl.env("XCURSOR_SIZE", "24")
+hl.env("HYPRCURSOR_SIZE", "24")
+
+-- NVIDIA/Wayland settings.
+hl.env("LIBVA_DRIVER_NAME", "nvidia")
+hl.env("XDG_SESSION_TYPE", "wayland")
+hl.env("GBM_BACKEND", "nvidia-drm")
+hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia")
+
+
+-----------------------
+---- LOOK AND FEEL ----
+-----------------------
+
+hl.config({
+    general = {
+        gaps_in = 5,
+        gaps_out = 10,
+        border_size = 2,
+        col = {
+            active_border = {
+                colors = { "rgba(33ccffee)", "rgba(00ff99ee)" },
+                angle = 45,
+            },
+            inactive_border = "rgba(595959aa)",
+        },
+        resize_on_border = false,
+        allow_tearing = false,
+        layout = "dwindle",
+    },
+
+    decoration = {
+        rounding = 10,
+        rounding_power = 2,
+        active_opacity = 1.0,
+        inactive_opacity = 1.0,
+        shadow = {
+            enabled = true,
+            range = 4,
+            render_power = 3,
+            color = "rgba(1a1a1aee)",
+        },
+        blur = {
+            enabled = true,
+            size = 3,
+            passes = 1,
+            vibrancy = 0.1696,
+        },
+    },
+
+    animations = {
+        enabled = true,
+    },
+
+    master = {
+        new_status = "master",
+    },
+
+    misc = {
+        force_default_wallpaper = -1,
+        disable_hyprland_logo = true,
+        animate_mouse_windowdragging = false,
+    },
+
+    debug = {
+        disable_logs = false,
+    },
+
+    input = {
+        force_no_accel = false,
+        kb_layout = "us",
+        kb_variant = "",
+        kb_model = "",
+        kb_options = "ctrl:nocaps",
+        kb_rules = "",
+        follow_mouse = 1,
+        sensitivity = 0,
+        touchpad = {
+            natural_scroll = false,
+        },
+    },
+
+    xwayland = {
+        force_zero_scaling = true,
+    },
+
+    cursor = {
+        no_hardware_cursors = true,
+    },
+})
+
+-- Curves and animations.
+hl.curve("easeOutQuint", {
+    type = "bezier",
+    points = { { 0.23, 1 }, { 0.32, 1 } },
+})
+hl.curve("easeInOutCubic", {
+    type = "bezier",
+    points = { { 0.65, 0.05 }, { 0.36, 1 } },
+})
+hl.curve("linear", {
+    type = "bezier",
+    points = { { 0, 0 }, { 1, 1 } },
+})
+hl.curve("almostLinear", {
+    type = "bezier",
+    points = { { 0.5, 0.5 }, { 0.75, 1 } },
+})
+hl.curve("quick", {
+    type = "bezier",
+    points = { { 0.15, 0 }, { 0.1, 1 } },
+})
+
+hl.animation({ leaf = "global", enabled = true, speed = 10, bezier = "default" })
+hl.animation({ leaf = "border", enabled = true, speed = 5.39, bezier = "easeOutQuint" })
+hl.animation({ leaf = "windows", enabled = true, speed = 4.79, bezier = "easeOutQuint" })
+hl.animation({ leaf = "windowsIn", enabled = true, speed = 4.1, bezier = "easeOutQuint", style = "popin 87%" })
+hl.animation({ leaf = "windowsOut", enabled = true, speed = 1.49, bezier = "linear", style = "popin 87%" })
+hl.animation({ leaf = "fadeIn", enabled = true, speed = 1.73, bezier = "almostLinear" })
+hl.animation({ leaf = "fadeOut", enabled = true, speed = 1.46, bezier = "almostLinear" })
+hl.animation({ leaf = "fade", enabled = true, speed = 3.03, bezier = "quick" })
+hl.animation({ leaf = "layers", enabled = true, speed = 3.81, bezier = "easeOutQuint" })
+hl.animation({ leaf = "layersIn", enabled = true, speed = 4, bezier = "easeOutQuint", style = "fade" })
+hl.animation({ leaf = "layersOut", enabled = true, speed = 1.5, bezier = "linear", style = "fade" })
+hl.animation({ leaf = "fadeLayersIn", enabled = true, speed = 1.79, bezier = "almostLinear" })
+hl.animation({ leaf = "fadeLayersOut", enabled = true, speed = 1.39, bezier = "almostLinear" })
+hl.animation({ leaf = "workspaces", enabled = true, speed = 1.94, bezier = "almostLinear", style = "fade" })
+hl.animation({ leaf = "workspacesIn", enabled = true, speed = 1.21, bezier = "almostLinear", style = "fade" })
+hl.animation({ leaf = "workspacesOut", enabled = true, speed = 1.94, bezier = "almostLinear", style = "fade" })
+hl.animation({ leaf = "zoomFactor", enabled = true, speed = 7, bezier = "quick" })
+
+
+---------------
+---- INPUT ----
+---------------
+
+hl.gesture({
+    fingers = 3,
+    direction = "horizontal",
+    action = "workspace",
+})
+
+hl.device({
+    name = "epic-mouse-v1",
+    sensitivity = -0.5,
+})
+
+-- Keep the DualSense touchpad available to games through its raw HID device,
+-- but do not let Hyprland use it as a desktop mouse.
+hl.device({
+    name = "dualsense-wireless-controller-touchpad",
+    enabled = false,
+})
+
+
+---------------------
+---- KEYBINDINGS ----
+---------------------
+
+local metaMod = "ALT"
+local mainMod = "SUPER"
+
+local function toggleWorkspaceLayout()
+    local workspace = hl.get_active_special_workspace() or hl.get_active_workspace()
+    if not workspace then
+        return
+    end
+
+    local nextLayout
+    if workspace.tiled_layout == "dwindle" then
+        nextLayout = "monocle"
+    elseif workspace.tiled_layout == "monocle" then
+        nextLayout = "dwindle"
+    else
+        return
+    end
+
+    local selector = workspace.special and tostring(workspace.name) or tostring(workspace.id)
+    hl.workspace_rule({ workspace = selector, layout = nextLayout })
+end
+
+hl.bind(mainMod .. " + SHIFT + R", hl.dsp.exec_cmd("hyprctl reload"))
+hl.bind(mainMod .. " + SHIFT + E", hl.dsp.exit())
+hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen())
+hl.bind(mainMod .. " + Return", hl.dsp.exec_cmd(terminal))
+hl.bind(mainMod .. " + SHIFT + Return", hl.dsp.window.float({ action = "toggle" }))
+hl.bind(metaMod .. " + Space", hl.dsp.exec_cmd(menu))
+
+-- Toggle the focused workspace between dwindle and monocle layout.
+hl.bind(mainMod .. " + A", toggleWorkspaceLayout)
+
+-- Focus movement (Vim and arrow keys).
+hl.bind(mainMod .. " + H", hl.dsp.focus({ direction = "left" }))
+hl.bind(mainMod .. " + J", hl.dsp.focus({ direction = "down" }))
+hl.bind(mainMod .. " + K", hl.dsp.focus({ direction = "up" }))
+hl.bind(mainMod .. " + L", hl.dsp.focus({ direction = "right" }))
+hl.bind(mainMod .. " + left", hl.dsp.focus({ direction = "left" }))
+hl.bind(mainMod .. " + down", hl.dsp.focus({ direction = "down" }))
+hl.bind(mainMod .. " + up", hl.dsp.focus({ direction = "up" }))
+hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }))
+
+hl.bind(metaMod .. " + Q", hl.dsp.window.close())
+hl.bind(metaMod .. " + SHIFT + Q", hl.dsp.exec_cmd("hyprlock"))
+hl.bind(metaMod .. " + CTRL + A", hl.dsp.exec_cmd("QT_SCALE_FACTOR=0.65 flameshot gui"))
+
+-- Switch workspaces and move active windows with ALT + [0-9].
+for workspace = 1, 10 do
+    local key = workspace % 10
+    hl.bind(metaMod .. " + " .. key, hl.dsp.focus({ workspace = workspace }))
+    hl.bind(metaMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = workspace }))
+end
+
+-- Move/resize windows with SUPER + LMB/RMB and dragging.
+hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
+hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
+
+local repeatableLocked = { locked = true, repeating = true }
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 5%+"), repeatableLocked)
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"), repeatableLocked)
+hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"), repeatableLocked)
+hl.bind("XF86AudioMicMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"), repeatableLocked)
+hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%+"), repeatableLocked)
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -e4 -n2 set 5%-"), repeatableLocked)
+
+local locked = { locked = true }
+hl.bind("XF86AudioNext", hl.dsp.exec_cmd("playerctl next"), locked)
+hl.bind("XF86AudioPause", hl.dsp.exec_cmd("playerctl play-pause"), locked)
+hl.bind("XF86AudioPlay", hl.dsp.exec_cmd("playerctl play-pause"), locked)
+hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), locked)
+
+
+--------------------------------
+---- WINDOWS AND WORKSPACES ----
+--------------------------------
+
+hl.workspace_rule({
+    workspace = "4",
+    default_name = "PERSIST",
+    persistent = true,
+})
+
+hl.window_rule({
+    name = "render-vtube-studio-unfocused",
+    match = { class = "^(VTube Studio)$" },
+    render_unfocused = true,
+})
+
+hl.window_rule({
+    name = "render-obs-unfocused",
+    match = { class = "^(obs|obs64|OBS)$" },
+    render_unfocused = true,
+})

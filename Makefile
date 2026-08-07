@@ -32,6 +32,7 @@ REGULAR_PACKAGES := $(filter-out skills,$(PACKAGES))
 SKILLS_ENABLED := $(filter skills,$(PACKAGES))
 SKILLS_SOURCE_ROOT := $(PACKAGES_DIR)/skills/.agents/skills
 SKILLS_INSTALL_DIR := $(TARGET)/.agents/skills
+LEGACY_HYPR_CONFIG := $(PACKAGES_DIR)/hypr/.config/hypr/hyprland.conf
 RIME_TARGET ?= $(RIME_TARGET_$(PROFILE))
 STOW_BASE := $(STOW) --dir="$(PACKAGES_DIR)" --no-folding --ignore='.*[.]in' --ignore='(^|/)[.]authinfo$$'
 SKILLS_STOW_BASE := $(STOW) --dir="$(PACKAGES_DIR)" --ignore='.*[.]in'
@@ -97,11 +98,13 @@ bootstrap: stow ## Deploy the selected profile on a new machine
 generate: ## Render package files from *.in templates
 	@find "$(PACKAGES_DIR)" -type f -name "*.in" \
 		-exec sh -c 'for f; do out=$${f%.in}; sed "s/@FONT_SIZE@/$(FONT_SIZE)/g" "$$f" > "$$out"; done' _ {} \;
+	@rm -f "$(LEGACY_HYPR_CONFIG)"
 	@echo "Generated package files with font_size=$(FONT_SIZE)"
 
 clean: ## Remove generated package files; unstow first to avoid dangling links
 	@find "$(PACKAGES_DIR)" -type f -name "*.in" \
 		-exec sh -c 'for f; do out=$${f%.in}; rm -f "$$out"; done' _ {} \;
+	@rm -f "$(LEGACY_HYPR_CONFIG)"
 	@echo "Removed generated package files"
 
 # -- Stow ---------------------------------------------------------------------
@@ -236,6 +239,9 @@ verify: generate _check-profile _check-stow _check-secrets ## Test deployment in
 		test -L "$$tmp/.config/isyncrc"; \
 		test -L "$$tmp/.config/fcitx5/config"; \
 		test -L "$$tmp/.config/fcitx5/profile"; \
+		test -L "$$tmp/.config/hypr/hyprland.lua"; \
+		test ! -e "$$tmp/.config/hypr/hyprland.conf"; \
+		test ! -L "$$tmp/.config/hypr/hyprland.conf"; \
 		test -L "$$tmp/.gtkrc-2.0"; \
 	fi; \
 	test -L "$$tmp/.local/bin/proxyctl"; \
