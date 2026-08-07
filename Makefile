@@ -21,7 +21,7 @@ PROFILES := macos linux
 
 SECRETS_PACKAGE := $(if $(wildcard $(PACKAGES_DIR)/secrets/.authinfo.gpg),secrets)
 PACKAGES_macos := vim nvim emacs kitty aerospace bin skills $(SECRETS_PACKAGE)
-PACKAGES_linux := vim tmux nvim emacs kitty bin x11 rofi i3 i3blocks hypr waybar dunst flameshot fcitx5 gtk-2.0 gtk-3.0 gtk-4.0 imsettings davmail isync skills $(SECRETS_PACKAGE)
+PACKAGES_linux := vim nvim emacs kitty bin x11 rofi i3 i3blocks hypr waybar dunst flameshot fcitx5 gtk-2.0 gtk-3.0 gtk-4.0 imsettings davmail isync skills $(SECRETS_PACKAGE)
 
 RIME_TARGET_macos ?= $(DEPLOY_HOME)/Library/Rime
 RIME_TARGET_linux ?= $(DEPLOY_HOME)/.local/share/fcitx5/rime

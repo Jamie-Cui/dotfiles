@@ -24,7 +24,6 @@ Personal Linux and macOS config deployed with [[https://www.gnu.org/software/sto
     - [[#proxyctl-bin][proxyctl]]
     - [[#codex-skills-skills][Codex skills]]
 - [[#gnulinux-fedora-apps][GNU/Linux (Fedora) apps]]
-    - [[#tmux-tmux][tmux]]
     - [[#x11-x11][X11]]
     - [[#i3-i3][i3]]
     - [[#i3blocks-i3blocks][i3blocks]]
@@ -288,12 +287,6 @@ No setup beyond =make bootstrap=.
 
 Run =make bootstrap= once after installing the apps needed by the chosen X11 or
 Wayland session.
-
-*** [[https://github.com/tmux/tmux][tmux]] (=tmux=)
-
-#+begin_src bash
-sudo dnf install tmux
-#+end_src
 
 *** [[https://www.x.org/][X11]] (=x11=)
 
