@@ -62,7 +62,6 @@
 ;; evil-mc
 ;; evil-multiedit
 ;; evil-surround
-;; evil-escape
 ;; evil-terminal-cursor-changer (for terminal)
 ;; -----------------------------------------------------------
 
@@ -227,12 +226,6 @@ Adapted from https://github.com/emacs-evil/evil/issues/606"
   :after evil
   :config
   (global-evil-surround-mode 1))
-
-(use-package evil-escape
-  :ensure t
-  :config
-  (setq-default evil-escape-key-sequence "jk")
-  (evil-escape-mode 1))
 
 ;; HACK https://www.reddit.com/r/emacs/comments/45w9mv/comment/d3ud03t/
 (defun normal-escape-pre-command-handler ()

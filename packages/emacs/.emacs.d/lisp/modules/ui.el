@@ -94,7 +94,10 @@
 (setopt mode-line-front-space nil)
 
 ;; turn on size in bytes indicator on modeline
-;; (size-indication-mode 1)
+(size-indication-mode 1)
+
+(defvar-local +ui/modeline-buffer-identification-cache nil
+  "Cached mode-line buffer identification keyed by buffer location.")
 
 (defun +ui/modeline-project-buffer-name ()
   "Return the current buffer name relative to the project root."
@@ -109,12 +112,21 @@
     (buffer-name)))
 
 (defun +ui/modeline-buffer-identification ()
-  "Return the propertized current buffer identifier for the mode line."
-  (propertize (+ui/modeline-project-buffer-name)
+  "Return a cached, propertized buffer identifier for the mode line."
+  (let ((key (list buffer-file-name default-directory (buffer-name))))
+    (if (equal key (car +ui/modeline-buffer-identification-cache))
+        (cdr +ui/modeline-buffer-identification-cache)
+      (let ((identification
+             (propertize
+              (+ui/modeline-project-buffer-name)
               'face 'mode-line-buffer-id
-              'help-echo "Buffer name\nmouse-1: Previous buffer\nmouse-3: Next buffer"
+              'help-echo
+              "Buffer name\nmouse-1: Previous buffer\nmouse-3: Next buffer"
               'mouse-face 'mode-line-highlight
-              'local-map mode-line-buffer-identification-keymap))
+              'local-map mode-line-buffer-identification-keymap)))
+        (setq +ui/modeline-buffer-identification-cache
+              (cons key identification))
+        identification))))
 
 ;; mode-line format
 (setopt mode-line-format
@@ -129,8 +141,6 @@
                      (format " (Sel: %d)" (abs (- (point) (mark)))) ""))
          'mode-line-format-right-align
          'mode-line-misc-info
-         "   "
-         '(:eval (format "%.1fk" (/ (count-lines (point-min) (point-max)) 1000.0)))
          "   "
          'mode-name
          " (+"

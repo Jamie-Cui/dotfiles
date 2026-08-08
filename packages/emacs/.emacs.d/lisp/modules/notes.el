@@ -69,7 +69,6 @@
   (org-journal-carryover-items "TODO=\"TODO\"|TODO=\"WAIT\"|TODO=\"PROJ\"")
   (org-journal-enable-agenda-integration t)
   :config
-  (setq org-element-use-cache nil)
   (add-to-list 'org-agenda-files org-journal-dir)
   (+org-project-sync-agenda-files)
   (+org-agenda-prune-files)
