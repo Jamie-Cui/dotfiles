@@ -69,6 +69,7 @@ Components:
   shell, font, vim, nvim, emacs, ctags, org-root, tdlib, kitty,
   flameshot, rime, x11, i3, rofi, hyprland, waybar, dunst, mail,
   secrets, aerospace, borders
+  Clone-only: ctags and tdlib use depth=1; org-root keeps full history
 
 Examples:
   setup.sh
@@ -142,6 +143,14 @@ component_known() {
 	case " $all_components " in
 		*" $1 "*) return 0 ;;
 		*) return 1 ;;
+	esac
+}
+
+component_label() {
+	case "$1" in
+		ctags|tdlib) printf '%s (clone-only, depth=1)\n' "$1" ;;
+		org-root) printf '%s (clone-only, full history)\n' "$1" ;;
+		*) printf '%s\n' "$1" ;;
 	esac
 }
 
@@ -279,7 +288,7 @@ EOF
 		for component in "${menu_components[@]}"; do
 			mark=' '
 			array_contains "$component" "${selected[@]}" && mark=x
-			printf '  %2d. [%s] %s\n' "$index" "$mark" "$component" >&3
+			printf '  %2d. [%s] %s\n' "$index" "$mark" "$(component_label "$component")" >&3
 			index=$((index + 1))
 		done
 		printf '> ' >&3
@@ -387,7 +396,7 @@ print_summary() {
 	say "  Font size: $font_size"
 	say "  Components:"
 	while IFS= read -r component; do
-		[ -n "$component" ] && say "    - $component"
+		[ -n "$component" ] && say "    - $(component_label "$component")"
 	done <<EOF
 $(selected_in_catalog_order)
 EOF

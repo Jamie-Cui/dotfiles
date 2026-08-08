@@ -303,8 +303,8 @@ Emacs settings.
 
 *** [[https://github.com/universal-ctags/ctags][Universal Ctags]] (=ctags=)
 
-The =ctags= component shallow-clones the source into =~/opt/ctags=.  It does
-not configure, build, or install Universal Ctags.
+The =ctags= component shallow-clones the source with depth 1 into
+=~/opt/ctags=.  It does not configure, build, or install Universal Ctags.
 
 #+begin_src bash
 scripts/setup.sh --preset minimal --with ctags --yes
@@ -312,9 +312,9 @@ scripts/setup.sh --preset minimal --with ctags --yes
 
 *** [[https://github.com/Jamie-Cui/org-root][org-root]] (=org-root=)
 
-The =org-root= component clones the private repository over SSH into
-=~/opt/org-root=, which is the default path used by the managed Emacs
-configuration.  GitHub SSH access must already be configured.
+The =org-root= component clones the private repository with its full history
+over SSH into =~/opt/org-root=, which is the default path used by the managed
+Emacs configuration.  GitHub SSH access must already be configured.
 
 #+begin_src bash
 scripts/setup.sh --preset minimal --with org-root --yes
@@ -322,8 +322,8 @@ scripts/setup.sh --preset minimal --with org-root --yes
 
 *** [[https://github.com/tdlib/td][TDLib]] (=tdlib=)
 
-The =tdlib= component shallow-clones the source into =~/opt/tdlib=.  It does
-not run CMake, build, or install TDLib.
+The =tdlib= component shallow-clones the source with depth 1 into
+=~/opt/tdlib=.  It does not run CMake, build, or install TDLib.
 
 #+begin_src bash
 scripts/setup.sh --preset minimal --with tdlib --yes

@@ -111,6 +111,8 @@ prepare_mock_environment() {
 		[[ "$output" == *"- ctags"* ]]
 		[[ "$output" == *"- org-root"* ]]
 		[[ "$output" == *"- tdlib"* ]]
+		[ "$(printf '%s\n' "$output" | grep -c 'clone-only, depth=1')" -eq 2 ]
+		[[ "$output" == *"org-root (clone-only, full history)"* ]]
 	done
 }
 
