@@ -19,6 +19,9 @@ Personal Linux and macOS config deployed with [[https://www.gnu.org/software/sto
     - [[#vim-vim][Vim]]
     - [[#neovim-nvim][Neovim]]
     - [[#emacs-emacs][Emacs]]
+    - [[#universal-ctags-ctags][Universal Ctags]]
+    - [[#org-root-org-root][org-root]]
+    - [[#tdlib-tdlib][TDLib]]
     - [[#kitty-kitty][Kitty]]
     - [[#flameshot-flameshot][Flameshot]]
     - [[#rime-rime][Rime]]
@@ -75,10 +78,12 @@ curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26
     bash -s -- --preset minimal --with emacs --yes
 #+end_src
 
-Components are =shell=, =font=, =vim=, =nvim=, =emacs=, =kitty=,
-=flameshot=, =rime=, =x11=, =i3=, =rofi=, =hyprland=, =waybar=,
-=dunst=, =mail=, =secrets=, =aerospace=, and =borders=.  Dependencies are
-added automatically; explicitly excluding a required dependency is an error.
+Components are =shell=, =font=, =vim=, =nvim=, =emacs=, =ctags=,
+=org-root=, =tdlib=, =kitty=, =flameshot=, =rime=, =x11=, =i3=,
+=rofi=, =hyprland=, =waybar=, =dunst=, =mail=, =secrets=, =aerospace=,
+and =borders=.  Dependencies are added automatically; explicitly excluding a
+required dependency is an error.  The clone-only =ctags=, =org-root=, and
+=tdlib= components are selected only with =--with= or the =all= preset.
 Software selection does not filter Stow packages: the complete macOS or Linux
 dotfiles profile is always previewed and deployed.
 
@@ -295,6 +300,38 @@ emacs --version
 
 Edit the managed =~/.emacs.d/init.el= and =~/.emacs.d/early-init.el= sources for
 Emacs settings.
+
+*** [[https://github.com/universal-ctags/ctags][Universal Ctags]] (=ctags=)
+
+The =ctags= component shallow-clones the source into =~/opt/ctags=.  It does
+not configure, build, or install Universal Ctags.
+
+#+begin_src bash
+scripts/setup.sh --preset minimal --with ctags --yes
+#+end_src
+
+*** [[https://github.com/Jamie-Cui/org-root][org-root]] (=org-root=)
+
+The =org-root= component clones the private repository over SSH into
+=~/opt/org-root=, which is the default path used by the managed Emacs
+configuration.  GitHub SSH access must already be configured.
+
+#+begin_src bash
+scripts/setup.sh --preset minimal --with org-root --yes
+#+end_src
+
+*** [[https://github.com/tdlib/td][TDLib]] (=tdlib=)
+
+The =tdlib= component shallow-clones the source into =~/opt/tdlib=.  It does
+not run CMake, build, or install TDLib.
+
+#+begin_src bash
+scripts/setup.sh --preset minimal --with tdlib --yes
+#+end_src
+
+For all three clone-only components, an existing Git checkout is left exactly
+as-is; setup does not fetch, pull, or validate its origin.  An existing non-Git
+path is reported as a component failure.
 
 *** [[https://sw.kovidgoyal.net/kitty/][Kitty]] (=kitty=)
 

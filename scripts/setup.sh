@@ -7,9 +7,16 @@ repo_https=https://github.com/Jamie-Cui/dotfiles.git
 repo_ssh=git@github.com:Jamie-Cui/dotfiles.git
 repo_branch=master
 repo_dir=${HOME}/opt/dotfiles
-emacs_dir=${HOME}/opt/emacs-src
+opt_dir=${HOME}/opt
+emacs_dir=${opt_dir}/emacs-src
+ctags_dir=${opt_dir}/ctags
+org_root_dir=${opt_dir}/org-root
+tdlib_dir=${opt_dir}/tdlib
+ctags_repo=https://github.com/universal-ctags/ctags.git
+org_root_repo=git@github.com:Jamie-Cui/org-root.git
+tdlib_repo=https://github.com/tdlib/td.git
 
-all_components="shell font vim nvim emacs kitty flameshot rime x11 i3 rofi hyprland waybar dunst mail secrets aerospace borders"
+all_components="shell font vim nvim emacs ctags org-root tdlib kitty flameshot rime x11 i3 rofi hyprland waybar dunst mail secrets aerospace borders"
 selected=()
 excluded=()
 dependency_notes=()
@@ -59,8 +66,9 @@ Execution:
   -h, --help             Show this help
 
 Components:
-  shell, font, vim, nvim, emacs, kitty, flameshot, rime, x11, i3,
-  rofi, hyprland, waybar, dunst, mail, secrets, aerospace, borders
+  shell, font, vim, nvim, emacs, ctags, org-root, tdlib, kitty,
+  flameshot, rime, x11, i3, rofi, hyprland, waybar, dunst, mail,
+  secrets, aerospace, borders
 
 Examples:
   setup.sh
@@ -648,6 +656,26 @@ sync_emacs_repo() {
 	fi
 }
 
+clone_source_repo() {
+	url=$1
+	destination=$2
+	depth=${3:-}
+	if [ -e "$destination" ]; then
+		if [ -d "$destination/.git" ]; then
+			component_state=skipped
+			return 0
+		fi
+		warn "$destination exists but is not a Git repository"
+		return 1
+	fi
+	mkdir -p "$(dirname "$destination")" || return 1
+	if [ -n "$depth" ]; then
+		git clone --depth "$depth" "$url" "$destination"
+	else
+		git clone "$url" "$destination"
+	fi
+}
+
 install_shell() {
 	component_state=installed
 	if [ "$platform" = fedora ]; then
@@ -752,6 +780,21 @@ install_emacs() {
 			sudo_run make install || exit 1
 		fi
 	)
+}
+
+install_ctags() {
+	component_state=installed
+	clone_source_repo "$ctags_repo" "$ctags_dir" 1
+}
+
+install_org_root() {
+	component_state=installed
+	clone_source_repo "$org_root_repo" "$org_root_dir"
+}
+
+install_tdlib() {
+	component_state=installed
+	clone_source_repo "$tdlib_repo" "$tdlib_dir" 1
 }
 
 install_kitty() {
@@ -874,6 +917,9 @@ run_component() {
 		vim) installer=install_vim ;;
 		nvim) installer=install_nvim ;;
 		emacs) installer=install_emacs ;;
+		ctags) installer=install_ctags ;;
+		org-root) installer=install_org_root ;;
+		tdlib) installer=install_tdlib ;;
 		kitty) installer=install_kitty ;;
 		flameshot) installer=install_flameshot ;;
 		rime) installer=install_rime ;;
