@@ -48,8 +48,17 @@ Personal Linux and macOS config deployed with [[https://www.gnu.org/software/sto
 ** Quick setup
 
 =scripts/setup.sh= installs selected applications and deploys the complete
-platform profile.  With a terminal attached, the one-line command opens a
-numbered component menu:
+platform profile.  With a terminal attached, the one-line command first asks
+where to clone/use the dotfiles repository (default =~/opt/dotfiles=), detects
+components that are already installed, and then opens a numbered menu with
+missing or unverified components first:
+
+Detected components are listed afterward, marked =[installed]=, and default to
+off; select one explicitly to rerun its installer.  Detection is local and
+best-effort.  Source components are detected from their Git checkouts, while
+command and application components are detected from their executable or app.
+Explicit =--preset= and =--with= runs remain deterministic and do not filter
+their selections through this interactive detection.
 
 #+begin_src bash
 curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26086e1c63/raw/setup-gist.sh | bash
@@ -250,14 +259,14 @@ sudo dnf install neovim          # Fedora
 
 *** [[https://www.gnu.org/software/emacs/][Emacs]] (=emacs=)
 
-The setup script's =emacs= component installs the dependencies, safely clones
-or fast-forwards the =emacs-31= source, and runs =autogen.sh= and =configure=.
-Compilation and installation remain manual unless =--build-emacs= is supplied;
-that explicit mode uses at most four jobs by default and requires 10 GiB of
-available space.
+The setup script's =emacs= component installs the dependencies, shallow-clones
+the =emacs-31= source with depth 1 or safely fast-forwards an existing checkout,
+and runs =autogen.sh= and =configure=.  Compilation and installation remain
+manual unless =--build-emacs= is supplied; that explicit mode uses at most four
+jobs by default and requires 10 GiB of available space.
 
 #+begin_src bash
-git clone --branch emacs-31 --single-branch https://github.com/emacs-mirror/emacs.git ~/opt/emacs-src
+git clone --branch emacs-31 --single-branch --depth 1 https://github.com/emacs-mirror/emacs.git ~/opt/emacs-src
 #+end_src
 
 **** macOS

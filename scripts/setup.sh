@@ -27,6 +27,7 @@ skipped=()
 failed=()
 pending=()
 temporary_paths=()
+detected_present=()
 
 platform=
 preset=
@@ -37,6 +38,7 @@ dry_run=0
 assume_yes=0
 build_emacs=0
 allow_low_disk=0
+interactive_selection=0
 sudo_keepalive_pid=
 log_file=
 tty_open=0
@@ -54,7 +56,7 @@ Selection:
 
 Configuration:
   --font-size SIZE       Persist the generated dotfiles font size (default: 10)
-  --repo-dir DIR         Clone/use the dotfiles repository at DIR
+  --repo-dir DIR         Clone/use dotfiles at DIR (interactive default: ~/opt/dotfiles)
   --gpg-key FILE         Import an armored OpenPGP secret-key backup
   --build-emacs          Build and install Emacs after configuring the source
   --jobs N               Emacs build jobs (default: min(logical CPUs, 4))
@@ -69,7 +71,7 @@ Components:
   shell, font, vim, nvim, emacs, ctags, org-root, tdlib, kitty,
   flameshot, rime, x11, i3, rofi, hyprland, waybar, dunst, mail,
   secrets, aerospace, borders
-  Clone-only: ctags and tdlib use depth=1; org-root keeps full history
+  Source depth=1: emacs, ctags, tdlib; org-root keeps full history
 
 Examples:
   setup.sh
@@ -131,6 +133,11 @@ add_selected() {
 add_dependency() {
 	parent=$1
 	dependency=$2
+	if [ "$interactive_selection" -eq 1 ] && \
+		array_contains "$dependency" "${detected_present[@]}" && \
+		! array_contains "$dependency" "${selected[@]}"; then
+		return 0
+	fi
 	if ! array_contains "$dependency" "${selected[@]}"; then
 		add_selected "$dependency"
 		add_unique dependency_notes "$dependency (required by $parent)"
@@ -148,10 +155,74 @@ component_known() {
 
 component_label() {
 	case "$1" in
+		emacs) printf '%s (source depth=1)\n' "$1" ;;
 		ctags|tdlib) printf '%s (clone-only, depth=1)\n' "$1" ;;
 		org-root) printf '%s (clone-only, full history)\n' "$1" ;;
 		*) printf '%s\n' "$1" ;;
 	esac
+}
+
+command_present() {
+	command -v "$1" >/dev/null 2>&1
+}
+
+component_present() {
+	component=$1
+	case "$component" in
+		shell) command_present zsh && [ -d "$HOME/.oh-my-zsh" ] ;;
+		font)
+			command_present fc-list && fc-list 2>/dev/null | grep -i 'Maple Mono NL NF CN' >/dev/null
+			;;
+		vim) command_present vim ;;
+		nvim) command_present nvim ;;
+		emacs) [ -d "$emacs_dir/.git" ] ;;
+		ctags) [ -d "$ctags_dir/.git" ] ;;
+		org-root) [ -d "$org_root_dir/.git" ] ;;
+		tdlib) [ -d "$tdlib_dir/.git" ] ;;
+		kitty)
+			command_present kitty || { [ "$platform" = macos ] && [ -d /Applications/kitty.app ]; }
+			;;
+		flameshot)
+			command_present flameshot || { [ "$platform" = macos ] && \
+				{ [ -d /Applications/flameshot.app ] || [ -d /Applications/Flameshot.app ]; }; }
+			;;
+		rime)
+			if [ "$platform" = macos ]; then
+				[ -d '/Library/Input Methods/Squirrel.app' ]
+			else
+				rpm -q fcitx5-rime >/dev/null 2>&1
+			fi
+			;;
+		x11) command_present Xorg ;;
+		i3) command_present i3 ;;
+		rofi) command_present rofi ;;
+		hyprland) command_present Hyprland ;;
+		waybar) command_present waybar ;;
+		dunst) command_present dunst ;;
+		mail) command_present davmail && command_present mbsync ;;
+		secrets) command_present gpg ;;
+		aerospace)
+			command_present aerospace || [ -d /Applications/AeroSpace.app ]
+			;;
+		borders) command_present borders ;;
+		*) return 1 ;;
+	esac
+}
+
+detect_present_components() {
+	detected_present=()
+	while IFS= read -r component; do
+		component_present "$component" && add_unique detected_present "$component"
+	done <<EOF
+$(available_components)
+EOF
+}
+
+prepare_interactive_components() {
+	detect_present_components
+	for component in "${detected_present[@]}"; do
+		remove_value selected "$component"
+	done
 }
 
 component_supported() {
@@ -276,19 +347,35 @@ toggle_component() {
 interactive_menu() {
 	open_tty || die "interactive selection requires a TTY; pass --preset or --with and --yes"
 	menu_components=()
+	missing_components=()
+	present_components=()
 	while IFS= read -r component; do
-		menu_components[${#menu_components[@]}]=$component
+		if array_contains "$component" "${detected_present[@]}"; then
+			present_components[${#present_components[@]}]=$component
+		else
+			missing_components[${#missing_components[@]}]=$component
+		fi
 	done <<EOF
 $(available_components)
 EOF
+	for component in "${missing_components[@]}" "${present_components[@]}"; do
+		[ -n "$component" ] && menu_components[${#menu_components[@]}]=$component
+	done
 
 	while :; do
-		printf '\nSelect components for %s (toggle numbers, Enter to continue):\n' "$platform" >&3
+		printf '\nSelect components for %s (missing first; toggle numbers, Enter to continue):\n' "$platform" >&3
+		printf '  Missing or unverified:\n' >&3
+		[ ${#missing_components[@]} -gt 0 ] || printf '    none\n' >&3
 		index=1
 		for component in "${menu_components[@]}"; do
+			if [ "$index" -eq $((${#missing_components[@]} + 1)) ] && [ ${#present_components[@]} -gt 0 ]; then
+				printf '  Already installed (default off; select to rerun):\n' >&3
+			fi
 			mark=' '
 			array_contains "$component" "${selected[@]}" && mark=x
-			printf '  %2d. [%s] %s\n' "$index" "$mark" "$(component_label "$component")" >&3
+			status=
+			array_contains "$component" "${detected_present[@]}" && status=' [installed]'
+			printf '  %2d. [%s] %s%s\n' "$index" "$mark" "$(component_label "$component")" "$status" >&3
 			index=$((index + 1))
 		done
 		printf '> ' >&3
@@ -309,6 +396,27 @@ EOF
 			toggle_component "${menu_components[$((token - 1))]}"
 		done
 	done
+}
+
+display_home_path() {
+	path=$1
+	case "$path" in
+		"$HOME") printf '~\n' ;;
+		"$HOME"/*) printf '%s/%s\n' '~' "${path#"$HOME"/}" ;;
+		*) printf '%s\n' "$path" ;;
+	esac
+}
+
+prompt_repo_dir() {
+	display_repo_dir=$(display_home_path "$repo_dir")
+	printf 'Dotfiles repository [%s]: ' "$display_repo_dir" >&3
+	IFS= read -r answer <&3 || die "failed to read dotfiles repository path"
+	[ -n "$answer" ] || return 0
+	case "$answer" in
+		\~) repo_dir=$HOME ;;
+		\~/*) repo_dir=$HOME/${answer#\~/} ;;
+		*) repo_dir=$answer ;;
+	esac
 }
 
 resolve_dependencies() {
@@ -646,7 +754,7 @@ sync_dotfiles_repo() {
 sync_emacs_repo() {
 	if [ ! -e "$emacs_dir" ]; then
 		mkdir -p "$(dirname "$emacs_dir")" || return 1
-		git clone --branch emacs-31 --single-branch https://github.com/emacs-mirror/emacs.git "$emacs_dir" || return 1
+		git clone --branch emacs-31 --single-branch --depth 1 https://github.com/emacs-mirror/emacs.git "$emacs_dir" || return 1
 		return 0
 	fi
 	[ -d "$emacs_dir/.git" ] || { warn "$emacs_dir exists but is not a Git repository"; return 1; }
@@ -711,7 +819,7 @@ install_font() {
 		return
 	fi
 	dnf_install curl unzip fontconfig || return 1
-	if fc-list 2>/dev/null | grep -qi 'Maple Mono NL NF CN'; then
+	if fc-list 2>/dev/null | grep -i 'Maple Mono NL NF CN' >/dev/null; then
 		component_state=skipped
 		return 0
 	fi
@@ -1077,8 +1185,11 @@ main() {
 	[ ${#without_specs[@]} -gt 0 ] && selection_explicit=1
 	if [ "$selection_explicit" -eq 0 ]; then
 		open_tty || die "no component selection and no TTY; pass --preset or --with"
+		interactive_selection=1
+		prompt_repo_dir
 		preset=recommended
 		apply_preset "$preset"
+		prepare_interactive_components
 		interactive_menu
 	else
 		[ -n "$preset" ] || preset=minimal

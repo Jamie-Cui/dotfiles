@@ -33,6 +33,12 @@ prepare_mock_environment() {
 	make_executable "$mock_bin/git" \
 		'printf "git %s\\n" "$*" >> "$SETUP_TEST_LOG"' \
 		'if [ "$1" = clone ] && [ -n "$SETUP_TEST_GIT_CLONE_FAIL" ] && [[ "$*" == *"$SETUP_TEST_GIT_CLONE_FAIL"* ]]; then exit 43; fi' \
+		'if [ "$1" = clone ] && [[ "$*" == *"emacs-mirror/emacs.git"* ]]; then' \
+		'  destination=${!#}; mkdir -p "$destination/.git"' \
+		'  printf "%s\\n" "#!/bin/bash" "exit 0" > "$destination/autogen.sh"' \
+		'  printf "%s\\n" "#!/bin/bash" "exit 0" > "$destination/configure"' \
+		'  chmod +x "$destination/autogen.sh" "$destination/configure"' \
+		'fi' \
 		'if [ "$1" = "-C" ]; then shift 2; fi' \
 		'case "$1 $2" in' \
 		'  "remote get-url") printf "%s\\n" "https://github.com/Jamie-Cui/dotfiles.git" ;;' \
@@ -73,6 +79,7 @@ prepare_mock_environment() {
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"--preset NAME"* ]]
 	[[ "$output" == *"--build-emacs"* ]]
+	[[ "$output" == *"interactive default: ~/opt/dotfiles"* ]]
 	[[ "$output" == *"ctags"* ]]
 	[[ "$output" == *"org-root"* ]]
 	[[ "$output" == *"tdlib"* ]]
@@ -113,7 +120,36 @@ prepare_mock_environment() {
 		[[ "$output" == *"- tdlib"* ]]
 		[ "$(printf '%s\n' "$output" | grep -c 'clone-only, depth=1')" -eq 2 ]
 		[[ "$output" == *"org-root (clone-only, full history)"* ]]
+		[[ "$output" == *"emacs (source depth=1)"* ]]
 	done
+}
+
+@test "interactive preparation detects present source checkouts and defaults them off" {
+	mkdir -p "$HOME/opt/ctags/.git"
+	run /bin/bash -c '
+		eval "$(sed "\$d" "$1" | sed "\$d")"
+		platform=macos
+		selected=(ctags org-root)
+		prepare_interactive_components
+		[ "$(display_home_path "$HOME/opt/dotfiles")" = "~/opt/dotfiles" ]
+		array_contains ctags "${detected_present[@]}"
+		! array_contains ctags "${selected[@]}"
+		array_contains org-root "${selected[@]}"
+	' _ "$setup_script"
+	[ "$status" -eq 0 ]
+}
+
+@test "installed dependencies satisfy interactive component selection" {
+	run /bin/bash -c '
+		eval "$(sed "\$d" "$1" | sed "\$d")"
+		platform=macos
+		interactive_selection=1
+		selected=(aerospace)
+		detected_present=(kitty)
+		resolve_dependencies
+		! array_contains kitty "${selected[@]}"
+	' _ "$setup_script"
+	[ "$status" -eq 0 ]
 }
 
 @test "i3 expands its runtime dependencies" {
@@ -184,6 +220,15 @@ prepare_mock_environment() {
 	[ "$status" -eq 0 ]
 	run grep -E '(autogen|cmake|make -j)' "$SETUP_TEST_LOG"
 	[ "$status" -ne 0 ]
+}
+
+@test "emacs source is shallow-cloned from the selected branch" {
+	prepare_mock_environment
+	run env DOTFILES_SETUP_OS=fedora DOTFILES_SETUP_NO_TTY=1 \
+		/bin/bash "$setup_script" --preset minimal --with emacs --yes --repo-dir "$mock_repo"
+	[ "$status" -eq 0 ]
+	run grep -F "git clone --branch emacs-31 --single-branch --depth 1 https://github.com/emacs-mirror/emacs.git $HOME/opt/emacs-src" "$SETUP_TEST_LOG"
+	[ "$status" -eq 0 ]
 }
 
 @test "an existing source checkout is skipped without Git network operations" {
