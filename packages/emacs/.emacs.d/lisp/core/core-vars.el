@@ -62,7 +62,7 @@ detection based on the `mu' binary location."
   "Auto-detect the mu4e Lisp directory from the `mu' binary location.
 Returns nil when the mu binary is not found or no mu4e directory
 exists at the expected location."
-  (when-let ((mu-bin (executable-find "mu")))
+  (when-let* ((mu-bin (executable-find "mu")))
     (let* ((prefix (file-name-directory
                     (directory-file-name
                      (file-name-directory mu-bin))))
