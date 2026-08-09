@@ -1,0 +1,224 @@
+#+title: Paper Research Master Draft
+#+subtitle: Durable source of truth for research decisions and publication handoff
+#+startup: overview
+#+options: toc:3
+#+todo: OPEN TODO | DECIDED DONE
+#+paper_phase: discovery
+#+latex_gate: frozen
+#+content_approved: no
+#+approved_at:
+#+approved_scope:
+
+* Document contract
+
+This file is the source of truth for the paper's research content and workflow state.
+
+Until the author explicitly approves the content and authorizes publication-format work:
+
+1. Discuss and revise research content here.
+2. Do not translate research changes into `.tex`, `.bib`, or LaTeX figures.
+3. Mark uncertain claims as open.
+4. Return substantive translation problems to this file.
+
+Status markers:
+
+- =[DECIDED]= author-approved direction
+- =[PROPOSED]= current recommendation
+- =[SUPPORTED]= evidence-backed claim or completed artifact
+- =[OPEN]= unresolved claim, assumption, result, or choice
+- =[OUT]= outside the main paper claim
+
+* Workflow state
+
+** Current phase
+
+Explain why the current =paper_phase= is accurate.
+
+** Highest-impact decision
+
+State the single decision that most constrains the next useful work.
+
+** Active blockers
+
+- Add unresolved evidence, implementation, proof, evaluation, or author decisions.
+
+* Current decision
+
+** [PROPOSED] Paper identity
+
+State the paper type, target audience or venue, and object of study.
+
+** [PROPOSED] One-sentence thesis
+
+State one falsifiable sentence connecting the setting, mechanism, and guarantee.
+
+** [OPEN] Research question
+
+State the question whose answer would make the paper worth publishing.
+
+** [DECIDED] Scope boundary
+
+List what the paper proves or establishes, then list the nearest stronger claims it does not make.
+
+* Evidence and novelty gate
+
+** Occupied ground
+
+For each closest work, compare:
+
+| Work | Problem | Setting | Mechanism | Assumptions | Guarantee | Cost | Remaining delta |
+|------+---------+---------+-----------+-------------+-----------+------+-----------------|
+|      |         |         |           |             |           |      |                 |
+
+** [OPEN] Defensible delta
+
+State the smallest technical delta not already occupied by prior work.
+
+** [OPEN] Significance
+
+Explain the non-routine obstacle resolved by the work. If none is known, record the risk that the result is an obvious composition or incremental adaptation.
+
+* Model
+
+** Roles or study population
+
+Define actors, inputs, outputs, and protected assets.
+
+** Adversary or assumptions
+
+State capabilities, exclusions, trust assumptions, and the trusted computing base.
+
+** Non-goals
+
+- Add explicit non-goals.
+
+* Security, correctness, or study contract
+
+Define the event, theorem, hypothesis, or outcome that represents success.
+
+Map each property to the failure it prevents or the evidence that tests it.
+
+| Property or claim | Required invariant or evidence | Failure rejected or question answered |
+|-------------------+--------------------------------+---------------------------------------|
+|                   |                                |                                       |
+
+* Design or methodology
+
+** Overview
+
+Describe the complete path from inputs to claimed output.
+
+** Components or phases
+
+1. Add the first phase.
+2. Add the next phase.
+3. Keep supporting machinery subordinate to the main claim.
+
+** Failure behavior
+
+State abort, partial-result, ambiguity, and recovery rules.
+
+* Contribution claims
+
+Maintain stable claim IDs and update this ledger whenever a central claim changes.
+
+| ID | Problem and setting | Mechanism | Assumptions | Guarantee or outcome | Evidence | Dependencies | Status |
+|----+---------------------+-----------+-------------+----------------------+----------+--------------+--------|
+| C1 |                     |           |             |                      |          |              | OPEN   |
+
+** C1: [OPEN] Central contribution
+
+State the problem, setting, mechanism, assumptions, guarantee, current evidence, and falsifier.
+
+** Claims explicitly removed
+
+- Record priority claims, unsupported superlatives, and stronger adjacent claims that must not reappear.
+
+* Construction, system, or experiment plan
+
+** Completion obligations
+
+| ID | Claim | Obligation | Evidence required | Status |
+|----+-------+------------+-------------------+--------|
+| O1 | C1    |            |                   | OPEN   |
+
+** Implementation or study order
+
+1. Build the smallest reference artifact.
+2. Establish an end-to-end baseline.
+3. Add the central mechanism.
+4. Optimize only after measurement.
+
+* Evaluation plan
+
+** Claim-to-evaluation map
+
+| RQ | Claim | Proof, artifact, experiment, or dataset | Acceptance criterion | Result status |
+|----+-------+-----------------------------------------+----------------------+---------------|
+| RQ1 | C1   |                                         |                      | PLANNED       |
+
+** Baselines
+
+- Add the closest technical and deployment baselines.
+
+** Attacks, datasets, or scenarios
+
+- Add cases that directly test each claimed invariant.
+
+** Metrics
+
+- Add primary metrics and interpretation rules.
+
+** Result interpretation
+
+Predeclare what result supports, narrows, or falsifies each contribution claim. Keep planned, implemented, measured, proved, unsupported, and falsified states distinct.
+
+* Limitations
+
+- State the strongest important limitation first.
+
+* Draft abstract
+
+Write motivation, gap, approach, and intended evidence. Mark intended results until measurements or proofs exist.
+
+* Intended paper structure
+
+1. Introduction
+2. Model and contract
+3. Design or methodology
+4. Construction or implementation
+5. Evaluation
+6. Related work
+7. Limitations
+
+* Content approval gates
+
+** Gate A: contribution viability
+
+- Prior art checked
+- Delta and significance accepted
+
+** Gate B: model and contract
+
+- Roles, assumptions, guarantee, and non-goals accepted
+
+** Gate C: construction and evidence
+
+- Every central claim maps to an artifact, proof, or experiment
+- Every central claim maps to an evaluation question or proof obligation
+
+** Gate D: author approval
+
+After explicit approval, set =content_approved= to =yes= and record =approved_at= and =approved_scope=.
+
+Keep =latex_gate= frozen until the author explicitly authorizes LaTeX translation. Then set it to =authorized= and advance =paper_phase= to =latex-translation=.
+
+* Immediate discussion agenda
+
+1. Add the highest-impact unresolved decision.
+
+* Change log
+
+** YYYY-MM-DD
+
+- Created the paper workflow master draft.
