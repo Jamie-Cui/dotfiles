@@ -5,6 +5,17 @@
 
 Personal Linux and macOS config deployed with [[https://www.gnu.org/software/stow/][GNU Stow]].
 
+To setup proxy:
+
+#+begin_src bash
+export http_proxy="http://127.0.0.1:10808"
+export https_proxy="http://127.0.0.1:10808"
+export ftp_proxy="http://127.0.0.1:10808"
+export no_proxy="localhost,127.0.0.1,localaddress,.localdomain.com"
+git config --global http.proxy http://127.0.0.1:10808
+git config --global https.proxy http://127.0.0.1:10808
+#+end_src
+
 ** Contents
 
 - [[#quick-setup][Quick setup]]
