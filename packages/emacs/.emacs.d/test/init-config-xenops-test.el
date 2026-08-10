@@ -2,13 +2,39 @@
 
 ;;; Commentary:
 
-;; Focused regression tests for Xenops scale refresh and async lifecycle state.
+;; Focused regression tests for Xenops source fontification, scale refresh,
+;; and async lifecycle state.
 
 ;;; Code:
 
 (require 'cl-lib)
 (require 'ert)
 (require 'init-config-xenops)
+
+(ert-deftest init-config-xenops-keeps-src-delimiter-newline-unfontified ()
+  (with-temp-buffer
+    (insert "#+begin_src bash\n"
+            "npm config set prefix \"$HOME/.local\"\n"
+            "#+end_src\n")
+    (org-mode)
+    (goto-char (point-min))
+    (search-forward "bash")
+    (let ((delimiter-newline (point))
+          (contents-end (progn
+                          (search-forward "#+end_src")
+                          (line-beginning-position))))
+      (remove-text-properties
+       (point-min) (point-max) '(syntax-table nil))
+      (org-src-font-lock-fontify-block
+       "bash" delimiter-newline contents-end)
+      (should-not
+       (get-text-property delimiter-newline 'syntax-table))
+      (org-element-cache-reset)
+      (goto-char (point-min))
+      (should
+       (equal "bash"
+              (org-element-property :language
+                                    (org-element-at-point)))))))
 
 (ert-deftest init-config-xenops-normalizes-corrupt-idle-semaphore ()
   (let ((xenops-math-latex-max-tasks-in-flight 2))

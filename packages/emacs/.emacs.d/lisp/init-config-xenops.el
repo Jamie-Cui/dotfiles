@@ -88,6 +88,23 @@
 (defvar-local fn/xenops-math-inline-editing-begin nil
   "Beginning of the Xenops inline math element currently being edited.")
 
+(defun fn/xenops-src-skip-delimiter-newline-a (args)
+  "Keep source fontification off the newline after a block delimiter.
+Xenops includes that newline in its source-content range.  Applying a
+source mode's syntax table there can make Org parse the language and
+the first source word as one token."
+  (pcase-let ((`(,language ,start ,end) args))
+    (list language
+          (if (and (< start end) (eq (char-after start) ?\n))
+              (1+ start)
+            start)
+          end)))
+
+(unless (advice-member-p #'fn/xenops-src-skip-delimiter-newline-a
+                         'org-src-font-lock-fontify-block)
+  (advice-add 'org-src-font-lock-fontify-block
+              :filter-args #'fn/xenops-src-skip-delimiter-newline-a))
+
 (defun fn/xenops-math-inline-editing-element ()
   "Return the Xenops inline math element being edited at point."
   (and (bound-and-true-p xenops-mode)

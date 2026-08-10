@@ -103,11 +103,24 @@ prepare_mock_environment() {
 	run env DOTFILES_SETUP_OS=macos DOTFILES_SETUP_NO_TTY=1 \
 		/bin/bash "$setup_script" --preset recommended --yes --dry-run
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"- aerospace"* ]]
+	[[ "$output" == *"- aerospace (fork source depth=1)"* ]]
+	[[ "$output" == *"AeroSpace: prepare Jamie-Cui/AeroSpace source; signed release build and install remain manual"* ]]
+	[[ "$output" == *"GitHub fork Jamie-Cui/AeroSpace"* ]]
+	[[ "$output" != *"nikitabobko/tap"* ]]
 	[[ "$output" != *"- borders"* ]]
 	[[ "$output" != *"- ctags"* ]]
 	[[ "$output" != *"- org-root"* ]]
 	[[ "$output" != *"- tdlib"* ]]
+}
+
+@test "AeroSpace source checkout satisfies component detection" {
+	mkdir -p "$HOME/opt/aerospace-src/.git"
+	run /bin/bash -c '
+		eval "$(sed "\$d" "$1" | sed "\$d")"
+		platform=macos
+		component_present aerospace
+	' _ "$setup_script"
+	[ "$status" -eq 0 ]
 }
 
 @test "all includes each clone-only source component on both platforms" {
@@ -228,6 +241,21 @@ prepare_mock_environment() {
 		/bin/bash "$setup_script" --preset minimal --with emacs --yes --repo-dir "$mock_repo"
 	[ "$status" -eq 0 ]
 	run grep -F "git clone --branch emacs-31 --single-branch --depth 1 https://github.com/emacs-mirror/emacs.git $HOME/opt/emacs-src" "$SETUP_TEST_LOG"
+	[ "$status" -eq 0 ]
+}
+
+@test "AeroSpace source is shallow-cloned from the personal fork" {
+	prepare_mock_environment
+	make_executable "$mock_bin/brew" \
+		'printf "brew %s\\n" "$*" >> "$SETUP_TEST_LOG"' \
+		'exit 0'
+	run env DOTFILES_SETUP_OS=macos DOTFILES_SETUP_NO_TTY=1 \
+		/bin/bash "$setup_script" --preset minimal --with aerospace --yes --repo-dir "$mock_repo"
+	[ "$status" -eq 0 ]
+	[[ "$output" == *"Build, sign, and install the AeroSpace fork"* ]]
+	run grep -F "brew install bash fish ruby rust swiftly" "$SETUP_TEST_LOG"
+	[ "$status" -eq 0 ]
+	run grep -F "git clone --branch main --single-branch --depth 1 https://github.com/Jamie-Cui/AeroSpace.git $HOME/opt/aerospace-src" "$SETUP_TEST_LOG"
 	[ "$status" -eq 0 ]
 }
 

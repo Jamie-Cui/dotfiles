@@ -532,10 +532,25 @@ machine 127.0.0.1 login you@outlook.com password LOCAL_KEY port 1025
 
 Run =make bootstrap= after installing the app.
 
-*** [[https://nikitabobko.github.io/AeroSpace/][AeroSpace]] (=aerospace=)
+*** [[https://github.com/Jamie-Cui/AeroSpace][AeroSpace fork]] (=aerospace=)
 
 #+begin_src bash
-brew install --cask nikitabobko/tap/aerospace
+# The setup script installs build dependencies and clones the fork here.
+cd ~/opt/aerospace-src
+
+# Create the self-signed code-signing certificate described in
+# dev-docs/development.md before building.  Homebrew's Ruby and Bash must take
+# precedence over the older macOS system versions.
+export PATH="$(brew --prefix ruby)/bin:$(brew --prefix)/bin:$PATH"
+bundle install
+./build-release.sh
+
+# Remove a previous official cask once, then install the locally built app and CLI.
+brew uninstall --cask aerospace 2>/dev/null || true
+sudo ditto .release/AeroSpace.app /Applications/AeroSpace.app
+sudo mkdir -p /usr/local/bin
+sudo install -m 0755 .release/aerospace /usr/local/bin/aerospace
+open /Applications/AeroSpace.app
 
 # Mission Control and Dock settings required by this layout.
 defaults write com.apple.dock expose-group-apps -bool true
@@ -552,9 +567,12 @@ brew tap FelixKratz/formulae
 brew install borders
 #+end_src
 
-The setup script installs AeroSpace in the recommended macOS preset but does
-not install borders or change Dock/Mission Control defaults.  It reports the
-commands above as pending work when the current values differ.
+The setup script clones or safely fast-forwards =Jamie-Cui/AeroSpace= in
+=~/opt/aerospace-src= and installs its build dependencies.  It deliberately
+leaves the signed release build and installation manual because the signing
+certificate is machine-local.  It does not install borders or change
+Dock/Mission Control defaults, and reports the commands above as pending work
+when the current values differ.
 
 If macOS blocks the first launch:
 

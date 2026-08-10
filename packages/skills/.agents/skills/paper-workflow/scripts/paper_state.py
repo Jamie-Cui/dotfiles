@@ -27,21 +27,25 @@ REQUIRED_KEYWORDS = {
     "approved_at",
     "approved_scope",
 }
-REQUIRED_HEADINGS = {
-    "document contract",
-    "contribution claims",
-    "evaluation plan",
-    "limitations",
-    "content approval gates",
-    "immediate discussion agenda",
-    "change log",
+REQUIRED_HEADING_ALIASES = {
+    "document contract": {"document contract", "文档约定"},
+    "contribution claims": {"contribution claims", "贡献主张"},
+    "evaluation plan": {"evaluation plan", "评估计划"},
+    "limitations": {"limitations", "局限"},
+    "content approval gates": {"content approval gates", "内容批准门控"},
+    "immediate discussion agenda": {
+        "immediate discussion agenda",
+        "当前讨论议程",
+    },
+    "change log": {"change log", "变更记录"},
 }
+INTENDED_STRUCTURE_HEADINGS = {"intended paper structure", "预期论文结构"}
 LATEX_SUFFIXES = {".tex", ".bib", ".bst", ".cls", ".sty", ".tikz", ".pgf"}
 FIGURE_SUFFIXES = {".pdf", ".png", ".jpg", ".jpeg", ".svg", ".eps"}
 KEYWORD_RE = re.compile(r"^#\+([A-Za-z0-9_-]+):\s*(.*?)\s*$")
 HEADING_RE = re.compile(r"^(\*+)\s+(.+?)\s*$")
 OPEN_RE = re.compile(r"^\*+\s+.*\[OPEN\]", re.IGNORECASE)
-CLAIM_HEADING_RE = re.compile(r"^\*+\s+(C[0-9]+):", re.IGNORECASE)
+CLAIM_HEADING_RE = re.compile(r"^\*+\s+(C[0-9]+)[:：]", re.IGNORECASE)
 NUMBERED_ITEM_RE = re.compile(r"^\s*[0-9]+[.)]\s+(.+?)\s*$")
 
 
@@ -89,7 +93,7 @@ def intended_sections(text: str) -> list[str]:
     for line in text.splitlines():
         match = HEADING_RE.match(line)
         if match and len(match.group(1)) == 1:
-            inside = match.group(2).strip().casefold() == "intended paper structure"
+            inside = match.group(2).strip().casefold() in INTENDED_STRUCTURE_HEADINGS
             continue
         if inside:
             item = NUMBERED_ITEM_RE.match(line)
@@ -195,7 +199,11 @@ def command_audit(text: str, repo: Path) -> int:
         errors.append(f"unknown content_approved value: {approved}")
 
     headings = {heading.casefold() for heading in top_level_headings(text)}
-    missing_headings = sorted(REQUIRED_HEADINGS - headings)
+    missing_headings = sorted(
+        canonical
+        for canonical, aliases in REQUIRED_HEADING_ALIASES.items()
+        if headings.isdisjoint(aliases)
+    )
     if missing_headings:
         errors.append("missing top-level headings: " + ", ".join(missing_headings))
 

@@ -9,9 +9,12 @@ repo_branch=master
 repo_dir=${HOME}/opt/dotfiles
 opt_dir=${HOME}/opt
 emacs_dir=${opt_dir}/emacs-src
+aerospace_dir=${opt_dir}/aerospace-src
 ctags_dir=${opt_dir}/ctags
 org_root_dir=${opt_dir}/org-root
 tdlib_dir=${opt_dir}/tdlib
+aerospace_repo=https://github.com/Jamie-Cui/AeroSpace.git
+aerospace_branch=main
 ctags_repo=https://github.com/universal-ctags/ctags.git
 org_root_repo=git@github.com:Jamie-Cui/org-root.git
 tdlib_repo=https://github.com/tdlib/td.git
@@ -156,6 +159,7 @@ component_known() {
 component_label() {
 	case "$1" in
 		emacs) printf '%s (source depth=1)\n' "$1" ;;
+		aerospace) printf '%s (fork source depth=1)\n' "$1" ;;
 		ctags|tdlib) printf '%s (clone-only, depth=1)\n' "$1" ;;
 		org-root) printf '%s (clone-only, full history)\n' "$1" ;;
 		*) printf '%s\n' "$1" ;;
@@ -202,7 +206,7 @@ component_present() {
 		mail) command_present davmail && command_present mbsync ;;
 		secrets) command_present gpg ;;
 		aerospace)
-			command_present aerospace || [ -d /Applications/AeroSpace.app ]
+			[ -d "$aerospace_dir/.git" ]
 			;;
 		borders) command_present borders ;;
 		*) return 1 ;;
@@ -518,11 +522,14 @@ EOF
 	elif array_contains emacs "${selected[@]}"; then
 		say "  Emacs: prepare source through configure; build remains manual"
 	fi
+	if array_contains aerospace "${selected[@]}"; then
+		say "  AeroSpace: prepare Jamie-Cui/AeroSpace source; signed release build and install remain manual"
+	fi
 	if { [ "$platform" = fedora ] && array_contains mail "${selected[@]}"; } || \
 		{ [ "$platform" = macos ] && { array_contains aerospace "${selected[@]}" || array_contains borders "${selected[@]}"; }; }; then
 		say "  Third-party sources:"
 		[ "$platform" = fedora ] && array_contains mail "${selected[@]}" && say "    - COPR mguessan/davmail"
-		[ "$platform" = macos ] && array_contains aerospace "${selected[@]}" && say "    - Homebrew tap nikitabobko/tap"
+		[ "$platform" = macos ] && array_contains aerospace "${selected[@]}" && say "    - GitHub fork Jamie-Cui/AeroSpace"
 		[ "$platform" = macos ] && array_contains borders "${selected[@]}" && say "    - Homebrew tap FelixKratz/formulae"
 	fi
 	proxy_names=$(proxy_variable_names)
@@ -773,6 +780,28 @@ sync_emacs_repo() {
 	fi
 }
 
+sync_aerospace_repo() {
+	if [ ! -e "$aerospace_dir" ]; then
+		mkdir -p "$(dirname "$aerospace_dir")" || return 1
+		git clone --branch "$aerospace_branch" --single-branch --depth 1 "$aerospace_repo" "$aerospace_dir" || return 1
+		return 0
+	fi
+	[ -d "$aerospace_dir/.git" ] || { warn "$aerospace_dir exists but is not a Git repository"; return 1; }
+	[ -z "$(git -C "$aerospace_dir" status --porcelain)" ] || { warn "$aerospace_dir has local changes"; return 1; }
+	remote=$(git -C "$aerospace_dir" remote get-url origin 2>/dev/null) || return 1
+	case "$remote" in
+		https://github.com/Jamie-Cui/AeroSpace.git|https://github.com/Jamie-Cui/AeroSpace|git@github.com:Jamie-Cui/AeroSpace.git|git@github.com:Jamie-Cui/AeroSpace) ;;
+		*) warn "$aerospace_dir origin is not Jamie-Cui/AeroSpace"; return 1 ;;
+	esac
+	git -C "$aerospace_dir" fetch origin "$aerospace_branch" || return 1
+	head=$(git -C "$aerospace_dir" rev-parse HEAD) || return 1
+	upstream=$(git -C "$aerospace_dir" rev-parse "origin/$aerospace_branch") || return 1
+	if [ "$head" != "$upstream" ]; then
+		git -C "$aerospace_dir" merge-base --is-ancestor HEAD "origin/$aerospace_branch" || return 1
+		git -C "$aerospace_dir" merge --ff-only "origin/$aerospace_branch" || return 1
+	fi
+}
+
 clone_source_repo() {
 	url=$1
 	destination=$2
@@ -1003,7 +1032,9 @@ install_mail() {
 
 install_aerospace() {
 	component_state=installed
-	brew_cask aerospace nikitabobko/tap/aerospace || return 1
+	brew install bash fish ruby rust swiftly || return 1
+	sync_aerospace_repo || return 1
+	add_unique pending "Build, sign, and install the AeroSpace fork from $aerospace_dir as documented in README.org."
 	needs_defaults=0
 	[ "$(defaults read com.apple.dock expose-group-apps 2>/dev/null)" = 1 ] || needs_defaults=1
 	[ "$(defaults read com.apple.dock autohide 2>/dev/null)" = 1 ] || needs_defaults=1

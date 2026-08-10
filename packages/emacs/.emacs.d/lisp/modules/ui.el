@@ -51,7 +51,7 @@
                 imenu-list-minor-mode-hook
                 imenu-list-major-mode-hook))
   (add-hook mode (lambda () (display-line-numbers-mode -1))))
-(setq-default display-line-numbers-type 'visual)
+(setq-default display-line-numbers-type 't)
 
 ;; ------------------------------------------------------------------
 ;; TTY Configuration
