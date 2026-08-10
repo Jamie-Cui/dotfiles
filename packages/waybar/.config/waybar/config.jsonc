@@ -34,11 +34,14 @@
   },
 
   "hyprland/workspaces": {
-    "format": "{name}: {icon}",
+    "format": "{icon}{name}:<span>{windows}0</span>\u2067{icon}\u2069",
     "format-icons": {
-      "active": "",
-      "default": ""
-    }
+      "active": "[",
+      "default": "<span alpha=\"1\">[</span>"
+    },
+    "window-rewrite-default": "_",
+    "window-rewrite-group-threshold": 1,
+    "window-rewrite-group-format": "{count}</span><span alpha=\"1\" size=\"1\">"
   },
 
   "bluetooth": {
@@ -72,16 +75,6 @@
       }
     ],
     "ignore-monitor": true
-  },
-
-  "custom/music": {
-    "format": "  {}",
-    "escape": true,
-    "interval": 5,
-    "tooltip": false,
-    "exec": "playerctl metadata --format='{{ artist }} - {{ title }}'",
-    "on-click": "playerctl play-pause",
-    "max-length": 50
   },
 
   "clock": {
