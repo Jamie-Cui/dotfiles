@@ -87,7 +87,7 @@ test-setup: check-setup ## Run setup behavior tests
 		echo "Bats is required. Install it with 'brew install bats-core' or 'sudo dnf install bats'." >&2; \
 		exit 2; \
 	}
-	@bats tests/*.bats
+	@bats tests/setup.bats
 
 # -- Generation ---------------------------------------------------------------
 
