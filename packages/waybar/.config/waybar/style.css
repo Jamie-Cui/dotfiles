@@ -96,6 +96,10 @@
   outline: none;
 }
 
+#workspaces button.active {
+  color: @mv_text;
+}
+
 #workspaces button.urgent {
   color: @mv_red;
   background-color: rgba(255, 95, 89, 0.12);
