@@ -523,7 +523,7 @@ EOF
 		say "  Emacs: prepare source through configure; build remains manual"
 	fi
 	if array_contains aerospace "${selected[@]}"; then
-		say "  AeroSpace: prepare Jamie-Cui/AeroSpace source; signed release build and install remain manual"
+		say "  AeroSpace: prepare Jamie-Cui/AeroSpace source; minimal signed release build and install remain manual"
 	fi
 	if { [ "$platform" = fedora ] && array_contains mail "${selected[@]}"; } || \
 		{ [ "$platform" = macos ] && { array_contains aerospace "${selected[@]}" || array_contains borders "${selected[@]}"; }; }; then
@@ -1032,9 +1032,9 @@ install_mail() {
 
 install_aerospace() {
 	component_state=installed
-	brew install bash fish ruby rust swiftly || return 1
+	brew install bash || return 1
 	sync_aerospace_repo || return 1
-	add_unique pending "Build, sign, and install the AeroSpace fork from $aerospace_dir as documented in README.org."
+	add_unique pending "Build, sign, and install the minimal AeroSpace release from $aerospace_dir as documented in README.org."
 	needs_defaults=0
 	[ "$(defaults read com.apple.dock expose-group-apps 2>/dev/null)" = 1 ] || needs_defaults=1
 	[ "$(defaults read com.apple.dock autohide 2>/dev/null)" = 1 ] || needs_defaults=1

@@ -539,11 +539,10 @@ Run =make bootstrap= after installing the app.
 cd ~/opt/aerospace-src
 
 # Create the self-signed code-signing certificate described in
-# dev-docs/development.md before building.  Homebrew's Ruby and Bash must take
-# precedence over the older macOS system versions.
-export PATH="$(brew --prefix ruby)/bin:$(brew --prefix)/bin:$PATH"
-bundle install
-./build-release.sh
+# dev-docs/development.md before building.  Homebrew's Bash must take
+# precedence over the older macOS system version.
+export PATH="$(brew --prefix)/bin:$PATH"
+./build-release.sh --minimal
 
 # Remove a previous official cask once, then install the locally built app and CLI.
 brew uninstall --cask aerospace 2>/dev/null || true
@@ -568,11 +567,11 @@ brew install borders
 #+end_src
 
 The setup script clones or safely fast-forwards =Jamie-Cui/AeroSpace= in
-=~/opt/aerospace-src= and installs its build dependencies.  It deliberately
-leaves the signed release build and installation manual because the signing
-certificate is machine-local.  It does not install borders or change
-Dock/Mission Control defaults, and reports the commands above as pending work
-when the current values differ.
+=~/opt/aerospace-src= and installs Bash 5, the only Homebrew dependency needed
+by the minimal release build.  It deliberately leaves the signed release build
+and installation manual because the signing certificate is machine-local.  It
+does not install borders or change Dock/Mission Control defaults, and reports
+the commands above as pending work when the current values differ.
 
 If macOS blocks the first launch:
 

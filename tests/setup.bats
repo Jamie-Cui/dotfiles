@@ -104,7 +104,7 @@ prepare_mock_environment() {
 		/bin/bash "$setup_script" --preset recommended --yes --dry-run
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"- aerospace (fork source depth=1)"* ]]
-	[[ "$output" == *"AeroSpace: prepare Jamie-Cui/AeroSpace source; signed release build and install remain manual"* ]]
+	[[ "$output" == *"AeroSpace: prepare Jamie-Cui/AeroSpace source; minimal signed release build and install remain manual"* ]]
 	[[ "$output" == *"GitHub fork Jamie-Cui/AeroSpace"* ]]
 	[[ "$output" != *"nikitabobko/tap"* ]]
 	[[ "$output" != *"- borders"* ]]
@@ -252,8 +252,8 @@ prepare_mock_environment() {
 	run env DOTFILES_SETUP_OS=macos DOTFILES_SETUP_NO_TTY=1 \
 		/bin/bash "$setup_script" --preset minimal --with aerospace --yes --repo-dir "$mock_repo"
 	[ "$status" -eq 0 ]
-	[[ "$output" == *"Build, sign, and install the AeroSpace fork"* ]]
-	run grep -F "brew install bash fish ruby rust swiftly" "$SETUP_TEST_LOG"
+	[[ "$output" == *"Build, sign, and install the minimal AeroSpace release"* ]]
+	run grep -Fx "brew install bash" "$SETUP_TEST_LOG"
 	[ "$status" -eq 0 ]
 	run grep -F "git clone --branch main --single-branch --depth 1 https://github.com/Jamie-Cui/AeroSpace.git $HOME/opt/aerospace-src" "$SETUP_TEST_LOG"
 	[ "$status" -eq 0 ]
