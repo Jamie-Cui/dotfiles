@@ -592,4 +592,27 @@ If macOS blocks the first launch:
 xattr -d com.apple.quarantine /Applications/AeroSpace.app
 #+end_src
 
+**** Unsigned debug LaunchAgent
+
+For local development without a signing certificate, the managed
+=aerospace-service= command builds the debug executable and runs it as a user
+LaunchAgent.  This is similar to =systemctl --user enable --now=:
+
+#+begin_src bash
+aerospace-service install
+aerospace-service status
+aerospace-service logs
+#+end_src
+
+The executable is installed at
+=~/.local/libexec/aerospace-debug/AeroSpaceApp=, and the matching CLI is
+=~/.local/bin/aerospace-debug=.  Other lifecycle commands are =update=,
+=rebuild=, =enable=, =disable=, =start=, =stop=, =restart=, =accessibility=,
+and =uninstall=.  Source and logs are preserved by =uninstall=.
+
+The LaunchAgent cannot bypass macOS Accessibility permission.  Grant the
+installed executable access when prompted.  Because this build is unsigned,
+rebuilding it may require granting Accessibility permission again; use the
+minimal signed release above for a stable daily installation.
+
 The tracked bindings use =${HOME}= for user-specific paths.
