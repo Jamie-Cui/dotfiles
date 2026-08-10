@@ -96,8 +96,7 @@ setup_ssh_repo_available() {
 
 setup_sync_dotfiles_repo() {
 	local remote head upstream
-	setup_say ""
-	setup_say "==> Preparing dotfiles repository"
+	setup_ui_step 1 2 5 'Preparing dotfiles repository'
 	if [ ! -e "$setup_repo_dir" ]; then
 		mkdir -p "$(dirname "$setup_repo_dir")" || setup_die "cannot create repository parent directory"
 		git clone --branch "$setup_repo_branch" --single-branch \
@@ -132,6 +131,7 @@ setup_sync_dotfiles_repo() {
 		git -C "$setup_repo_dir" remote set-url origin "$setup_repo_ssh" || \
 			setup_die "failed to switch origin to SSH"
 	fi
+	setup_ui_status 1 success 'Dotfiles repository ready.'
 }
 
 setup_sync_emacs_repo() {
@@ -359,8 +359,11 @@ setup_install_borders() {
 
 setup_run_component() {
 	local component=$1
-	setup_say ""
-	setup_say "==> Component: $component"
+	local index=${2:-1}
+	local total=${3:-1}
+	local label
+	label=$(setup_component_label "$component")
+	setup_ui_status 1 pending "$index/$total  $component - $label"
 	case $component in
 		shell) setup_install_shell ;;
 		font) setup_install_font ;;
@@ -385,20 +388,20 @@ setup_run_component() {
 		borders) setup_install_borders ;;
 		*) setup_die "no installer for component $component" 2 ;;
 	esac || setup_die "component failed: $component"
-	setup_say "Completed component: $component"
+	setup_completed_components=$((setup_completed_components + 1))
+	setup_ui_status 1 success "$component completed."
 }
 
 setup_deploy_dotfiles() {
-	setup_say ""
-	setup_say "==> Configuring and previewing dotfiles"
+	setup_ui_step 1 4 5 'Configuring and deploying dotfiles'
 	"$setup_repo_dir/configure" --font "$setup_font_size" || setup_die "failed to persist FONT_SIZE"
 	make -C "$setup_repo_dir" dry-run || setup_die "dotfiles dry-run failed; no Stow changes were made"
 	make -C "$setup_repo_dir" bootstrap || setup_die "dotfiles bootstrap failed"
+	setup_ui_status 1 success 'Dotfiles deployed.'
 }
 
 setup_activate_post_deploy() {
-	setup_say ""
-	setup_say "==> Post-deploy activation"
+	setup_ui_step 1 5 5 'Post-deploy activation'
 	if command -v zsh >/dev/null 2>&1 && [ -x "$HOME/.local/bin/proxyctl" ]; then
 		"$HOME/.local/bin/proxyctl" init || setup_die "proxyctl activation failed"
 	else
@@ -415,17 +418,22 @@ setup_activate_post_deploy() {
 			setup_pending_add "Select Fcitx 5 as the input method and log out and back in."
 		fi
 	fi
+	setup_ui_status 1 success 'Post-deploy activation complete.'
 }
 
 setup_finish() {
-	local item
-	setup_say ""
-	setup_say "Setup completed."
+	local item finished_at elapsed
+	finished_at=$(date +%s)
+	elapsed=$((finished_at - setup_started_at))
+	setup_ui_section 1 'Setup completed'
+	setup_ui_status 1 success 'Your dotfiles environment is ready.'
+	setup_ui_key_value 1 Components "$setup_completed_components/${#setup_selected[@]} completed"
+	setup_ui_key_value 1 Duration "${elapsed}s"
 	if [ ${#setup_pending[@]} -gt 0 ]; then
-		setup_say "Pending manual steps:"
+		setup_ui_section 1 'Pending manual steps'
 		for item in "${setup_pending[@]}"; do
-			setup_say "  - $item"
+			setup_ui_status 1 warning "$item"
 		done
 	fi
-	[ -n "$setup_log_file" ] && setup_say "Log: $setup_log_file"
+	[ -n "$setup_log_file" ] && setup_ui_key_value 1 Log "$setup_log_file"
 }

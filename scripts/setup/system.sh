@@ -146,8 +146,7 @@ setup_install_homebrew() {
 }
 
 setup_install_core() {
-	setup_say ""
-	setup_say "==> Installing core prerequisites"
+	setup_ui_step 1 1 5 'Installing core prerequisites'
 	if [ "$setup_platform" = fedora ]; then
 		setup_dnf_install git curl make stow || setup_die "failed to install core Fedora packages"
 	else
@@ -159,6 +158,7 @@ setup_install_core() {
 		brew list --formula stow >/dev/null 2>&1 || \
 			brew install stow || setup_die "failed to install GNU Stow"
 	fi
+	setup_ui_status 1 success 'Core prerequisites ready.'
 }
 
 setup_prepare_privileges() {

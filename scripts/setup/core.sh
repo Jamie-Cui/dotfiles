@@ -35,6 +35,8 @@ setup_tty_open=0
 setup_sudo_keepalive_pid=
 setup_log_file=
 setup_temp_dir=
+setup_started_at=
+setup_completed_components=0
 
 setup_selected=()
 setup_excluded=()
@@ -60,11 +62,19 @@ setup_say() {
 }
 
 setup_warn() {
-	printf 'warning: %s\n' "$*" >&2
+	if declare -F setup_ui_warning >/dev/null 2>&1; then
+		setup_ui_warning 2 "$*"
+	else
+		printf 'warning: %s\n' "$*" >&2
+	fi
 }
 
 setup_die() {
-	printf '%s: %s\n' "$setup_program" "$1" >&2
+	if declare -F setup_ui_error >/dev/null 2>&1; then
+		setup_ui_error 2 "$setup_program: $1"
+	else
+		printf '%s: %s\n' "$setup_program" "$1" >&2
+	fi
 	exit "${2:-1}"
 }
 
@@ -289,7 +299,7 @@ setup_start_logging() {
 	setup_log_file=$state_dir/setup-$(date +%Y%m%d-%H%M%S).log
 	touch "$setup_log_file" || setup_die "cannot create log file $setup_log_file"
 	exec > >(tee -a "$setup_log_file") 2>&1
-	setup_say "Log: $setup_log_file"
+	setup_ui_status 1 info "Log: $setup_log_file"
 }
 
 setup_display_home_path() {

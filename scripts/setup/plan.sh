@@ -112,7 +112,12 @@ setup_read_existing_font_size() {
 setup_prompt_repo_dir() {
 	local display answer
 	display=$(setup_display_home_path "$setup_repo_dir")
-	printf 'Dotfiles repository [%s]: ' "$display" >&3
+	setup_ui_clear 3
+	setup_ui_banner 3
+	setup_ui_step 3 1 4 'Repository'
+	setup_ui_key_value 3 Platform "$setup_platform"
+	setup_ui_key_value 3 Profile "${setup_profile:-recommended}"
+	setup_ui_prompt 3 'Dotfiles repository' "$display"
 	IFS= read -r answer <&3 || setup_die "failed to read dotfiles repository path"
 	[ -n "$answer" ] || return 0
 	case $answer in
@@ -123,17 +128,24 @@ setup_prompt_repo_dir() {
 }
 
 setup_prepare_numeric_options() {
-	local answer
+	local answer emacs_build
 	if [ -z "$setup_font_size" ]; then
 		setup_read_existing_font_size 2>/dev/null || setup_font_size=10
 	fi
+	[ -n "$setup_jobs" ] || setup_default_jobs
 	if [ "$setup_interactive" -eq 1 ]; then
-		printf 'Font size [%s]: ' "$setup_font_size" >&3
+		emacs_build=disabled
+		[ "$setup_build_emacs" -eq 1 ] && emacs_build=enabled
+		setup_ui_clear 3
+		setup_ui_banner 3
+		setup_ui_step 3 3 4 'Options'
+		setup_ui_key_value 3 'Emacs build' "$emacs_build"
+		setup_ui_key_value 3 'Build jobs' "$setup_jobs"
+		setup_ui_prompt 3 'Font size' "$setup_font_size"
 		IFS= read -r answer <&3 || setup_die "failed to read font size"
 		[ -z "$answer" ] || setup_font_size=$answer
 	fi
 	case $setup_font_size in ''|*[!0-9]*|0) setup_die "--font-size must be a positive integer" 2 ;; esac
-	[ -n "$setup_jobs" ] || setup_default_jobs
 	case $setup_jobs in ''|*[!0-9]*|0) setup_die "--jobs must be a positive integer" 2 ;; esac
 }
 
@@ -231,7 +243,7 @@ setup_toggle_component() {
 }
 
 setup_interactive_menu() {
-	local component index mark state answer token label
+	local component index mark answer token label feedback status_style
 	local missing=()
 	local present=()
 	local menu=()
@@ -249,31 +261,50 @@ EOF
 		[ -n "$component" ] && menu[${#menu[@]}]=$component
 	done
 
+	feedback=
 	while :; do
-		printf '\nSelect components for %s (toggle numbers, Enter to continue):\n' "$setup_platform" >&3
-		printf '  Missing or unverified:\n' >&3
-		[ ${#missing[@]} -gt 0 ] || printf '    none\n' >&3
+		setup_ui_clear 3
+		setup_ui_banner 3
+		setup_ui_step 3 2 4 'Components'
+		setup_ui_key_value 3 Platform "$setup_platform"
+		setup_ui_key_value 3 Selected "${#setup_selected[@]}"
+		setup_ui_section 3 'Needs setup'
+		[ ${#missing[@]} -gt 0 ] || setup_ui_status 3 pending 'None detected'
 		index=1
 		for component in "${menu[@]}"; do
 			if [ "$index" -eq $((${#missing[@]} + 1)) ] && [ ${#present[@]} -gt 0 ]; then
-				printf '  Already installed (default off; select to rerun):\n' >&3
+				setup_ui_section 3 'Already installed'
 			fi
 			mark=' '
-			setup_selected_contains "$component" && mark=x
-			state=
-			setup_detected_contains "$component" && state=' [installed]'
+			status_style=muted
+			if setup_selected_contains "$component"; then
+				mark=$(setup_ui_symbol selected)
+				status_style=success
+			fi
 			label=$(setup_component_label "$component")
-			printf '  %2d. [%s] %-12s %s%s\n' "$index" "$mark" "$component" "$label" "$state" >&3
+			printf '  %2d  [' "$index" >&3
+			setup_ui_write 3 "$status_style" "$mark"
+			printf '] %-12s %s' "$component" "$label" >&3
+			if setup_detected_contains "$component"; then
+				setup_ui_write 3 muted '  installed; select to rerun'
+			fi
+			printf '\n' >&3
 			index=$((index + 1))
 		done
-		printf '> ' >&3
+		setup_ui_line 3 muted ''
+		setup_ui_line 3 muted '  Toggle one or more numbers (spaces or commas), then press Enter.'
+		[ -z "$feedback" ] || setup_ui_warning 3 "$feedback"
+		feedback=
+		setup_ui_prompt 3 'Selection' ''
 		IFS= read -r answer <&3 || setup_die "failed to read component selection"
 		[ -z "$answer" ] && break
 		answer=${answer//,/ }
 		for token in $answer; do
-			case $token in *[!0-9]*|'') setup_warn "ignoring invalid menu item: $token"; continue ;; esac
+			case $token in
+				*[!0-9]*|'') feedback="Ignoring invalid menu item: $token"; continue ;;
+			esac
 			if [ "$token" -lt 1 ] || [ "$token" -gt "${#menu[@]}" ]; then
-				setup_warn "menu item out of range: $token"
+				feedback="Menu item out of range: $token"
 				continue
 			fi
 			setup_toggle_component "${menu[$((token - 1))]}"
@@ -287,6 +318,7 @@ setup_prepare_selection() {
 		setup_interactive=1
 		setup_open_tty || setup_die "interactive mode requires a TTY" 3
 		setup_prompt_repo_dir
+		setup_ui_status 3 info 'Detecting installed components...'
 		setup_detect_present_components
 		setup_apply_profile
 		for component in "${setup_detected_present[@]}"; do
@@ -303,44 +335,69 @@ setup_prepare_selection() {
 }
 
 setup_print_plan() {
-	local component label proxy_names note
-	setup_say ""
-	setup_say "Setup plan"
-	setup_say "  Platform: $setup_platform"
-	setup_say "  Repository: $setup_repo_dir"
-	setup_say "  Profile: ${setup_profile:-custom}"
-	setup_say "  Font size: $setup_font_size"
-	setup_say "  Components:"
+	local component label proxy_names note annotation symbol
+	if [ "$setup_interactive" -eq 1 ]; then
+		setup_ui_clear 1
+		setup_ui_banner 1
+		setup_ui_step 1 4 4 'Review'
+	else
+		setup_ui_banner 1
+		setup_ui_section 1 'Setup plan'
+	fi
+	setup_ui_section 1 'Environment'
+	setup_ui_key_value 1 Platform "$setup_platform"
+	setup_ui_key_value 1 Repository "$(setup_display_home_path "$setup_repo_dir")"
+	setup_ui_key_value 1 Profile "${setup_profile:-custom}"
+	setup_ui_key_value 1 'Font size' "$setup_font_size"
+	setup_ui_section 1 "Components (${#setup_selected[@]} selected)"
 	if [ ${#setup_selected[@]} -eq 0 ]; then
-		setup_say "    - none (core and dotfiles only)"
+		setup_ui_status 1 pending 'none (core and dotfiles only)'
 	else
 		while IFS= read -r component; do
 			[ -n "$component" ] || continue
 			label=$(setup_component_label "$component")
-			setup_say "    - $component: $label"
+			annotation=
+			for note in "${setup_dependency_notes[@]}"; do
+				case $note in "$component "*) annotation=dependency ;; esac
+			done
+			if setup_detected_contains "$component"; then
+				annotation="${annotation:+$annotation; }reinstall"
+			fi
+			symbol=$(setup_ui_symbol success)
+			printf '  '
+			setup_ui_write 1 success "$symbol"
+			printf ' '
+			setup_ui_write 1 strong "$component:"
+			printf ' %s' "$label"
+			[ -z "$annotation" ] || setup_ui_write 1 muted "  [$annotation]"
+			printf '\n'
 		done <<EOF
 $(setup_selection_in_catalog_order)
 EOF
 	fi
 	if [ ${#setup_dependency_notes[@]} -gt 0 ]; then
-		setup_say "  Automatically added dependencies:"
-		for note in "${setup_dependency_notes[@]}"; do setup_say "    - $note"; done
+		setup_ui_section 1 'Automatically added dependencies'
+		for note in "${setup_dependency_notes[@]}"; do setup_ui_status 1 info "$note"; done
 	fi
 	if [ "$setup_build_emacs" -eq 1 ]; then
-		setup_say "  Emacs: configure, build with $setup_jobs jobs, and install"
+		setup_ui_section 1 'Build options'
+		setup_ui_key_value 1 Emacs "configure, build with $setup_jobs jobs, and install"
 	elif setup_selected_contains emacs; then
-		setup_say "  Emacs: prepare source through configure; build remains manual"
+		setup_ui_section 1 'Build options'
+		setup_ui_key_value 1 Emacs 'prepare source through configure; build remains manual'
 	fi
 	proxy_names=$(setup_proxy_variable_names)
+	setup_ui_section 1 'Network'
 	if [ -n "$proxy_names" ]; then
-		setup_say "  Inherited proxy variables (values hidden):"
-		while IFS= read -r note; do [ -n "$note" ] && setup_say "    - $note"; done <<EOF
+		setup_ui_line 1 muted '  Inherited proxy variables (values hidden):'
+		while IFS= read -r note; do [ -n "$note" ] && setup_ui_status 1 info "$note"; done <<EOF
 $proxy_names
 EOF
 	else
-		setup_say "  Inherited proxy variables: none"
+		setup_ui_line 1 muted '  Inherited proxy variables: none'
 	fi
-	setup_say "  Existing files are never adopted, deleted, or overwritten by setup."
+	setup_ui_section 1 'Safety'
+	setup_ui_status 1 info 'Existing files are never adopted, deleted, or overwritten by setup.'
 }
 
 setup_confirm() {
@@ -348,21 +405,31 @@ setup_confirm() {
 	local answer
 	[ "$setup_assume_yes" -eq 1 ] && return 0
 	setup_open_tty || setup_die "confirmation requires a TTY; pass --yes for unattended execution" 3
-	printf '%s [y/N] ' "$prompt" >&3
+	printf '\n  ' >&3
+	setup_ui_write 3 warning "$prompt"
+	setup_ui_write 3 muted ' [y/N] '
 	IFS= read -r answer <&3 || return 1
 	case $answer in y|Y|yes|YES|Yes) return 0 ;; *) return 1 ;; esac
 }
 
 setup_execute() {
-	local component
+	local component index total
 	[ "$(id -u)" -ne 0 ] || setup_die "do not run apply as root; it uses sudo only for privileged steps" 3
 	setup_confirm "Apply this setup plan?" || setup_die "setup cancelled"
+	setup_started_at=$(date +%s)
 	setup_start_logging
 	setup_prepare_privileges
 	setup_install_core
 	setup_sync_dotfiles_repo
+	total=${#setup_selected[@]}
+	setup_ui_step 1 3 5 "Installing components ($total selected)"
+	[ "$total" -gt 0 ] || setup_ui_status 1 pending 'No optional components selected.'
+	index=0
 	while IFS= read -r component; do
-		[ -n "$component" ] && setup_run_component "$component"
+		if [ -n "$component" ]; then
+			index=$((index + 1))
+			setup_run_component "$component" "$index" "$total"
+		fi
 	done <<EOF
 $(setup_selection_in_catalog_order)
 EOF
@@ -372,6 +439,7 @@ EOF
 }
 
 setup_main() {
+	setup_ui_init
 	setup_install_traps
 	setup_load_catalog
 	setup_load_profiles

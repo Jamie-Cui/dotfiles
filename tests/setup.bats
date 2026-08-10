@@ -94,9 +94,12 @@ prepare_mock_environment() {
 	run env SETUP_TEST_PLATFORM=fedora SETUP_NO_TTY=1 \
 		"$setup_script" plan --profile recommended --repo-dir "$BATS_TEST_TMPDIR/repo"
 	[ "$status" -eq 0 ]
+	[[ "$output" == *"DOTFILES SETUP"* ]]
+	[[ "$output" == *"Components (6 selected)"* ]]
 	[[ "$output" == *"shell: Oh My Zsh"* ]]
 	[[ "$output" == *"rime: Rime input method"* ]]
 	[[ "$output" != *"aerospace:"* ]]
+	[[ "$output" != *$'\033['* ]]
 	[ ! -e "$HOME/.local" ]
 	[ ! -e "$BATS_TEST_TMPDIR/repo" ]
 }

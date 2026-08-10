@@ -85,6 +85,11 @@ curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26
     bash -s -- interactive
 #+end_src
 
+The interactive interface groups missing and installed components, shows a
+four-step review flow, and uses color only when attached to a capable terminal.
+Set =NO_COLOR= to disable color, or =SETUP_NO_CLEAR=1= to keep previous menu
+screens in the terminal scrollback.
+
 For an unattended, reproducible run, use =apply= with a profile and explicitly
 accept the confirmation:
 
