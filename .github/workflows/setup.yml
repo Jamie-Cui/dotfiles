@@ -46,7 +46,7 @@ jobs:
         run: brew install bats-core shellcheck stow
       - name: Check setup with system Bash
         run: |
-          /bin/bash -n scripts/setup.sh scripts/setup-gist.sh
+          /bin/bash -n scripts/setup.sh scripts/setup-gist.sh scripts/setup/*.sh
           make check-setup
       - name: Test setup with system Bash
         env:

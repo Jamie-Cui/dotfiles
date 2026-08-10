@@ -68,43 +68,44 @@ git config --global --unset https.proxy
 ** Quick setup
 
 =scripts/setup.sh= installs selected applications and deploys the complete
-platform profile.  With a terminal attached, the one-line command first asks
-where to clone/use the dotfiles repository (default =~/opt/dotfiles=), detects
-components that are already installed, and then opens a numbered menu with
-missing or unverified components first:
+platform profile.  It has three explicit commands: =plan= is read-only,
+=apply= is deterministic and scriptable, and =interactive= detects installed
+components before opening a numbered menu.  The one-line setup uses the
+interactive command:
 
 Detected components are listed afterward, marked =[installed]=, and default to
 off; select one explicitly to rerun its installer.  Detection is local and
 best-effort.  Source components are detected from their Git checkouts, while
 command and application components are detected from their executable or app.
-Explicit =--preset= and =--with= runs remain deterministic and do not filter
-their selections through this interactive detection.
-
-#+begin_src bash
-curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26086e1c63/raw/setup-gist.sh | bash
-#+end_src
-
-For an unattended, reproducible run, pass a preset and explicitly accept the
-two confirmations:
+Explicit =plan= and =apply= runs do not filter their selections through this
+interactive detection.
 
 #+begin_src bash
 curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26086e1c63/raw/setup-gist.sh | \
-    bash -s -- --preset recommended --yes
+    bash -s -- interactive
 #+end_src
 
-The presets are =minimal= (prerequisites plus dotfiles), =recommended= (common
+For an unattended, reproducible run, use =apply= with a profile and explicitly
+accept the confirmation:
+
+#+begin_src bash
+curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26086e1c63/raw/setup-gist.sh | \
+    bash -s -- apply --profile recommended --yes
+#+end_src
+
+The profiles are =minimal= (prerequisites plus dotfiles), =recommended= (common
 shell, font, editor, terminal, and Rime tools; plus AeroSpace on macOS), and
-=all=.  Individual components can be adjusted with repeatable, comma-separated
-=--with= and =--without= arguments:
+=all=.  Individual components can be adjusted with repeatable =--with= and
+=--without= arguments; each occurrence accepts one component:
 
 #+begin_src bash
 # Inspect without sudo, downloads, clone, generated files, or logs.
 curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26086e1c63/raw/setup-gist.sh | \
-    bash -s -- --preset minimal --with emacs --dry-run
+    bash -s -- plan --profile minimal --with emacs
 
 # Prepare Emacs through configure; add --build-emacs to compile and install it.
 curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26086e1c63/raw/setup-gist.sh | \
-    bash -s -- --preset minimal --with emacs --yes
+    bash -s -- apply --profile minimal --with emacs --yes
 #+end_src
 
 Components are =shell=, =font=, =vim=, =nvim=, =emacs=, =ctags=,
@@ -112,7 +113,7 @@ Components are =shell=, =font=, =vim=, =nvim=, =emacs=, =ctags=,
 =rofi=, =hyprland=, =waybar=, =dunst=, =mail=, =secrets=, =aerospace=,
 and =borders=.  Dependencies are added automatically; explicitly excluding a
 required dependency is an error.  The clone-only =ctags=, =org-root=, and
-=tdlib= components are selected only with =--with= or the =all= preset.
+=tdlib= components are selected only with =--with= or the =all= profile.
 Software selection does not filter Stow packages: the complete macOS or Linux
 dotfiles profile is always previewed and deployed.
 
@@ -123,23 +124,26 @@ and the proxy-only sudo environment see the same settings:
 #+begin_src bash
 export http_proxy=http://127.0.0.1:10808
 export https_proxy=$http_proxy
-curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26086e1c63/raw/setup-gist.sh | bash
+curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26086e1c63/raw/setup-gist.sh | \
+    bash -s -- interactive
 #+end_src
 
-Existing configuration is never adopted or cleaned.  A dirty/diverged clone or
-Stow conflict stops safely.  Optional application failures are collected while
-independent components and dotfiles continue; expected GUI, authentication,
-Rime, and logout steps are reported separately as pending work.  Full logs are
-written below =~/.local/state/dotfiles/= after the install is confirmed.
+Existing configuration is never adopted or cleaned.  A dirty/diverged clone,
+component failure, or Stow conflict stops immediately.  Rerun setup after
+fixing the reported cause; installation actions are designed to be idempotent.
+Expected GUI, authentication, Rime, and logout steps are reported separately
+as pending work.  Full logs are written below =~/.local/state/dotfiles/= after
+the install is confirmed.
 
-The Gist is a small loader; =scripts/setup.sh= in this repository remains the
-source of truth.  To inspect the loader before running it:
+The Gist loader downloads one repository archive so =scripts/setup.sh= and its
+modules always arrive together.  This repository remains the source of truth.
+To inspect the loader before running it:
 
 #+begin_src bash
 tmp=$(mktemp)
 curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26086e1c63/raw/setup-gist.sh -o "$tmp"
 less "$tmp"
-bash "$tmp"
+bash "$tmp" interactive
 #+end_src
 
 ** Prerequisites
@@ -336,7 +340,7 @@ The =ctags= component shallow-clones the source with depth 1 into
 =~/opt/ctags=.  It does not configure, build, or install Universal Ctags.
 
 #+begin_src bash
-scripts/setup.sh --preset minimal --with ctags --yes
+scripts/setup.sh apply --profile minimal --with ctags --yes
 #+end_src
 
 *** [[https://github.com/Jamie-Cui/org-root][org-root]] (=org-root=)
@@ -346,7 +350,7 @@ over SSH into =~/opt/org-root=, which is the default path used by the managed
 Emacs configuration.  GitHub SSH access must already be configured.
 
 #+begin_src bash
-scripts/setup.sh --preset minimal --with org-root --yes
+scripts/setup.sh apply --profile minimal --with org-root --yes
 #+end_src
 
 *** [[https://github.com/tdlib/td][TDLib]] (=tdlib=)
@@ -355,7 +359,7 @@ The =tdlib= component shallow-clones the source with depth 1 into
 =~/opt/tdlib=.  It does not run CMake, build, or install TDLib.
 
 #+begin_src bash
-scripts/setup.sh --preset minimal --with tdlib --yes
+scripts/setup.sh apply --profile minimal --with tdlib --yes
 #+end_src
 
 For all three clone-only components, an existing Git checkout is left exactly

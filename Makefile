@@ -75,12 +75,12 @@ list-profile: _check-profile ## Show the selected profile
 	fi
 
 check-setup: ## Syntax-check and lint setup scripts
-	@bash -n scripts/setup.sh scripts/setup-gist.sh
+	@bash -n scripts/setup.sh scripts/setup-gist.sh scripts/setup/*.sh
 	@command -v shellcheck >/dev/null 2>&1 || { \
 		echo "ShellCheck is required. Install it with 'brew install shellcheck' or 'sudo dnf install ShellCheck'." >&2; \
 		exit 2; \
 	}
-	@shellcheck --severity=warning scripts/setup.sh scripts/setup-gist.sh
+	@shellcheck --external-sources --severity=warning scripts/setup.sh scripts/setup-gist.sh
 
 test-setup: check-setup ## Run setup behavior tests
 	@command -v bats >/dev/null 2>&1 || { \

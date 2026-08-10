@@ -1,0 +1,22 @@
+# name	platforms	dependencies	label
+shell	all	-	Oh My Zsh and login shell
+font	all	-	Maple Mono NL NF CN
+vim	all	-	Vim
+nvim	all	-	Neovim
+emacs	all	-	Emacs source and build dependencies
+ctags	all	-	Universal Ctags source
+org-root	all	-	Private Org repository
+tdlib	all	-	TDLib source
+kitty	all	-	Kitty
+flameshot	all	-	Flameshot
+rime	all	-	Rime input method
+x11	fedora	-	X11 session
+i3	fedora	x11 rofi dunst flameshot kitty	i3 desktop
+rofi	fedora	-	Rofi and Firefox
+hyprland	fedora	rofi waybar dunst flameshot rime kitty	Hyprland desktop
+waybar	fedora	-	Waybar desktop utilities
+dunst	fedora	-	Dunst notifications
+mail	fedora	secrets	DavMail and isync
+secrets	all	-	GnuPG encrypted credentials
+aerospace	macos	kitty	AeroSpace source
+borders	macos	-	JankyBorders

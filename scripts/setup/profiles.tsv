@@ -1,0 +1,4 @@
+# profile	components
+minimal	-
+recommended	shell font vim nvim kitty rime aerospace
+all	shell font vim nvim emacs ctags org-root tdlib kitty flameshot rime x11 i3 rofi hyprland waybar dunst mail secrets aerospace borders
