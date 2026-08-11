@@ -52,6 +52,9 @@
     )
   )
 
+(use-package magit-gh
+  :ensure t
+  :after magit)
 
 (provide 'init-vc)
 ;;; vc.el ends here
