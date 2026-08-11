@@ -52,9 +52,15 @@
     )
   )
 
-(use-package magit-gh
-  :ensure t
-  :after magit)
+;; git config --global github.user Jamie-Cui
+
+(use-package forge
+  :after magit
+  :ensure t)
+
+;; (use-package magit-gh
+;;   :ensure t
+;;   :after magit)
 
 (provide 'init-vc)
 ;;; vc.el ends here
