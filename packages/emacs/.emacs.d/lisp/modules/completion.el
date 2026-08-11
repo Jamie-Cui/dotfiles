@@ -158,9 +158,11 @@
           (alist-get consult-async-split-style consult-async-split-styles-alist)
         (pcase type
           (`separator
-           (replace-regexp-in-string (regexp-quote (char-to-string separator))
-                                     (concat "\\" (char-to-string separator))
-                                     query t t))
+           (setq query
+                 (replace-regexp-in-string
+                  (regexp-quote (char-to-string separator))
+                  (concat "\\" (char-to-string separator))
+                  query t t)))
           (`perl
            (when (string-match-p initial query)
              (setf (alist-get 'perlalt consult-async-split-styles-alist)

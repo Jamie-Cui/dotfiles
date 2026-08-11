@@ -314,14 +314,14 @@ Org automatically include every `*.org' file under
            (ignore-errors (projectile-project-root)))
          (when (fboundp 'project-current)
            (ignore-errors
-             (when-let ((project (project-current nil default-directory)))
+             (when-let* ((project (project-current nil default-directory)))
                (if (fboundp 'project-root)
                    (project-root project)
                  (car (with-no-warnings (project-roots project)))))))))))
 
 (defun +org-project-slug-for-root (root)
   "Return the central project slug for ROOT."
-  (when-let ((normalized (+org-project--normalize-root root)))
+  (when-let* ((normalized (+org-project--normalize-root root)))
     (or (cdr (assoc normalized +org-project-registry))
         (+org-project--slugify
          (file-name-nondirectory (directory-file-name normalized))))))
@@ -333,12 +333,12 @@ Org automatically include every `*.org' file under
 
 (defun +org-project-file-for-root (root)
   "Return the project org file path for ROOT."
-  (when-let ((slug (+org-project-slug-for-root root)))
+  (when-let* ((slug (+org-project-slug-for-root root)))
     (+org-project-file-for-slug slug)))
 
 (defun +org-project-current-file ()
   "Return the central project org file for the active project, or nil."
-  (when-let ((root (+org-project-current-root)))
+  (when-let* ((root (+org-project-current-root)))
     (+org-project-file-for-root root)))
 
 (defvar +org-project--capture-context-override nil
@@ -358,7 +358,7 @@ Org automatically include every `*.org' file under
 
 (defun +org-project-root-for-slug (slug)
   "Return the registered project root for SLUG, or nil."
-  (when-let ((root (car (rassoc slug +org-project-registry))))
+  (when-let* ((root (car (rassoc slug +org-project-registry))))
     (+org-project--normalize-root root)))
 
 (defun +org-project--context (slug &optional root)
@@ -694,7 +694,7 @@ Optional FILTER limits the result to matching TODO keywords."
 
 (defun +org-project--entry-deadline ()
   "Return the current heading deadline as YYYY-MM-DD, or an empty string."
-  (when-let ((deadline (org-entry-get (point) "DEADLINE")))
+  (when-let* ((deadline (org-entry-get (point) "DEADLINE")))
     (format-time-string "%Y-%m-%d" (org-time-string-to-time deadline))))
 
 (defun +org-project--format-org-time-string (time-string)
@@ -709,13 +709,13 @@ Optional FILTER limits the result to matching TODO keywords."
 (defun +org-project--entry-time ()
   "Return the current heading planning info as a display string."
   (let (parts)
-    (when-let ((deadline (+org-project--format-org-time-string
+    (when-let* ((deadline (+org-project--format-org-time-string
                           (org-entry-get (point) "DEADLINE"))))
       (push (concat "D:" deadline) parts))
-    (when-let ((scheduled (+org-project--format-org-time-string
+    (when-let* ((scheduled (+org-project--format-org-time-string
                            (org-entry-get (point) "SCHEDULED"))))
       (push (concat "S:" scheduled) parts))
-    (when-let ((timestamp (+org-project--format-org-time-string
+    (when-let* ((timestamp (+org-project--format-org-time-string
                            (or (org-entry-get (point) "TIMESTAMP")
                                (org-entry-get (point) "TIMESTAMP_IA")))))
       (push (concat "T:" timestamp) parts))
@@ -1335,7 +1335,7 @@ TODO keyword like `org-todo-list'."
   "Write shared project capture metadata for CONTEXT at point."
   (+org-project--set-property "PROJECT" (plist-get context :slug))
   (+org-project--set-property "PROJECT_FILE" (plist-get context :file))
-  (when-let ((root (plist-get context :root)))
+  (when-let* ((root (plist-get context :root)))
     (+org-project--set-property "PROJECT_ROOT" root))
   (+org-project--set-property "MACHINE" (system-name))
   (+org-project--set-property "CREATED_AT" (+org-project--inactive-timestamp)))
@@ -1355,7 +1355,7 @@ TODO keyword like `org-todo-list'."
 
 (defun +org-project--note-heading-components ()
   "Return the current note heading as (TIMESTAMP TITLE), or nil when it does not match."
-  (when-let ((heading (org-get-heading t t t t)))
+  (when-let* ((heading (org-get-heading t t t t)))
     (when (string-match
            (rx string-start
                (group "[" (+? (not (any "]"))) "]")
@@ -1464,7 +1464,7 @@ TODO keyword like `org-todo-list'."
 
 (defun +org-project-note-capture-prepare-finalize ()
   "Normalize a captured project note before finalization."
-  (when-let ((point (+org-project--capture-entry-point)))
+  (when-let* ((point (+org-project--capture-entry-point)))
     (save-excursion
       (goto-char point)
       (pcase-let ((`(,timestamp ,title) (or (+org-project--note-heading-components)
@@ -1656,7 +1656,7 @@ task state before completion, and TIME selects the journal day."
 
 (defun +org-project--save-captured-project-buffer (context)
   "Save the project buffer associated with capture CONTEXT and return its file."
-  (when-let ((project-file (plist-get context :file)))
+  (when-let* ((project-file (plist-get context :file)))
     (with-current-buffer (find-file-noselect project-file)
       (+org-project--save-buffer-no-hooks))
     project-file))
@@ -1787,7 +1787,7 @@ EXPECTED-FILE is the project file recorded in the journal audit entry."
 (defun +org-project-collapse-archive ()
   "Collapse the Archive subtree in the current project file."
   (interactive)
-  (when-let ((marker (+org-project--find-top-heading "Archive")))
+  (when-let* ((marker (+org-project--find-top-heading "Archive")))
     (save-excursion
       (goto-char marker)
       (outline-hide-subtree))))
@@ -1795,7 +1795,7 @@ EXPECTED-FILE is the project file recorded in the journal audit entry."
 (defun +org-project-toggle-archive-visibility ()
   "Toggle visibility of the Archive subtree in the current project file."
   (interactive)
-  (if-let ((marker (+org-project--find-top-heading "Archive")))
+  (if-let* ((marker (+org-project--find-top-heading "Archive")))
       (save-excursion
         (goto-char marker)
         (org-cycle))

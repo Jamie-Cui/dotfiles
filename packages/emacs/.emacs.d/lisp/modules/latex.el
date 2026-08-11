@@ -10,6 +10,11 @@
   (require 'cl-lib)
   (require 'reftex)
 
+  ;; `pdf-view-current-page' is a macro from pdf-macs.  Make it available to
+  ;; the byte compiler instead of incorrectly declaring it as a function.
+  (eval-when-compile
+    (require 'pdf-macs))
+
   (use-package auctex
     :ensure t)
 
@@ -20,8 +25,8 @@
   (declare-function mwheel-event-window "mwheel")
   (declare-function pdf-roll-scroll-backward "pdf-roll")
   (declare-function pdf-roll-scroll-forward "pdf-roll")
-  (declare-function pdf-view-current-page "pdf-view")
-  (declare-function pdf-view-desired-image-size "pdf-view")
+  (declare-function pdf-view-desired-image-size "pdf-view"
+                    (&optional page window))
 
   (defvar pdf-info-asynchronous)
   (defvar pdf-view-roll-minor-mode)

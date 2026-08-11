@@ -223,13 +223,16 @@ Full credit goes to org-yt by Tobias Zawada for this function."
             ("right"  `(space :align-to (- right ,image)))))))
       t)))
 
-(if (fboundp 'org-display-inline-images)
+(if (fboundp 'org-link-preview-region)
     (progn
-      (advice-add #'org-display-inline-images :after #'org-display-user-inline-images)
-      (org-link-set-parameters "http"  :image-data-fun #'org-remoteimg--fetch-image)
-      (org-link-set-parameters "https" :image-data-fun #'org-remoteimg--fetch-image))
-  (org-link-set-parameters "http" :preview #'org-link-preview-http)
-  (org-link-set-parameters "https" :preview #'org-link-preview-http))
+      (org-link-set-parameters "http" :preview #'org-link-preview-http)
+      (org-link-set-parameters "https" :preview #'org-link-preview-http))
+  (advice-add (intern "org-display-inline-images")
+              :after #'org-display-user-inline-images)
+  (org-link-set-parameters "http"
+                           :image-data-fun #'org-remoteimg--fetch-image)
+  (org-link-set-parameters "https"
+                           :image-data-fun #'org-remoteimg--fetch-image))
 
 (provide 'org-remoteimg)
 

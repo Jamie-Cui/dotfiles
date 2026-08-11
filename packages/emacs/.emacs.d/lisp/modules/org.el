@@ -10,6 +10,14 @@
 (require 'org-element)
 (require 'ob-plantuml)
 
+(defun +org/toggle-link-previews ()
+  "Toggle Org link previews using the API available in this Org version."
+  (interactive)
+  (call-interactively
+   (if (fboundp 'org-link-preview)
+       #'org-link-preview
+     (intern "org-toggle-inline-images"))))
+
 ;; archive to same file
 (setopt org-archive-location "::* Archive")
 (define-key org-mode-map (kbd "C-c C-a") #'org-archive-subtree)

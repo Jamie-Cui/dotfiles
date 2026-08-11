@@ -35,16 +35,17 @@
 (declare-function elfeed-feed-list "elfeed")
 (declare-function elfeed-goto-line "elfeed-lib" (n))
 (declare-function elfeed-search-buffer "elfeed-search")
-(declare-function elfeed-search-set-filter "elfeed-search" (new-filter))
+(declare-function elfeed-search-set-filter "elfeed-search"
+                  (&optional new-filter))
 (declare-function elfeed-search-update "elfeed-search" (&optional force))
 (declare-function elfeed-tagged-p "elfeed-db" (tag entry))
 (declare-function elfeed-update "elfeed")
-(declare-function avl-tree-mapc "avl-tree" (function tree))
+(declare-function avl-tree-mapc "avl-tree" (function tree &optional reverse))
 (declare-function widget-get "wid-edit" (widget property))
 (defvar elfeed-search--offset)
 (defvar elfeed-search-entries)
 (defvar elfeed-search-filter)
-(defvar elfeed-update-hooks)
+(defvar elfeed-update-hook)
 
 (defgroup dashboard-elfeed nil
   "Show Elfeed entries in dashboard."
@@ -304,7 +305,7 @@ Refresh dashboard once when all feeds in the current update are done."
                  '(elfeed . dashboard-elfeed-insert)
                  t)
     (advice-add 'dashboard-open :before #'dashboard-elfeed-update-maybe)
-    (add-hook 'elfeed-update-hooks #'dashboard-elfeed--finish-update)
+    (add-hook 'elfeed-update-hook #'dashboard-elfeed--finish-update)
     (setq dashboard-elfeed--installed t)))
 
 (defun dashboard-elfeed-teardown ()
@@ -315,7 +316,7 @@ Refresh dashboard once when all feeds in the current update are done."
   (setq dashboard-item-shortcuts
         (assq-delete-all 'elfeed dashboard-item-shortcuts))
   (advice-remove 'dashboard-open #'dashboard-elfeed-update-maybe)
-  (remove-hook 'elfeed-update-hooks #'dashboard-elfeed--finish-update)
+  (remove-hook 'elfeed-update-hook #'dashboard-elfeed--finish-update)
   (setq dashboard-elfeed--installed nil
         dashboard-elfeed--updating nil
         dashboard-elfeed--pending-feeds nil))

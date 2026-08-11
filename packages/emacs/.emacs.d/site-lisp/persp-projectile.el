@@ -1,4 +1,4 @@
-;;; persp-projectile.el --- Perspective integration with Projectile
+;;; persp-projectile.el --- Perspective integration with Projectile -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2014-2021 Daniel Wu, Bozhidar Batsov
 
@@ -54,11 +54,16 @@
 The advice provides bridge between perspective and projectile
 functions when switch between projects.  After switching to a new
 project, this advice creates a new perspective for that project."
-  `(defadvice ,func-name (before projectile-create-perspective-after-switching-projects activate)
-     "Create a dedicated perspective for current project's window after switching projects."
-     (let ((project-name (projectile-project-name)))
-       (when (and persp-mode (projectile-project-p))
-         (persp-switch project-name)))))
+  (let ((advice-name
+         (intern (format "projectile-persp--%s-a" func-name))))
+    `(progn
+       (defun ,advice-name (&rest _args)
+         "Switch to the perspective for the current Projectile project."
+         (let ((project-name (projectile-project-name)))
+           (when (and persp-mode (projectile-project-p))
+             (persp-switch project-name))))
+       (unless (advice-member-p #',advice-name #',func-name)
+         (advice-add #',func-name :before #',advice-name)))))
 
 ;; NOTE bridging the following functions does not make sense to me
 ;; For me, all persp should be mannually controlled via persp-switch, if there's no explicit call,
@@ -102,12 +107,15 @@ perspective."
           (with-selected-frame frame
             (persp-kill name))))))))
 
-(defadvice persp-init-frame (after projectile-persp-init-frame activate)
+(defun projectile-persp--init-frame-a (frame &rest _args)
   "Rename initial perspective to `projectile-project-name' when a
 new frame is created in a known project."
   (with-selected-frame frame
     (when (projectile-project-p)
       (persp-rename (projectile-project-name)))))
+
+(unless (advice-member-p #'projectile-persp--init-frame-a 'persp-init-frame)
+  (advice-add 'persp-init-frame :after #'projectile-persp--init-frame-a))
 
 (define-key projectile-mode-map [remap projectile-switch-project] 'projectile-persp-switch-project)
 

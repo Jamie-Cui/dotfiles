@@ -320,7 +320,7 @@
    "tt"     #'toggle-truncate-lines
    "tn"     #'display-line-numbers-mode
    "ta"     #'+prog/treesit-auto-toggle
-   "tm"     #'org-toggle-inline-images
+   "tm"     #'+org/toggle-link-previews
    ;; code (lsp/tags)
    "c" '(:ignore t :which-key "code")
    "c RET"  #'eglot

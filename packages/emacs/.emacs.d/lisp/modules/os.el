@@ -9,7 +9,7 @@
   (use-package exec-path-from-shell
     :ensure t
     :custom
-    (exec-path-from-shell-variables '("PATH" "MANPATH" "SSS_API_KEY"))
+    (exec-path-from-shell-variables '("PATH" "MANPATH"))
     :config
     (exec-path-from-shell-initialize)))
 
@@ -18,7 +18,8 @@
   :if (eq system-type 'gnu/linux)
   :custom
   (default-input-method "rime")
-  (rime-user-data-dir "~/opt/dotfiles/rime")
+  ;; Match the Linux Rime target deployed by the repository Makefile.
+  (rime-user-data-dir "~/.local/share/fcitx5/rime")
   (rime-show-candidate 'posframe))
 
 ;; Stop respecting the system input method (fcitx) on PGTK.
@@ -62,11 +63,13 @@
   ;; site-lisp
   (use-package ultra-scroll
     :ensure t
+    :commands ultra-scroll-mode
+    :no-require t
     :init
     (setq scroll-conservatively 3 ; or whatever value you prefer, since v0.4
           scroll-margin 0)        ; important: scroll-margin>0 not yet supported
-    :config
-    (ultra-scroll-mode 1)))
+    :hook
+    (after-init . (lambda () (ultra-scroll-mode 1)))))
 
 ;;; --------------------------------------
 ;;; Windows-NT

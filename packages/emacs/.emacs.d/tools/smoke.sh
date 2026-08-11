@@ -30,12 +30,24 @@ prepare_home() {
 }
 
 fail=0
+smoke_checks=(
+    --eval '(unless (equal (gptel-backend-url +llm/sssaicode)
+                           "https://codex1.sssaicode.com/api/v1/chat/completions")
+              (error "SssAiCode backend URL is malformed"))'
+    --eval '(when (eq system-type (quote gnu/linux))
+              (unless (equal (expand-file-name rime-user-data-dir)
+                             (expand-file-name "~/.local/share/fcitx5/rime"))
+                (error "Rime user data directory does not match deployment")))'
+    --eval '(unless (null forge-add-default-bindings)
+              (error "Forge default bindings conflict with Evil Collection"))'
+)
 
 echo "smoke: [1/2] repo-init chain (emacs -q --load init.el)"
 REPO_HOME="$TMP_ROOT/repo-home"
 prepare_home "$REPO_HOME"
 if HOME="$REPO_HOME" emacs -q --batch --load "$REPO_DIR/init.el" \
         --eval '(unless (featurep (quote init-keys)) (error "keys module did not load"))' \
+        "${smoke_checks[@]}" \
         --eval '(message "smoke: repo-init OK")'; then
     echo "smoke: repo-init chain PASSED"
 else
@@ -53,6 +65,7 @@ if HOME="$INSTALL_HOME" emacs --batch \
         --load "$INSTALL_HOME/.emacs.d/early-init.el" \
         --load "$INSTALL_HOME/.emacs.d/init.el" \
         --eval '(unless (featurep (quote init-keys)) (error "keys module did not load"))' \
+        "${smoke_checks[@]}" \
         --eval '(message "smoke: stowed-home OK")'; then
     echo "smoke: stowed-home chain PASSED"
 else

@@ -277,8 +277,8 @@
 
   (defvar +llm/sssaicode
     (gptel-make-openai "SssAiCode"
-      :host "https://codex1.sssaicode.com/api/v1"
-      :endpoint "/chat/completions"
+      :host "codex1.sssaicode.com"
+      :endpoint "/api/v1/chat/completions"
       :stream t
       :key (lambda ()
              (auth-source-pick-first-password :host "sssaicode"))

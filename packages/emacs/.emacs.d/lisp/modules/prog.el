@@ -73,7 +73,7 @@
   (setq eglot-ignored-server-capabilities '(:documentHighlightProvider ; no highlight
                                             :semanticTokensProvider))
   (setq eglot-watch-files-outside-project-root nil)
-  (setq eglot-confirm-server-initiated-edits nil)
+  (setq eglot-confirm-server-edits nil)
 
   (add-to-list 'eglot-server-programs
                '((python-mode python-ts-mode)
@@ -319,9 +319,9 @@
   :hook (after-init . (lambda ()
                         (treesit-auto-add-to-auto-mode-alist 'all)
                         ;; Configure tree-sitter modes
-                        (rassq-delete-all 'c++-mode auto-mode-alist)
-                        (rassq-delete-all 'c-mode auto-mode-alist)
-                        (rassq-delete-all 'c-or-c++-mode auto-mode-alist)
+                        (dolist (mode '(c++-mode c-mode c-or-c++-mode))
+                          (setq auto-mode-alist
+                                (rassq-delete-all mode auto-mode-alist)))
                         (add-to-list 'auto-mode-alist '("\\.h\\'" . c++-ts-mode))
                         (add-to-list 'auto-mode-alist '("\\.hpp\\'" . c++-ts-mode))
                         (add-to-list 'auto-mode-alist '("\\.cc\\'" . c++-ts-mode))

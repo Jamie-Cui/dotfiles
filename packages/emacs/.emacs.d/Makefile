@@ -1,6 +1,6 @@
 # Makefile for Emacs configuration management
 
-.PHONY: clean elpa standalone debug run download smoke compile help
+.PHONY: clean elpa standalone debug run download smoke compile test help
 
 # Repository directory (this Makefile's directory), independent of cwd/shell.
 REPO_DIR := $(patsubst %/,%,$(dir $(abspath $(lastword $(MAKEFILE_LIST)))))
@@ -11,7 +11,8 @@ help:
 	@echo "Available targets:"
 	@echo "  download    - Download/update all ELPA packages"
 	@echo "  smoke       - Offline startup smoke test (source + stowed-home chains)"
-	@echo "  compile     - Byte-compile core + modules to a temp dir"
+	@echo "  compile     - Byte-compile all managed Elisp to a temp dir"
+	@echo "  test        - Run the complete ERT suite offline"
 	@echo "  clean       - Remove .elc/.eln from the repo and ~/.emacs.d"
 	@echo "  elpa        - Create elpa.tar.gz archive"
 	@echo "  standalone  - Create standalone emacs.d-standalone.tar.gz"
@@ -33,6 +34,10 @@ smoke:
 # Byte-compile core + modules to a temp dir (does not touch the source tree).
 compile:
 	@"$(REPO_DIR)/tools/compile.sh"
+
+# Offline ERT suite for local packages and configuration helpers.
+test:
+	@"$(REPO_DIR)/tools/test.sh"
 
 # Remove compiled artifacts from the repo and the user dir.
 clean:

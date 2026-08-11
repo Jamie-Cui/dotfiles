@@ -98,7 +98,8 @@ any valid actions in readtags, e.g., \"-D\", to get pseudo tags."
       :group #'consult--prefix-group
       :state (consult-xref--preview #'switch-to-buffer)
       :lookup (lambda (&rest args)
-                (when-let ((tag (apply #'consult--lookup-prop 'consult-citre-tag args)))
+                (when-let* ((tag (apply #'consult--lookup-prop
+                                        'consult-citre-tag args)))
                   (citre-xref--make-object tag)))))))
 
 (with-eval-after-load 'embark

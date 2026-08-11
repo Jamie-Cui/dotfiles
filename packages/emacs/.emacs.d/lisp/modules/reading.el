@@ -75,7 +75,7 @@
   ;; Keep elfeed-goodies' entry rendering, but use the current window
   ;; instead of its popwin split-pane view.
   (setq elfeed-show-entry-switch #'switch-to-buffer
-        elfeed-show-entry-delete #'elfeed-kill-buffer))
+        elfeed-show-entry-delete #'kill-current-buffer))
 
 (use-package dashboard-elfeed
   :after dashboard

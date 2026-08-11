@@ -72,7 +72,7 @@
               (projectile-load-known-projects)
               ;; update the list of known projects
               (projectile--cleanup-known-projects)
-              (when projectile-auto-discover
+              (when projectile-auto-discover-projects
                 (projectile-discover-projects-in-search-path))))
   )
 

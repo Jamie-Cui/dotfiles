@@ -64,6 +64,11 @@
 (use-package forge
   :after magit
   :ensure t
+  :init
+  ;; Evil Collection owns the Magit/Forge transient bindings.  Forge's
+  ;; defaults still look for Magit's original `o' suffix after Evil Collection
+  ;; has remapped it, which otherwise produces an error during every startup.
+  (setq forge-add-default-bindings nil)
   :custom
   (forge-owned-accounts '(("Jamie-Cui")))
   :config

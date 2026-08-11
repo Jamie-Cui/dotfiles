@@ -97,6 +97,18 @@ and shown after your cursor leaves."
          (end (org-element-property :end elem)))
     (cons start end)))
 
+(defun org-imgtog--clear-region (beg end)
+  "Clear inline image previews between BEG and END."
+  (if (fboundp 'org-link-preview-clear)
+      (org-link-preview-clear beg end)
+    (funcall (intern "org-remove-inline-images") beg end)))
+
+(defun org-imgtog--preview-region (beg end)
+  "Display inline image previews between BEG and END."
+  (if (fboundp 'org-link-preview-region)
+      (org-link-preview-region nil nil beg end)
+    (funcall (intern "org-display-inline-images") nil nil beg end)))
+
 (defun org-imgtog--hide-img (elem)
   "Hide the image at point"
   (setq org-imgtog--prev-hidden-img-elem elem)
@@ -104,16 +116,16 @@ and shown after your cursor leaves."
   (if (> org-imgtog-preview-delay 0)
       (when (org-imgtog--on-image-p)
         (let ((start-end (org-imgtog--img-point elem)))
-          (org-remove-inline-images (car start-end) (cdr start-end))))
+          (org-imgtog--clear-region (car start-end) (cdr start-end))))
     (let ((start-end (org-imgtog--img-point elem)))
-      (org-remove-inline-images (car start-end) (cdr start-end)))))
+      (org-imgtog--clear-region (car start-end) (cdr start-end)))))
 
 (defun org-imgtog--show-img (elem)
   "Show the image at point"
   (setq org-imgtog--prev-hidden-img-elem nil)
 
   (let ((start-end (org-imgtog--img-point elem)))
-    (org-display-inline-images nil nil (car start-end) (cdr start-end))))
+    (org-imgtog--preview-region (car start-end) (cdr start-end))))
 
 (defun org-imgtog--hide-img-with-delay (elem)
   (run-with-timer org-imgtog-preview-delay
