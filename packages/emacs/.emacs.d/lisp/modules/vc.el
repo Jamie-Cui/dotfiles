@@ -54,9 +54,20 @@
 
 ;; git config --global github.user Jamie-Cui
 
+(defun +vc/forge-add-owned-repositories-h ()
+  "Add missing repositories for the primary owned Forge account when idle."
+  (when-let* ((user (caar forge-owned-accounts)))
+    (run-with-idle-timer
+     5 nil #'forge-add-user-repositories "github.com" user)))
+
+;; C-c C-c to open transient menu
 (use-package forge
   :after magit
-  :ensure t)
+  :ensure t
+  :custom
+  (forge-owned-accounts '(("Jamie-Cui")))
+  :config
+  (+vc/forge-add-owned-repositories-h))
 
 ;; (use-package magit-gh
 ;;   :ensure t

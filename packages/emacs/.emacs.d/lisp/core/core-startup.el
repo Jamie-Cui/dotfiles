@@ -19,6 +19,7 @@
 ;; external Pinentry with a usable TTY.  This keeps GUI and daemon sessions
 ;; working after gpg-agent's passphrase cache expires.
 (require 'epg)
+(require 'epa-file)
 (setopt epg-pinentry-mode 'loopback)
 
 ;; Never fall back to plaintext credential files.  EasyPG decrypts this source
@@ -42,7 +43,9 @@
   "Reset GC and file-handler settings to normal post-startup values."
   (setq gc-cons-threshold (* 16 1024 1024) ; 16MB
         gc-cons-percentage 0.1
-        file-name-handler-alist +emacs/initial-file-name-handler-alist))
+        file-name-handler-alist +emacs/initial-file-name-handler-alist)
+  ;; Install this only after restoring the handlers cleared by `early-init.el'.
+  (epa-file-enable))
 
 (add-hook 'emacs-startup-hook #'+emacs/restore-startup-settings-h)
 

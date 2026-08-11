@@ -184,6 +184,7 @@
    "E"      #'elfeed ;; E -> Elfeed
    "B"      #'ebib ;; B -> eBib
    "T"      #'telega ;; T -> Telegram
+   "G"      #'forge-list-owned-repositories  ;; G -> github
    ;; most-frequency keys
    "."      #'find-file
    "<"      #'consult-buffer
@@ -341,7 +342,7 @@
    ;; FIXME consult-fd is a better alternative, but it seems consult-fd only finds the
    ;; project files, which does not make sense to me here. Since when I called
    ;; consult-find/consult-fd, I want to find files that resides outside of the repo
-   "ff"     #'consult-find ; find file (in this directory),
+   "ff"     #'consult-find ; find file (in this directory)
    "fF"     #'consult-locate ; find file (system wide)
    "fm"     #'consult-man
    "fM"     #'consult-woman
