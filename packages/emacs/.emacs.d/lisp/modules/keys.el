@@ -248,19 +248,26 @@
    ;; project-related key bindings
    "p" '(:ignore t :which-key "project")
    "pp"     #'projectile-switch-project
-   "pq"     #'+keys/persp-kill-current
    "pa"     #'projectile-add-known-project
    "px"     #'projectile-remove-known-project
-   "pg"     #'projectile-cleanup-known-projects
+   ;; "pg"     #'projectile-cleanup-known-projects
    "pi"     #'projectile-invalidate-cache
    "pc"     #'projectile-compile-project
    "pC"     #'projectile-configure-project
-   "pd"     #'projectile-remove-known-project
-   "pD"     #'projectile-run-gdb
+   ;; "pd"     #'projectile-remove-known-project
+   ;; "pD"     #'projectile-run-gdb
    "pf"     #'+completion/project-search
-   "po"     #'ff-find-related-file
-   "pr"     #'projectile-run-project
+   ;; "pr"     #'projectile-run-project
    "pt"     #'projectile-test-project
+   ;; persp-related key bindings
+   "pq"     #'+keys/persp-kill-current
+   "pr"     #'persp-rename
+   "pn"     (lambda () (interactive)
+              (let ((n 1) name)
+                (while (gethash (setq name (format "persp-%d" n))
+                                (perspectives-hash))
+                  (setq n (1+ n)))
+                (persp-switch name)))
    ;; note functions
    "n" '(:ignore t :which-key "note")
    "na"      #'org-agenda-list
@@ -328,6 +335,7 @@
    ;; find
    "f" '(:ignore t :which-key "find")
    "fr"     #'consult-recent-file ; find recent file (globally)
+   "fR"     #'ff-find-related-file ; find related file
    "fb"     #'consult-buffer
    "fB"     #'consult-bookmark ; find recent file (globally)
    ;; FIXME consult-fd is a better alternative, but it seems consult-fd only finds the
