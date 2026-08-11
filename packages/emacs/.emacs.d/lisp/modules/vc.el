@@ -51,8 +51,25 @@
                                   (magit-commit-create (append args `("--message" ,message "--edit")))))))
     )
   )
-
-;; git config --global github.user Jamie-Cui
+(defun +vc/forge-ensure-github-user-h ()
+  "Configure Ghub's GitHub user from the primary owned Forge account.
+Do not overwrite an existing non-empty global `github.user' value."
+  (when-let* ((user (caar forge-owned-accounts))
+              (git (executable-find "git")))
+    (with-temp-buffer
+      (let ((status
+             (call-process
+              git nil t nil "config" "--global" "--get" "github.user")))
+        (when (or (not (integerp status))
+                  (not (zerop status))
+                  (string-match-p "\\`[[:space:]]*\\'" (buffer-string)))
+          (unless (zerop
+                   (call-process
+                    git nil nil nil
+                    "config" "--global" "github.user" user))
+            (display-warning
+             'forge
+             (format "Failed to configure github.user as %s" user))))))))
 
 (defun +vc/forge-add-owned-repositories-h ()
   "Add missing repositories for the primary owned Forge account when idle."
@@ -72,6 +89,7 @@
   :custom
   (forge-owned-accounts '(("Jamie-Cui")))
   :config
+  (+vc/forge-ensure-github-user-h)
   (+vc/forge-add-owned-repositories-h))
 
 ;; (use-package magit-gh
