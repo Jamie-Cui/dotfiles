@@ -1,32 +1,14 @@
-;;; project.el --- projects and workspaces -*- lexical-binding: t -*-
+;;; project.el --- project tools and environments -*- lexical-binding: t -*-
 ;;; Commentary:
-;; Projects and workspaces: projectile, perspective and envrc.
+;; Project navigation and per-project environments with Projectile and envrc.
 ;;; Code:
 
 
 ;; -----------------------------------------------------------
-;; DONE Workspaces
+;; DONE Projects
 ;;
-;; persp-projectile (site-lisp)
-;; perspective
 ;; projectile
 ;; -----------------------------------------------------------
-
-(use-package persp-projectile
-  :after (perspective projectile)
-  :load-path (lambda () (concat +emacs/repo-directory "/site-lisp/")))
-
-(use-package perspective
-  :ensure t
-  :custom
-  (persp-suppress-no-prefix-key-warning t)
-  (persp-sort 'created)
-  (persp-modestring-dividers '("(Proj:" ")" ""))
-  (persp-show-modestring nil)
-  (persp-modestring-short nil)
-  :config
-  (persp-mode)
-  (put 'persp-selected-face 'face-alias 'success))
 
 (use-package projectile
   :ensure t
@@ -75,42 +57,6 @@
               (when projectile-auto-discover-projects
                 (projectile-discover-projects-in-search-path))))
   )
-
-(defun +project/format-name-as-in-echo (name)
-  "Format the perspective name given by NAME for display in the echo area."
-  (if (equal name (persp-current-name))
-      (setq name (format "[%s]" name))
-    (setq name (format " %s " name))))
-
-(defun +project/show-name-in-echo ()
-  "Show persp names in the echo area."
-  (let ((message-log-max nil))
-    (message (mapconcat 'identity
-                        (mapcar '+project/format-name-as-in-echo
-                                (persp-names))))))
-
-(defun +project/move-buffer-prev ()
-  "Like persp-prev, but move current."
-  (interactive)
-  (let ((tmp-buffer (current-buffer)))
-    (persp-forget-buffer tmp-buffer)
-    (persp-prev)
-    (persp-set-buffer tmp-buffer)
-    (persp-switch-to-buffer tmp-buffer))
-  (+project/show-name-in-echo))
-
-(defun +project/move-buffer-next ()
-  "Like persp-next, but move current."
-  (interactive)
-  (let ((tmp-buffer (current-buffer)))
-    (persp-forget-buffer tmp-buffer)
-    (persp-next)
-    (persp-set-buffer tmp-buffer)
-    (persp-switch-to-buffer tmp-buffer))
-  (+project/show-name-in-echo))
-
-;; let 'quit signal to show the persp names
-(advice-add 'keyboard-quit :before #'(lambda () (put 'quit 'error-message (+project/show-name-in-echo))))
 
 ;; install dir: https://direnv.net/
 ;; brew install direnv

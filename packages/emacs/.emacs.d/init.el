@@ -24,8 +24,7 @@
 ;; --- User settings ---------------------------------------------------------
 (setopt +emacs/org-root-dir (expand-file-name "~/opt/org-root")
         +emacs/proxy "127.0.0.1:10808"
-        +emacs/theme 'modus-vivendi
-        +emacs/disabled-modules nil)
+        +emacs/theme 'modus-vivendi)
 
 ;; Mail identity; the mu4e path is auto-detected from the mu binary.
 (setopt +emacs/email-address "jamie.cui@outlook.com"
@@ -83,7 +82,7 @@
    "bibliography"
    "latex"
    "reading"
-   "email"
+   ;; "email"
    "llm"
    "input"
    "keys"))

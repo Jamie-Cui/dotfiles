@@ -71,13 +71,5 @@ exists at the expected location."
                   (expand-file-name "share/emacs/site-lisp/mu4e" prefix))))
       (seq-find #'file-directory-p candidates))))
 
-(defcustom +emacs/disabled-modules nil
-  "Modules to skip when loading the manifest.
-Each entry is a manifest module name string, e.g. \"llm\" or
-\"lang/cmake\".  The loader performs no dependency inference, so disabling
-a module others rely on may break them."
-  :type '(repeat string)
-  :group '+emacs)
-
 (provide 'core-vars)
 ;;; core-vars.el ends here

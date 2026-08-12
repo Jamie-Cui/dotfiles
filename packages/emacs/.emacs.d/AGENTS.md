@@ -7,9 +7,9 @@ This file provides guidance to the AI agent when working with code in this repos
 The configuration loads in three layers (see README.org "Architecture" for the
 full picture and the module-boundary table):
 
-1. **Bootstrap** — `early-init.el` applies early defaults and optional
-   `early-local.el`; `init.el` locates the managed source, loads optional
-   `local.el`, and owns the module manifest.
+1. **Bootstrap** — `early-init.el` applies settings required before the first
+   frame; `init.el` locates the managed source, sets user options, and owns the
+   module manifest.
 2. **Core** (`lisp/core/`) — `core-vars`, `core-paths`, `core-startup`,
    `core-package`, `core-loader`, `core-util`, loaded with `require` in that fixed
    order. File names match their feature (`core-vars.el` provides `core-vars`).
@@ -51,10 +51,9 @@ Conventional Commit style with scope: `feat(magit): ...`, `fix(org): ...`, `refa
 ## Gotchas
 
 - `site-lisp/` contains local custom/forked packages (e.g., `org-project.el`, `magit-gptel.el`, `dashboard-elfeed.el`), not third-party ELPA packages.
-- User-customizable settings (`+emacs/proxy`, `+emacs/org-root-dir`,
-  `+emacs/disabled-modules`) belong in the untracked `~/.emacs.d/local.el`,
-  usually copied from `local.el.example`.
-- Host-specific early settings belong in untracked `~/.emacs.d/early-local.el`.
-- `package-archives` and `+emacs/theme` have tracked defaults in `init.el` and
-  may be overridden from `local.el`.
+- Personal settings such as `+emacs/proxy`, `+emacs/org-root-dir`,
+  `package-archives`, and `+emacs/theme` live in the tracked `init.el`.
+- Enable or disable a module by editing its entry in the `init.el` manifest;
+  the loader performs no dependency inference.
+- Settings required before the first frame live in tracked `early-init.el`.
 - Do not commit secrets, auth tokens, private org data, or machine-specific paths.

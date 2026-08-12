@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   per-domain modules under `lisp/modules/` (with language modules in
   `lisp/modules/lang/`). Modules load via `+emacs/load-modules`; `keys` loads
   last. Old `lisp/init-*.el` entry files were removed (no compatibility shims).
+- Simplified module selection so membership in the `init.el` manifest directly
+  determines which modules load.
 
 ### Added
 - `early-init.el` and `templates/early-init.el`; `make init` now installs both
@@ -21,7 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `make init-force` to reinstall the bootstrap files.
 - `make smoke` (offline startup test of both startup chains) and `make compile`
   (byte-compile to a temp dir).
-- `+emacs/disabled-modules` to skip modules (including `lang/*` submodules).
 
 ## [0.1.0] - 2025-11-19
 

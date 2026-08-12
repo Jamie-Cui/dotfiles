@@ -27,18 +27,6 @@
   (interactive)
   (message "M-k is disabled!"))
 
-(defun +keys/persp-prev-and-show ()
-  "Switch to previous perspective and show name."
-  (interactive)
-  (persp-prev)
-  (+project/show-name-in-echo))
-
-(defun +keys/persp-next-and-show ()
-  "Switch to next perspective and show name."
-  (interactive)
-  (persp-next)
-  (+project/show-name-in-echo))
-
 (defun +keys/revert-buffer-no-confirm ()
   "Revert buffer without confirmation when the buffer is revertible."
   (interactive)
@@ -56,11 +44,6 @@
       (call-interactively #'magit-status-quick)
     (magit-outside-git-repo
      (call-interactively #'magit-status))))
-
-(defun +keys/persp-kill-current ()
-  "Kill the current perspective."
-  (interactive)
-  (persp-kill (persp-current-name)))
 
 (defun +keys/find-private-config ()
   "Find private emacs config."
@@ -141,8 +124,6 @@
    "M-q"     #'+keys/disabled-M-q ; reserved for kill app
    "M-Q"     #'+keys/disabled-M-Q ; reserved for lock screen
    "M-k"     #'+keys/disabled-M-k
-   "C-h"     #'+keys/persp-prev-and-show
-   "C-l"     #'+keys/persp-next-and-show
    ;; emacs binding
    ;; NOTE those bindings are set to global since most of time, mac and terminal adopts those bindings
    "C-a"     #'evil-first-non-blank ; like "^" in vim
@@ -260,15 +241,6 @@
    "pf"     #'+completion/project-search
    ;; "pr"     #'projectile-run-project
    "pt"     #'projectile-test-project
-   ;; persp-related key bindings
-   "pq"     #'+keys/persp-kill-current
-   "pr"     #'persp-rename
-   "pn"     (lambda () (interactive)
-              (let ((n 1) name)
-                (while (gethash (setq name (format "persp-%d" n))
-                                (perspectives-hash))
-                  (setq n (1+ n)))
-                (persp-switch name)))
    ;; note functions
    "n" '(:ignore t :which-key "note")
    "na"      #'org-agenda-list
