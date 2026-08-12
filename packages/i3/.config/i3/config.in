@@ -10,7 +10,7 @@
 exec_always --no-startup-id ibus-daemon -drx
 
 # REVIEW wallpaper using feh (sudo dnf install feh)
-exec_always --no-startup-id feh --bg-fill "$HOME/.config/i3/wallpaper.jpg"
+exec_always --no-startup-id feh --bg-fill "$HOME/.config/i3/images/wallpaper-2.png"
 
 # REVIEW D-Bus (for flameshot)
 exec_always --no-startup-id systemctl --user start dunst.service

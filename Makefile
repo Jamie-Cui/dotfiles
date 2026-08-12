@@ -239,7 +239,13 @@ verify: generate _check-profile _check-stow _check-secrets ## Test deployment in
 		test -L "$$tmp/.config/isyncrc"; \
 		test -L "$$tmp/.config/fcitx5/config"; \
 		test -L "$$tmp/.config/fcitx5/profile"; \
+		test -L "$$tmp/.config/i3/images"; \
+		test -f "$$tmp/.config/i3/images/wallpaper-2.png"; \
 		test -L "$$tmp/.config/hypr/hyprland.lua"; \
+		test -L "$$tmp/.config/hypr/images"; \
+		test -f "$$tmp/.config/hypr/images/avatar.jpg"; \
+		test -f "$$tmp/.config/hypr/images/wallpaper-1.jpg"; \
+		test -f "$$tmp/.config/hypr/images/wallpaper.jpg"; \
 		test ! -e "$$tmp/.config/hypr/hyprland.conf"; \
 		test ! -L "$$tmp/.config/hypr/hyprland.conf"; \
 		test -L "$$tmp/.gtkrc-2.0"; \
