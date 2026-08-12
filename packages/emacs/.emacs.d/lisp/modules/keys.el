@@ -107,7 +107,6 @@
    ;; more-frequent commands
    "M-y"     #'yas-expand
    "M-p"     #'+prog/compile-with-no-preset ; just like vscode
-   "M-b"     #'consult-project-buffer
    "M-w"     #'evil-avy-goto-char-timer ; quick find edit (point)?
    "M-n"     #'narrow-to-region ; when done, M-x Widen
    "M-i"     #'consult-imenu
@@ -203,6 +202,7 @@
    "yl"     #'+org/copy-link ; copy org link
    ;; buffer-related key bindings
    "b" '(:ignore t :which-key "buffer")
+   "bb"     #'consult-buffer
    "ba"     #'evil-buffer-new
    "bn"     #'evil-buffer-new ; alias
    "bd"     #'kill-current-buffer
