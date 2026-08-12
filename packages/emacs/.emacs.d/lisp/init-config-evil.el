@@ -102,7 +102,7 @@
   (setq evil-want-Y-yank-to-eol t) ; this need to be set before evil
   (setq evil-want-C-g-bindings t) ; this need to be set before evil
   ;; whether to use emacs bindings in insert-mode
-  (setq evil-disable-insert-state-bindings nil)
+  (setq evil-disable-insert-state-bindings t)
   :config
   (defalias #'forward-evil-word #'forward-evil-symbol)
   ;; FIXME why upgrading evil breaks cursor drawing?

@@ -324,6 +324,13 @@
    "fP"     #'+keys/find-user-emacs-config ; find private emacs config in .emacs.d
    )
 
+  ;; org mode
+  (general-define-key
+   :keymaps 'org-mode-map
+   :states '(normal insert)
+   "M-RET"       #'org-meta-return
+   "M-<return>"  #'org-meta-return)
+
   ;; occur mode
   (general-define-key
    :keymaps 'occur-mode-map
