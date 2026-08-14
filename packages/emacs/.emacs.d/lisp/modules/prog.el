@@ -37,17 +37,23 @@
     (setq-local flycheck-clang-language-standard "c++20"
                 flycheck-cppcheck-standards '("c++20")))
 
+  (defun +prog/flycheck-skip-remote-revert-h ()
+    "Skip Flycheck's automatic post-revert check in remote buffers."
+    (when (file-remote-p default-directory)
+      (remove-hook 'after-revert-hook #'flycheck-handle-revert t)))
+
   :config
   (add-hook 'after-init-hook #'global-flycheck-mode)
   (add-hook 'c++-mode-hook #'+prog/flycheck-c++20-h)
   (add-hook 'c++-ts-mode-hook #'+prog/flycheck-c++20-h)
+  (add-hook 'flycheck-mode-hook #'+prog/flycheck-skip-remote-revert-h)
   ;; Flycheck registers its built-in `flycheck-eldoc-function' buffer-locally.
   ;; It composes Eglot and chained-checker diagnostics in the same Eldoc view.
 
   :custom
   (flycheck-disabled-checkers '(emacs-lisp-checkdoc))
   ;; flycheck has performace issues, make it less automate
-  (flycheck-check-syntax-automatically '(save mode-enable idle-change))
+  (flycheck-check-syntax-automatically '(save mode-enabled idle-change))
   (flycheck-idle-change-delay 4))
 
 (use-package flycheck-eglot
