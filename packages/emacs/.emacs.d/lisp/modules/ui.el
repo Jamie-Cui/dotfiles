@@ -82,8 +82,10 @@
 ;;; Modeline
 ;; ------------------------------------------------------------------
 
-;; evil
-(setopt evil-mode-line-format '(before . mode-line-front-space))
+;; Place Evil's state tag after every right-aligned status segment.  The plain
+;; `after' setting targets `mode-line-modes', which this custom mode line does
+;; not contain, so anchor the tag explicitly to its final named segment.
+(setopt evil-mode-line-format '(after . mode-line-end-spaces))
 
 ;; turn on column-number on modeline
 (column-number-mode 1)
@@ -103,10 +105,15 @@
   "Face used for the project name in the mode line."
   :group 'mode-line-faces)
 
-(setopt project-mode-line 'non-remote
+(defface +ui/modeline-buffer-name
+  '((t (:inherit mode-line-buffer-id :weight normal)))
+  "Face used for the buffer name in the mode line."
+  :group 'mode-line-faces)
+
+(setopt project-mode-line t
         project-mode-line-face '+ui/modeline-project-name)
 
-(defconst +ui/modeline-project-format-version 1
+(defconst +ui/modeline-project-format-version 3
   "Version of the cached mode-line project segment format.")
 
 (defvar-local +ui/modeline-project-cache-version nil
@@ -122,7 +129,7 @@
   "Return a cached project segment for the mode line.
 
 The cache avoids project discovery during ordinary mode-line redisplay.
-Remote buffers are excluded by `project-mode-line'."
+Use angle brackets for remote projects and square brackets for local ones."
   (unless (and (eq +ui/modeline-project-cache-version
                    +ui/modeline-project-format-version)
                (equal default-directory
@@ -132,11 +139,20 @@ Remote buffers are excluded by `project-mode-line'."
           +ui/modeline-project-cache-directory default-directory
           +ui/modeline-project-cache
           (when-let* ((segment (project-mode-line-format)))
-            (let ((name (if (and (> (length segment) 0)
-                                 (eq (aref segment 0) ?\s))
-                            (substring segment 1)
-                          segment)))
-              (concat " [" name "] ")))))
+            (let* ((name (if (and (> (length segment) 0)
+                                  (eq (aref segment 0) ?\s))
+                             (substring segment 1)
+                           segment))
+                   (remote (file-remote-p default-directory))
+                   (label (concat (if remote "<" "[")
+                                  name
+                                  (if remote ">" "]"))))
+              ;; `project-mode-line-format' applies the project face only to
+              ;; NAME.  Override that single property across LABEL so both
+              ;; delimiters use exactly the same face.
+              (put-text-property 0 (length label)
+                                 'face '+ui/modeline-project-name label)
+              (concat " " label " ")))))
   +ui/modeline-project-cache)
 
 (defvar-local +ui/modeline-buffer-identification-cache nil
@@ -150,7 +166,7 @@ Remote buffers are excluded by `project-mode-line'."
       (let ((identification
              (propertize
               name
-              'face 'mode-line-buffer-id
+              'face '+ui/modeline-buffer-name
               'help-echo
               "Buffer name\nmouse-1: Previous buffer\nmouse-3: Next buffer"
               'mouse-face 'mode-line-highlight

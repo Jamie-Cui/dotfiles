@@ -308,7 +308,8 @@
    ;; find
    "f" '(:ignore t :which-key "find")
    "fr"     #'consult-recent-file ; find recent file (globally)
-   "fR"     #'ff-find-related-file ; find related file
+   "fR"     #'consult-tramp ; find remote file
+   ;; "fR"     #'ff-find-related-file ; find related file
    "fb"     #'consult-buffer
    "fB"     #'consult-bookmark ; find recent file (globally)
    ;; FIXME consult-fd is a better alternative, but it seems consult-fd only finds the
@@ -318,7 +319,6 @@
    "fF"     #'consult-locate ; find file (system wide)
    "fm"     #'consult-man
    "fM"     #'consult-woman
-   "ft"     #'consult-tramp
    "fh"     #'consult-history ; find history
    "fp"     #'+keys/find-private-config ; find private emacs config
    "fP"     #'+keys/find-user-emacs-config ; find private emacs config in .emacs.d
