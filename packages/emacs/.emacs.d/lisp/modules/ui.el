@@ -96,36 +96,67 @@
 ;; turn on size in bytes indicator on modeline
 (size-indication-mode 1)
 
-(defvar-local +ui/modeline-buffer-identification-cache nil
-  "Cached mode-line buffer identification keyed by buffer location.")
+(require 'project)
 
-(defun +ui/modeline-project-buffer-name ()
-  "Return the current buffer name relative to the project root."
-  (if-let* ((file buffer-file-name)
-            (project (project-current nil (file-name-directory file)))
-            (root (project-root project))
-            (name (or (project-name project)
-                      (file-name-nondirectory
-                       (directory-file-name root))))
-            (relative (file-relative-name file root)))
-      (concat name "/" relative)
-    (buffer-name)))
+(defface +ui/modeline-project-name
+  '((t (:inherit font-lock-keyword-face :weight bold)))
+  "Face used for the project name in the mode line."
+  :group 'mode-line-faces)
+
+(setopt project-mode-line 'non-remote
+        project-mode-line-face '+ui/modeline-project-name)
+
+(defconst +ui/modeline-project-format-version 1
+  "Version of the cached mode-line project segment format.")
+
+(defvar-local +ui/modeline-project-cache-version nil
+  "Format version of the cached mode-line project segment.")
+
+(defvar-local +ui/modeline-project-cache-directory nil
+  "Directory used to compute the cached mode-line project segment.")
+
+(defvar-local +ui/modeline-project-cache nil
+  "Cached project segment for the mode line.")
+
+(defun +ui/modeline-project-segment ()
+  "Return a cached project segment for the mode line.
+
+The cache avoids project discovery during ordinary mode-line redisplay.
+Remote buffers are excluded by `project-mode-line'."
+  (unless (and (eq +ui/modeline-project-cache-version
+                   +ui/modeline-project-format-version)
+               (equal default-directory
+                      +ui/modeline-project-cache-directory))
+    (setq +ui/modeline-project-cache-version
+          +ui/modeline-project-format-version
+          +ui/modeline-project-cache-directory default-directory
+          +ui/modeline-project-cache
+          (when-let* ((segment (project-mode-line-format)))
+            (let ((name (if (and (> (length segment) 0)
+                                 (eq (aref segment 0) ?\s))
+                            (substring segment 1)
+                          segment)))
+              (concat " [" name "] ")))))
+  +ui/modeline-project-cache)
+
+(defvar-local +ui/modeline-buffer-identification-cache nil
+  "Cached mode-line buffer identification keyed by buffer name.")
 
 (defun +ui/modeline-buffer-identification ()
   "Return a cached, propertized buffer identifier for the mode line."
-  (let ((key (list buffer-file-name default-directory (buffer-name))))
-    (if (equal key (car +ui/modeline-buffer-identification-cache))
+  (let ((name (buffer-name)))
+    (if (equal name (car +ui/modeline-buffer-identification-cache))
         (cdr +ui/modeline-buffer-identification-cache)
       (let ((identification
              (propertize
-              (+ui/modeline-project-buffer-name)
+              name
               'face 'mode-line-buffer-id
               'help-echo
               "Buffer name\nmouse-1: Previous buffer\nmouse-3: Next buffer"
               'mouse-face 'mode-line-highlight
               'local-map mode-line-buffer-identification-keymap)))
         (setq +ui/modeline-buffer-identification-cache
-              (cons key identification))
+              (cons name identification))
         identification))))
 
 ;; mode-line format
@@ -133,6 +164,7 @@
         (list
          "%e"
          'mode-line-front-space
+         '(:eval (+ui/modeline-project-segment))
          '(:eval (+ui/modeline-buffer-identification))
          "   "
          'mode-line-position

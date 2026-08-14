@@ -90,7 +90,8 @@ Do not overwrite an existing non-empty global `github.user' value."
   (forge-owned-accounts '(("Jamie-Cui")))
   :config
   (+vc/forge-ensure-github-user-h)
-  (+vc/forge-add-owned-repositories-h))
+  ;; (+vc/forge-add-owned-repositories-h)
+  )
 
 ;; (use-package magit-gh
 ;;   :ensure t
