@@ -85,7 +85,8 @@
 ;; Place Evil's state tag after every right-aligned status segment.  The plain
 ;; `after' setting targets `mode-line-modes', which this custom mode line does
 ;; not contain, so anchor the tag explicitly to its final named segment.
-(setopt evil-mode-line-format '(after . mode-line-end-spaces))
+;; (setopt evil-mode-line-format '(after . mode-line-end-spaces))
+(setopt evil-mode-line-format 'nil)
 
 ;; turn on column-number on modeline
 (column-number-mode 1)
