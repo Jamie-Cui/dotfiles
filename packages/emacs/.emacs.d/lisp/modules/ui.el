@@ -214,9 +214,9 @@ Remote buffers are excluded by `project-mode-line'."
   (dashboard-set-file-icons nil)
   (dashboard-items '(
                      ;; (agenda . 5)
-                     (org-project . 3)
-                     (elfeed . 3)
-                     (recents  . 3)
+                     (org-project . 5)
+                     (elfeed . 5)
+                     (recents  . 5)
                      ;; (projects  . 3)
                      ;; (bookmarks . 3)
                      ))
