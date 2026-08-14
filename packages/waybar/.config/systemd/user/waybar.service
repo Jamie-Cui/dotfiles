@@ -1,0 +1,10 @@
+[Unit]
+Description=Waybar status bar
+StartLimitIntervalSec=30
+StartLimitBurst=5
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/waybar
+Restart=on-failure
+RestartSec=2s

@@ -26,7 +26,6 @@ local menu = 'rofi -show drun -run-command "$HOME/.config/rofi/rofi-drun.sh {cmd
 -------------------
 
 hl.on("hyprland.start", function()
-    hl.exec_cmd("waybar")
     hl.exec_cmd("fcitx5 --replace -d")
     hl.exec_cmd("xclip")
     hl.exec_cmd("dunst")
@@ -37,7 +36,7 @@ hl.on("hyprland.start", function()
     -- graphical-session.target is inactive, which makes OBS PipeWire
     -- monitor/window capture disappear.
     hl.exec_cmd("dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE DESKTOP_SESSION HYPRLAND_INSTANCE_SIGNATURE")
-    hl.exec_cmd("systemctl --user import-environment DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE DESKTOP_SESSION HYPRLAND_INSTANCE_SIGNATURE")
+    hl.exec_cmd("systemctl --user import-environment DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_TYPE DESKTOP_SESSION HYPRLAND_INSTANCE_SIGNATURE && systemctl --user restart waybar.service")
     hl.exec_cmd("systemctl --user start xdg-desktop-portal-hyprland.service xdg-permission-store.service xdg-document-portal.service")
     hl.exec_cmd("systemd-run --user --unit=xdg-desktop-portal-manual --same-dir /usr/libexec/xdg-desktop-portal")
 end)
