@@ -282,6 +282,24 @@ hl.bind("XF86AudioPrev", hl.dsp.exec_cmd("playerctl previous"), locked)
 --------------------------------
 
 hl.workspace_rule({
+    workspace = "1",
+    -- default_name = "PERSIST",
+    persistent = true,
+})
+
+hl.workspace_rule({
+    workspace = "2",
+    -- default_name = "PERSIST",
+    persistent = true,
+})
+
+hl.workspace_rule({
+    workspace = "3",
+    -- default_name = "PERSIST",
+    persistent = true,
+})
+
+hl.workspace_rule({
     workspace = "4",
     -- default_name = "PERSIST",
     persistent = true,
