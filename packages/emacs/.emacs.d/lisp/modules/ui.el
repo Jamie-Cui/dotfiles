@@ -327,7 +327,7 @@ Use angle brackets for remote projects and square brackets for local ones."
      ("*Flycheck errors*" :position bottom :stick t :dedicated t)
      ;; llm-related
      ("*LLM response*" :position bottom :stick t :dedicated t)
-     (agent-shell-mode :position right :stick t :dedicated t :width 0.5)
+     ;; (agent-shell-mode :position right :stick t :dedicated t :width 0.5)
      ;; org-related
      ("*Org Select*" :position bottom :stick t :dedicated t)
      ("*Org Attach*" :position bottom :stick t :dedicated t)
