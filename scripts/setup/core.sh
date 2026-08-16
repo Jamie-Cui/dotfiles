@@ -11,6 +11,7 @@ setup_aerospace_repo=https://github.com/Jamie-Cui/AeroSpace.git
 setup_aerospace_branch=main
 setup_ctags_repo=https://github.com/universal-ctags/ctags.git
 setup_org_root_repo=git@github.com:Jamie-Cui/org-root.git
+setup_git_overleaf_repo=git@github.com:Jamie-Cui/git-overleaf.git
 setup_tdlib_repo=https://github.com/tdlib/td.git
 
 setup_repo_dir=${HOME}/opt/dotfiles
@@ -19,6 +20,7 @@ setup_emacs_dir=$setup_opt_dir/emacs-src
 setup_aerospace_dir=$setup_opt_dir/aerospace-src
 setup_ctags_dir=$setup_opt_dir/ctags
 setup_org_root_dir=$setup_opt_dir/org-root
+setup_git_overleaf_dir=$setup_opt_dir/git-overleaf
 setup_tdlib_dir=$setup_opt_dir/tdlib
 
 setup_command=

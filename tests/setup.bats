@@ -216,12 +216,15 @@ prepare_mock_environment() {
 @test "source-only components clone with their declared history depth" {
 	prepare_mock_environment
 	run env SETUP_TEST_PLATFORM=fedora \
-		"$setup_script" apply --profile minimal --with ctags --with org-root --with tdlib \
+		"$setup_script" apply --profile minimal --with ctags --with org-root \
+		--with git-overleaf --with tdlib \
 		--yes --repo-dir "$mock_repo"
 	[ "$status" -eq 0 ]
 	run grep -F "git clone --depth 1 https://github.com/universal-ctags/ctags.git $HOME/opt/ctags" "$SETUP_TEST_LOG"
 	[ "$status" -eq 0 ]
 	run grep -F "git clone git@github.com:Jamie-Cui/org-root.git $HOME/opt/org-root" "$SETUP_TEST_LOG"
+	[ "$status" -eq 0 ]
+	run grep -F "git clone git@github.com:Jamie-Cui/git-overleaf.git $HOME/opt/git-overleaf" "$SETUP_TEST_LOG"
 	[ "$status" -eq 0 ]
 	run grep -F "git clone --depth 1 https://github.com/tdlib/td.git $HOME/opt/tdlib" "$SETUP_TEST_LOG"
 	[ "$status" -eq 0 ]

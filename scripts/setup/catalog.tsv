@@ -6,6 +6,7 @@ nvim	all	-	Neovim
 emacs	all	-	Emacs source and build dependencies
 ctags	all	-	Universal Ctags source
 org-root	all	-	Private Org repository
+git-overleaf	all	-	Git Overleaf repository
 tdlib	all	-	TDLib source
 kitty	all	-	Kitty
 flameshot	all	-	Flameshot

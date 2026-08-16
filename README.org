@@ -41,6 +41,7 @@ git config --global --unset https.proxy
     - [[#emacs-emacs][Emacs]]
     - [[#universal-ctags-ctags][Universal Ctags]]
     - [[#org-root-org-root][org-root]]
+    - [[#git-overleaf-git-overleaf][git-overleaf]]
     - [[#tdlib-tdlib][TDLib]]
     - [[#kitty-kitty][Kitty]]
     - [[#flameshot-flameshot][Flameshot]]
@@ -114,11 +115,12 @@ curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26
 #+end_src
 
 Components are =shell=, =font=, =vim=, =nvim=, =emacs=, =ctags=,
-=org-root=, =tdlib=, =kitty=, =flameshot=, =rime=, =x11=, =i3=,
-=rofi=, =hyprland=, =waybar=, =dunst=, =mail=, =secrets=, =aerospace=,
-and =borders=.  Dependencies are added automatically; explicitly excluding a
-required dependency is an error.  The clone-only =ctags=, =org-root=, and
-=tdlib= components are selected only with =--with= or the =all= profile.
+=org-root=, =git-overleaf=, =tdlib=, =kitty=, =flameshot=, =rime=, =x11=,
+=i3=, =rofi=, =hyprland=, =waybar=, =dunst=, =mail=, =secrets=,
+=aerospace=, and =borders=.  Dependencies are added automatically; explicitly
+excluding a required dependency is an error.  The clone-only =ctags=,
+=org-root=, =git-overleaf=, and =tdlib= components are selected only with
+=--with= or the =all= profile.
 Software selection does not filter Stow packages: the complete macOS or Linux
 dotfiles profile is always previewed and deployed.
 
@@ -358,6 +360,15 @@ Emacs configuration.  GitHub SSH access must already be configured.
 scripts/setup.sh apply --profile minimal --with org-root --yes
 #+end_src
 
+*** [[https://github.com/Jamie-Cui/git-overleaf][git-overleaf]] (=git-overleaf=)
+
+The =git-overleaf= component clones the repository with its full history over
+SSH into =~/opt/git-overleaf=.  GitHub SSH access must already be configured.
+
+#+begin_src bash
+scripts/setup.sh apply --profile minimal --with git-overleaf --yes
+#+end_src
+
 *** [[https://github.com/tdlib/td][TDLib]] (=tdlib=)
 
 The =tdlib= component shallow-clones the source with depth 1 into
@@ -367,7 +378,7 @@ The =tdlib= component shallow-clones the source with depth 1 into
 scripts/setup.sh apply --profile minimal --with tdlib --yes
 #+end_src
 
-For all three clone-only components, an existing Git checkout is left exactly
+For all four clone-only components, an existing Git checkout is left exactly
 as-is; setup does not fetch, pull, or validate its origin.  An existing non-Git
 path is reported as a component failure.
 

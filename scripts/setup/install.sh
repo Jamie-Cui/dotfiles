@@ -32,6 +32,7 @@ setup_component_present() {
 		emacs) [ -d "$setup_emacs_dir/.git" ] ;;
 		ctags) [ -d "$setup_ctags_dir/.git" ] ;;
 		org-root) [ -d "$setup_org_root_dir/.git" ] ;;
+		git-overleaf) [ -d "$setup_git_overleaf_dir/.git" ] ;;
 		tdlib) [ -d "$setup_tdlib_dir/.git" ] ;;
 		kitty)
 			command -v kitty >/dev/null 2>&1 || \
@@ -372,6 +373,7 @@ setup_run_component() {
 		emacs) setup_install_emacs ;;
 		ctags) setup_clone_source_repo "$setup_ctags_repo" "$setup_ctags_dir" 1 ;;
 		org-root) setup_clone_source_repo "$setup_org_root_repo" "$setup_org_root_dir" ;;
+		git-overleaf) setup_clone_source_repo "$setup_git_overleaf_repo" "$setup_git_overleaf_dir" ;;
 		tdlib) setup_clone_source_repo "$setup_tdlib_repo" "$setup_tdlib_dir" 1 ;;
 		kitty) if [ "$setup_platform" = macos ]; then setup_brew_cask kitty kitty; else setup_dnf_install kitty; fi ;;
 		flameshot) setup_install_flameshot ;;
