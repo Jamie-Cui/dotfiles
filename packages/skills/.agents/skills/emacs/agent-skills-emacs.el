@@ -192,4 +192,31 @@
     (format "symbol=%s exists=%S fboundp=%S boundp=%S value-type=%S"
             name (not (null sym)) fbound bound value-type)))
 
+(cl-defun agent-skills/key-binding-state (key)
+  "Report the effective, local, and global bindings for KEY.
+
+KEY must be a textual key description accepted by `kbd'.  The lookup is
+read-only and runs in the buffer shown in the selected window."
+  (unless (and (stringp key)
+               (> (length key) 0)
+               (<= (length key) 64))
+    (error "Invalid key description: %S" key))
+  (let* ((sequence (kbd key))
+         (buffer (window-buffer (selected-window))))
+    (with-current-buffer buffer
+      (format (concat "Buffer: %s\nMode: %s\nKey: %s\n"
+                      "Effective: %S\nLocal: %S\nGlobal: %S\n"
+                      "general-override-mode: %S\n"
+                      "general-override-map: %S")
+              (buffer-name)
+              major-mode
+              (key-description sequence)
+              (key-binding sequence)
+              (local-key-binding sequence)
+              (global-key-binding sequence)
+              (and (boundp 'general-override-mode)
+                   general-override-mode)
+              (and (boundp 'general-override-mode-map)
+                   (lookup-key general-override-mode-map sequence))))))
+
 (provide 'agent-skills/emacs)

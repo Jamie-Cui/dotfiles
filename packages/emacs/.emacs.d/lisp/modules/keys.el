@@ -123,14 +123,6 @@
    "M-q"     #'+keys/disabled-M-q ; reserved for kill app
    "M-Q"     #'+keys/disabled-M-Q ; reserved for lock screen
    "M-k"     #'+keys/disabled-M-k
-   ;; emacs binding
-   ;; NOTE those bindings are set to global since most of time, mac and terminal adopts those bindings
-   "C-a"     #'evil-first-non-blank ; like "^" in vim
-   "C-e"     #'end-of-line ; like "$" in vim, DO NOT use evil-end-of-line
-   ;; NOTE the following kbds are avaliable when in insert mode
-   ;; "C-f"     #'forward-char ; native
-   ;; "C-b"     #'backward-char ; native
-   ;; "C-w"     #'evil-delete-backward-word ; native
    ;; vim binding
    "C-u"     #'+input/evil-scroll-up-dwim
    "C-d"     #'+input/evil-scroll-down-dwim
@@ -148,7 +140,25 @@
    "<magnify-down>" #'+input/pinch-dwim
    "C-M--"   #'cnfonts-decrease-fontsize ; global
    "C-M-="   #'cnfonts-increase-fontsize ; global
-   "C-M-0"   #'cnfonts-reset-fontsize ; global
+   "C-M-0"   #'cnfonts-reset-fontsize    ; global
+   )
+
+  ;; Emacs bindings
+  ;; NOTE The followings are avaliable when in evil insert mode
+  ;; "C-a"     #'evil-first-non-blank
+  ;; "C-e"     #'end-of-line
+  ;; "C-f"     #'forward-char
+  ;; "C-b"     #'backward-char
+  ;; "C-w"     #'evil-delete-backward-word
+  ;; "M-b"     #'backward-word
+  ;; "M-f"     #'forward-word
+  (general-define-key
+   ;; HACK Evil state maps outrank non-Evil bindings in `general-override-mode-map'.
+   :states '(insert)
+   :keymaps 'override
+   "C-e"     #'end-of-line
+   "C-a"     #'evil-first-non-blank
+   "M-f"     #'forward-word
    )
 
   ;; ** Global Keybindings
@@ -168,7 +178,7 @@
    ;; most-frequency keys
    "."      #'find-file
    "<"      #'consult-buffer
-   ","      #'consult-project-buffer
+   ","      #'consult-project-buffer ; maybe useless for me
    "/"      #'+completion/project-search
    "TAB"    #'evil-switch-to-windows-last-buffer
    "SPC"    #'projectile-find-file
