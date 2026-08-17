@@ -30,13 +30,17 @@
 ;; magent-evil's post-submit reset) cannot take effect.  Disabling GtkIMContext
 ;; lets Emacs own input again, driven by `rime'.
 ;;
-;; PGTK-only: `pgtk-use-im-context' does not exist on the macOS (ns) build or in
-;; the terminal, so guard on both the frame type and the function.  The macOS
-;; equivalent, if ever needed, goes in the Darwin section below.
+;; PGTK's `after-init-hook' reapplies
+;; `pgtk-use-im-context-on-new-connection', whose default is non-nil.  Set the
+;; default so initialization does not undo this choice and daemon-created
+;; connections inherit it.  Also update an existing PGTK connection so that
+;; reloading this module takes effect immediately.
 (when (and (eq system-type 'gnu/linux)
-           (eq window-system 'pgtk)
-           (fboundp 'pgtk-use-im-context))
-  (pgtk-use-im-context nil))
+           (boundp 'pgtk-use-im-context-on-new-connection))
+  (setq pgtk-use-im-context-on-new-connection nil)
+  (when (and (eq (window-system) 'pgtk)
+             (fboundp 'pgtk-use-im-context))
+    (pgtk-use-im-context nil)))
 
 ;;; --------------------------------------
 ;;; Darwin (MacOs)
