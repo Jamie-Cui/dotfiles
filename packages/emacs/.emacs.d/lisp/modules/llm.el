@@ -89,6 +89,16 @@
   (agent-shell-user-message-expand-by-default nil)
   :config
 
+  ;; Agent Shell prompts are edited as prose: RET inserts a newline in insert
+  ;; state and submits from normal state.  Bind its child map so other
+  ;; Shell Maker consumers keep the global Evil Collection policy.
+  (let ((evil-collection-binding-overrides
+         '((repl-submit  :state normal)
+           (repl-newline :state insert))))
+    (evil-collection-bind 'agent-shell-mode-map
+                          'repl-submit #'shell-maker-submit
+                          'repl-newline #'newline))
+
   (defun +agent-shell/bind-return-in-action-keymap-a (map)
     "Bind GUI <return> in agent-shell action keymaps."
     (when (keymapp map)

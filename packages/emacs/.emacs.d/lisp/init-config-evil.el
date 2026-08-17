@@ -169,9 +169,10 @@ Adapted from https://github.com/emacs-evil/evil/issues/606"
   :after (:and evil evil-mc)
   :custom
   (evil-collection-setup-minibuffer t)
-  ;; (evil-collection-binding-overrides
-  ;;  '((repl-submit  :state insert)
-  ;;    (repl-newline :state normal)))
+  ;; Submit with RET in insert state everywhere except agent-shell.
+  (evil-collection-binding-overrides
+   '((repl-submit  :state insert)
+     (repl-newline :state normal)))
   :config
   ;; make sure the follwing key bindings always work
   (evil-collection-init)
