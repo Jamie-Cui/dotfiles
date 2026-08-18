@@ -64,6 +64,8 @@ git config --global --unset https.proxy
     - [[#davmail-davmail][DavMail]]
     - [[#isync-isync][isync]]
 - [[#macos-apps][MacOS apps]]
+    - [[#alfred-alfred][Alfred]]
+    - [[#stats-stats][Stats]]
     - [[#aerospace-aerospace][AeroSpace]]
 
 ** Quick setup
@@ -100,8 +102,8 @@ curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26
 #+end_src
 
 The profiles are =minimal= (prerequisites plus dotfiles), =recommended= (common
-shell, font, editor, terminal, and Rime tools; plus AeroSpace on macOS), and
-=all=.  Individual components can be adjusted with repeatable =--with= and
+shell, font, editor, terminal, and Rime tools; plus Alfred, Stats, and AeroSpace
+on macOS), and =all=.  Individual components can be adjusted with repeatable =--with= and
 =--without= arguments; each occurrence accepts one component:
 
 #+begin_src bash
@@ -117,7 +119,7 @@ curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26
 Components are =shell=, =font=, =vim=, =nvim=, =emacs=, =ctags=,
 =org-root=, =git-overleaf=, =tdlib=, =kitty=, =flameshot=, =rime=, =x11=,
 =i3=, =rofi=, =hyprland=, =waybar=, =dunst=, =mail=, =secrets=,
-=aerospace=, and =borders=.  Dependencies are added automatically; explicitly
+=alfred=, =stats=, =aerospace=, and =borders=.  Dependencies are added automatically; explicitly
 excluding a required dependency is an error.  The clone-only =ctags=,
 =org-root=, =git-overleaf=, and =tdlib= components are selected only with
 =--with= or the =all= profile.
@@ -559,7 +561,23 @@ machine 127.0.0.1 login you@outlook.com password LOCAL_KEY port 1025
 
 ** MacOS apps
 
-Run =make bootstrap= after installing the app.
+Run =make bootstrap= after installing the apps.
+
+*** [[https://www.alfredapp.com/][Alfred]] (=alfred=)
+
+The recommended setup profile installs Alfred with Homebrew:
+
+#+begin_src bash
+brew install --cask alfred
+#+end_src
+
+*** [[https://github.com/exelban/stats][Stats]] (=stats=)
+
+The recommended setup profile installs Stats with Homebrew:
+
+#+begin_src bash
+brew install --cask stats
+#+end_src
 
 *** [[https://github.com/Jamie-Cui/AeroSpace][AeroSpace fork]] (=aerospace=)
 

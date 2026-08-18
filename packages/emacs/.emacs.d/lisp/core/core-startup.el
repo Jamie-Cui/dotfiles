@@ -41,8 +41,10 @@
 
 (defun +emacs/restore-startup-settings-h ()
   "Reset GC and file-handler settings to normal post-startup values."
-  (setq gc-cons-threshold (* 16 1024 1024) ; 16MB
-        gc-cons-percentage 0.1
+  ;; Magent and TRAMP keep a large live heap; collect less frequently so
+  ;; interactive work does not repeatedly pay for a full-heap scan.
+  (setq gc-cons-threshold (* 128 1024 1024) ; 128 MiB
+        gc-cons-percentage 0.2
         file-name-handler-alist +emacs/initial-file-name-handler-alist)
   ;; Install this only after restoring the handlers cleared by `early-init.el'.
   (epa-file-enable))

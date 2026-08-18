@@ -104,12 +104,34 @@ prepare_mock_environment() {
 	[ ! -e "$BATS_TEST_TMPDIR/repo" ]
 }
 
-@test "recommended macOS plan includes AeroSpace" {
+@test "recommended macOS plan includes Alfred, Stats, and AeroSpace" {
 	run env SETUP_TEST_PLATFORM=macos SETUP_NO_TTY=1 \
 		"$setup_script" plan --profile recommended
 	[ "$status" -eq 0 ]
+	[[ "$output" == *"alfred: Alfred"* ]]
+	[[ "$output" == *"stats: Stats system monitor"* ]]
 	[[ "$output" == *"aerospace: AeroSpace source"* ]]
 	[[ "$output" != *"hyprland:"* ]]
+}
+
+@test "Alfred apply installs the Homebrew cask" {
+	prepare_mock_environment
+	run env SETUP_TEST_PLATFORM=macos \
+		"$setup_script" apply --profile minimal --with alfred \
+		--yes --repo-dir "$mock_repo"
+	[ "$status" -eq 0 ]
+	run grep -F 'brew install --cask alfred' "$SETUP_TEST_LOG"
+	[ "$status" -eq 0 ]
+}
+
+@test "Stats apply installs the Homebrew cask" {
+	prepare_mock_environment
+	run env SETUP_TEST_PLATFORM=macos \
+		"$setup_script" apply --profile minimal --with stats \
+		--yes --repo-dir "$mock_repo"
+	[ "$status" -eq 0 ]
+	run grep -F 'brew install --cask stats' "$SETUP_TEST_LOG"
+	[ "$status" -eq 0 ]
 }
 
 @test "component dependencies are resolved in catalog order" {

@@ -27,6 +27,10 @@ PACKAGES_linux := vim nvim emacs kitty bin x11 rofi i3 i3blocks hypr waybar duns
 RIME_TARGET_macos ?= $(DEPLOY_HOME)/Library/Rime
 RIME_TARGET_linux ?= $(DEPLOY_HOME)/.local/share/fcitx5/rime
 
+KITTY_META_MOD_macos := super
+KITTY_META_MOD_linux := alt
+KITTY_META_MOD := $(or $(KITTY_META_MOD_$(PROFILE)),alt)
+
 PACKAGES := $(sort $(PACKAGES_$(PROFILE)) $(EXTRA_PACKAGES))
 REGULAR_PACKAGES := $(filter-out skills,$(PACKAGES))
 SKILLS_ENABLED := $(filter skills,$(PACKAGES))
@@ -97,7 +101,7 @@ bootstrap: stow ## Deploy the selected profile on a new machine
 
 generate: ## Render package files from *.in templates
 	@find "$(PACKAGES_DIR)" -type f -name "*.in" \
-		-exec sh -c 'for f; do out=$${f%.in}; sed "s/@FONT_SIZE@/$(FONT_SIZE)/g" "$$f" > "$$out"; done' _ {} \;
+		-exec sh -c 'for f; do out=$${f%.in}; sed -e "s/@FONT_SIZE@/$(FONT_SIZE)/g" -e "s/@KITTY_META_MOD@/$(KITTY_META_MOD)/g" "$$f" > "$$out"; done' _ {} \;
 	@rm -f "$(LEGACY_HYPR_CONFIG)"
 	@echo "Generated package files with font_size=$(FONT_SIZE)"
 

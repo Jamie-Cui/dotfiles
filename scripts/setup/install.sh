@@ -58,6 +58,8 @@ setup_component_present() {
 		dunst) command -v dunst >/dev/null 2>&1 ;;
 		mail) command -v davmail >/dev/null 2>&1 && command -v mbsync >/dev/null 2>&1 ;;
 		secrets) command -v gpg >/dev/null 2>&1 ;;
+		alfred) [ -d /Applications/Alfred\ 5.app ] || [ -d /Applications/Alfred.app ] ;;
+		stats) [ -d /Applications/Stats.app ] ;;
 		aerospace) [ -d "$setup_aerospace_dir/.git" ] ;;
 		borders) command -v borders >/dev/null 2>&1 ;;
 		*) return 2 ;;
@@ -386,6 +388,8 @@ setup_run_component() {
 		dunst) setup_dnf_install dunst ;;
 		mail) setup_install_mail ;;
 		secrets) setup_install_secrets ;;
+		alfred) setup_brew_cask alfred alfred ;;
+		stats) setup_brew_cask stats stats ;;
 		aerospace) setup_install_aerospace ;;
 		borders) setup_install_borders ;;
 		*) setup_die "no installer for component $component" 2 ;;
