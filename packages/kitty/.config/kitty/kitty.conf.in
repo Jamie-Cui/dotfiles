@@ -13,8 +13,8 @@
 
 # themes
 # include ./themes/zenburn.conf
-include ./themes/modus-vivendi.conf
-# include ./themes/gruvbox-dark.conf
+# include ./themes/modus-vivendi.conf
+include ./themes/gruvbox-dark.conf
 
 # shell config
 # shell /bin/zsh
