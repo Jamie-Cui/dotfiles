@@ -179,7 +179,9 @@
   )
 
 (use-package agent-shell-permission-transient
-  :load-path (lambda () (concat +emacs/repo-directory "/site-lisp/"))
+  :vc (:url "https://github.com/Jamie-Cui/agent-shell-permission-transient"
+       :rev "main")
+  :ensure t
   :after agent-shell
   :demand t
   :bind (:map agent-shell-mode-map
