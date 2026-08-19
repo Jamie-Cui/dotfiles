@@ -165,6 +165,7 @@ setup_prepare_privileges() {
 	local needs_sudo=0
 	[ "$setup_platform" = fedora ] && needs_sudo=1
 	[ "$setup_platform" = macos ] && ! setup_brew_command && needs_sudo=1
+	[ "$setup_platform" = macos ] && setup_selected_contains tailscale && needs_sudo=1
 	[ "$setup_build_emacs" -eq 1 ] && needs_sudo=1
 	[ "$needs_sudo" -eq 1 ] && setup_ensure_sudo
 }

@@ -10,6 +10,7 @@ git-overleaf	all	-	Git Overleaf repository
 tdlib	all	-	TDLib source
 kitty	all	-	Kitty
 flameshot	all	-	Flameshot
+tailscale	all	-	Tailscale mesh VPN
 rime	all	-	Rime input method
 x11	fedora	-	X11 session
 i3	fedora	x11 rofi dunst flameshot kitty	i3 desktop

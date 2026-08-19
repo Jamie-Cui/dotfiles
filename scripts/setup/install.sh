@@ -43,6 +43,10 @@ setup_component_present() {
 				{ [ "$setup_platform" = macos ] && \
 					{ [ -d /Applications/flameshot.app ] || [ -d /Applications/Flameshot.app ]; }; }
 			;;
+		tailscale)
+			command -v tailscale >/dev/null 2>&1 || \
+				{ [ "$setup_platform" = macos ] && [ -d /Applications/Tailscale.app ]; }
+			;;
 		rime)
 			if [ "$setup_platform" = macos ]; then
 				[ -d '/Library/Input Methods/Squirrel.app' ]
@@ -305,6 +309,27 @@ setup_install_flameshot() {
 	setup_dnf_install flameshot grim
 }
 
+setup_install_tailscale() {
+	local repo=https://pkgs.tailscale.com/stable/fedora/tailscale.repo
+	if [ "$setup_platform" = macos ]; then
+		setup_brew_cask tailscale-app tailscale-app || return 1
+		setup_pending_add "Open Tailscale, approve its system extension and VPN configuration, then sign in."
+		return 0
+	fi
+	if [ ! -r /etc/yum.repos.d/tailscale.repo ]; then
+		if dnf --version 2>/dev/null | head -n 1 | grep -q '^dnf5 '; then
+			setup_dnf_install dnf5-plugins || return 1
+			setup_sudo_run dnf config-manager addrepo --from-repofile="$repo" || return 1
+		else
+			setup_dnf_install dnf-plugins-core || return 1
+			setup_sudo_run dnf config-manager --add-repo "$repo" || return 1
+		fi
+	fi
+	setup_dnf_install tailscale || return 1
+	setup_sudo_run systemctl enable --now tailscaled || return 1
+	setup_pending_add "Run sudo tailscale up and authenticate this device with your tailnet."
+}
+
 setup_install_secrets() {
 	local mode ciphertext
 	if [ "$setup_platform" = macos ]; then
@@ -379,6 +404,7 @@ setup_run_component() {
 		tdlib) setup_clone_source_repo "$setup_tdlib_repo" "$setup_tdlib_dir" 1 ;;
 		kitty) if [ "$setup_platform" = macos ]; then setup_brew_cask kitty kitty; else setup_dnf_install kitty; fi ;;
 		flameshot) setup_install_flameshot ;;
+		tailscale) setup_install_tailscale ;;
 		rime) if [ "$setup_platform" = macos ]; then setup_brew_cask squirrel-app squirrel-app; else setup_dnf_install fcitx5 fcitx5-rime fcitx5-gtk fcitx5-qt imsettings im-chooser gtk2 gtk3 gtk4; fi ;;
 		x11) setup_dnf_install xorg-x11-server-Xorg xorg-x11-xinit xorg-x11-xauth ;;
 		i3) setup_dnf_install i3 i3lock picom feh xclip dex-autostart network-manager-applet pulseaudio-utils ibus jq xss-lock setxkbmap i3blocks alsa-utils sysstat perl ;;

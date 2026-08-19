@@ -45,6 +45,7 @@ git config --global --unset https.proxy
     - [[#tdlib-tdlib][TDLib]]
     - [[#kitty-kitty][Kitty]]
     - [[#flameshot-flameshot][Flameshot]]
+    - [[#tailscale-tailscale][Tailscale]]
     - [[#rime-rime][Rime]]
     - [[#proxyctl-bin][proxyctl]]
     - [[#codex-skills-skills][Codex skills]]
@@ -102,8 +103,8 @@ curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26
 #+end_src
 
 The profiles are =minimal= (prerequisites plus dotfiles), =recommended= (common
-shell, font, editor, terminal, and Rime tools; plus Alfred, Stats, and AeroSpace
-on macOS), and =all=.  Individual components can be adjusted with repeatable =--with= and
+shell, font, editor, terminal, Tailscale, and Rime tools; plus Alfred, Stats,
+and AeroSpace on macOS), and =all=.  Individual components can be adjusted with repeatable =--with= and
 =--without= arguments; each occurrence accepts one component:
 
 #+begin_src bash
@@ -117,7 +118,7 @@ curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26
 #+end_src
 
 Components are =shell=, =font=, =vim=, =nvim=, =emacs=, =ctags=,
-=org-root=, =git-overleaf=, =tdlib=, =kitty=, =flameshot=, =rime=, =x11=,
+=org-root=, =git-overleaf=, =tdlib=, =kitty=, =flameshot=, =tailscale=, =rime=, =x11=,
 =i3=, =rofi=, =hyprland=, =waybar=, =dunst=, =mail=, =secrets=,
 =alfred=, =stats=, =aerospace=, and =borders=.  Dependencies are added automatically; explicitly
 excluding a required dependency is an error.  The clone-only =ctags=,
@@ -411,6 +412,32 @@ sudo dnf install flameshot grim
 
 The tracked configuration is deployed only by the Linux profile.  It leaves the
 save directory to Flameshot instead of pinning a machine-specific path.
+
+*** [[https://tailscale.com/][Tailscale]] (=tailscale=)
+
+The recommended setup profile installs Tailscale on both platforms.  Sign-in
+remains an explicit post-install step.
+
+**** macOS
+
+#+begin_src bash
+brew install --cask tailscale-app
+#+end_src
+
+Open Tailscale, approve its system extension and VPN configuration, then sign
+in.  The cask installs Tailscale's standalone macOS variant.
+
+**** Fedora
+
+#+begin_src bash
+sudo dnf config-manager addrepo --from-repofile=https://pkgs.tailscale.com/stable/fedora/tailscale.repo
+sudo dnf install tailscale
+sudo systemctl enable --now tailscaled
+sudo tailscale up
+#+end_src
+
+The setup script also supports the legacy DNF 4 =config-manager --add-repo=
+syntax when needed.
 
 *** [[https://rime.im/][Rime]] (=rime=)
 

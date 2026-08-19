@@ -64,8 +64,8 @@ italic_font        auto
 bold_italic_font   auto
 font_size @FONT_SIZE@
 
-# font size shortcuts (Command on macOS, Super/diamond on Linux HHKB)
-map ctrl+super+minus change_font_size all -1.0
-map ctrl+super+equal change_font_size all +1.0
+# font size shortcuts (Command on macOS, Alt immediately left of Space on Linux HHKB)
+map ctrl+@KITTY_META_MOD@+minus change_font_size all -1.0
+map ctrl+@KITTY_META_MOD@+equal change_font_size all +1.0
 
 hide_window_decorations yes

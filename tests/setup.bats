@@ -20,6 +20,7 @@ make_executable() {
 prepare_mock_environment() {
 	export SETUP_TEST_LOG=$BATS_TEST_TMPDIR/commands.log
 	export SETUP_TEST_DNF_FAIL=${SETUP_TEST_DNF_FAIL:-}
+	export SETUP_TEST_DNF_VERSION=${SETUP_TEST_DNF_VERSION:-dnf5 version 5.4.2.1}
 	export SETUP_TEST_GIT_DIRTY=${SETUP_TEST_GIT_DIRTY:-0}
 	mock_bin=$BATS_TEST_TMPDIR/bin
 	mock_repo=$BATS_TEST_TMPDIR/dotfiles
@@ -43,6 +44,7 @@ prepare_mock_environment() {
 	make_executable "$mock_bin/rpm" 'exit 1'
 	make_executable "$mock_bin/dnf" \
 		'printf "dnf %s\\n" "$*" >> "$SETUP_TEST_LOG"' \
+		'if [ "$1" = --version ]; then printf "%s\\n" "$SETUP_TEST_DNF_VERSION"; exit 0; fi' \
 		'case " $* " in *" $SETUP_TEST_DNF_FAIL "*) exit 42 ;; esac' \
 		'exit 0'
 	make_executable "$mock_bin/sudo" \
@@ -95,8 +97,9 @@ prepare_mock_environment() {
 		"$setup_script" plan --profile recommended --repo-dir "$BATS_TEST_TMPDIR/repo"
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"DOTFILES SETUP"* ]]
-	[[ "$output" == *"Components (6 selected)"* ]]
+	[[ "$output" == *"Components (7 selected)"* ]]
 	[[ "$output" == *"shell: Oh My Zsh"* ]]
+	[[ "$output" == *"tailscale: Tailscale mesh VPN"* ]]
 	[[ "$output" == *"rime: Rime input method"* ]]
 	[[ "$output" != *"aerospace:"* ]]
 	[[ "$output" != *$'\033['* ]]
@@ -111,7 +114,47 @@ prepare_mock_environment() {
 	[[ "$output" == *"alfred: Alfred"* ]]
 	[[ "$output" == *"stats: Stats system monitor"* ]]
 	[[ "$output" == *"aerospace: AeroSpace source"* ]]
+	[[ "$output" == *"tailscale: Tailscale mesh VPN"* ]]
 	[[ "$output" != *"hyprland:"* ]]
+}
+
+@test "Tailscale apply installs the macOS standalone app cask" {
+	prepare_mock_environment
+	run env SETUP_TEST_PLATFORM=macos \
+		"$setup_script" apply --profile minimal --with tailscale \
+		--yes --repo-dir "$mock_repo"
+	[ "$status" -eq 0 ]
+	run grep -F 'brew install --cask tailscale-app' "$SETUP_TEST_LOG"
+	[ "$status" -eq 0 ]
+}
+
+@test "Tailscale apply configures current Fedora and starts tailscaled" {
+	prepare_mock_environment
+	run env SETUP_TEST_PLATFORM=fedora \
+		"$setup_script" apply --profile minimal --with tailscale \
+		--yes --repo-dir "$mock_repo"
+	[ "$status" -eq 0 ]
+	run grep -F 'dnf install -y dnf5-plugins' "$SETUP_TEST_LOG"
+	[ "$status" -eq 0 ]
+	run grep -F 'dnf config-manager addrepo --from-repofile=https://pkgs.tailscale.com/stable/fedora/tailscale.repo' "$SETUP_TEST_LOG"
+	[ "$status" -eq 0 ]
+	run grep -F 'dnf install -y tailscale' "$SETUP_TEST_LOG"
+	[ "$status" -eq 0 ]
+	run grep -F 'systemctl enable --now tailscaled' "$SETUP_TEST_LOG"
+	[ "$status" -eq 0 ]
+}
+
+@test "Tailscale apply supports the legacy DNF 4 repository syntax" {
+	export SETUP_TEST_DNF_VERSION='4.21.1'
+	prepare_mock_environment
+	run env SETUP_TEST_PLATFORM=fedora \
+		"$setup_script" apply --profile minimal --with tailscale \
+		--yes --repo-dir "$mock_repo"
+	[ "$status" -eq 0 ]
+	run grep -F 'dnf install -y dnf-plugins-core' "$SETUP_TEST_LOG"
+	[ "$status" -eq 0 ]
+	run grep -F 'dnf config-manager --add-repo https://pkgs.tailscale.com/stable/fedora/tailscale.repo' "$SETUP_TEST_LOG"
+	[ "$status" -eq 0 ]
 }
 
 @test "Alfred apply installs the Homebrew cask" {
