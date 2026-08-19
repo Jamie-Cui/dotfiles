@@ -257,6 +257,11 @@
     (cancel-timer agent-shell-permission-transient--popup-timer))
   (setq agent-shell-permission-transient--popup-timer nil))
 
+(defun agent-shell-permission-transient--show-popup ()
+  "Show the permission menu without changing the selected window."
+  (save-selected-window
+    (agent-shell-permission-transient-menu)))
+
 (defun agent-shell-permission-transient--schedule-popup (&optional delay)
   "Show a permission transient after DELAY when interactive state is safe."
   (unless (timerp agent-shell-permission-transient--popup-timer)
@@ -268,7 +273,7 @@
              (setq agent-shell-permission-transient--popup-timer nil)
              (cond
               ((agent-shell-permission-transient--popup-safe-p)
-               (agent-shell-permission-transient-menu))
+               (agent-shell-permission-transient--show-popup))
               ((and agent-shell-permission-transient-mode
                     agent-shell-permission-transient--queue)
                (agent-shell-permission-transient--schedule-popup 0.25))))))))

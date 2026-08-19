@@ -461,6 +461,22 @@
         (agent-shell-permission-transient--schedule-popup 60)
         (should (timerp agent-shell-permission-transient--popup-timer))))))
 
+(ert-deftest agent-shell-permission-transient-popup-preserves-selected-window ()
+  (let ((original-window (selected-window))
+        (popup-window (split-window-right))
+        menu-opened)
+    (unwind-protect
+        (cl-letf (((symbol-function
+                    'agent-shell-permission-transient-menu)
+                   (lambda ()
+                     (setq menu-opened t)
+                     (select-window popup-window))))
+          (agent-shell-permission-transient--show-popup)
+          (should menu-opened)
+          (should (eq (selected-window) original-window)))
+      (when (window-live-p popup-window)
+        (delete-window popup-window)))))
+
 (ert-deftest agent-shell-permission-transient-requires-visible-shell-window ()
   (agent-shell-permission-transient-test--isolated
     (let* ((agent-shell-permission-transient-mode t)
