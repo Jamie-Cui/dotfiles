@@ -248,7 +248,8 @@ hl.bind(mainMod .. " + up", hl.dsp.focus({ direction = "up" }))
 hl.bind(mainMod .. " + right", hl.dsp.focus({ direction = "right" }))
 
 hl.bind(metaMod .. " + Q", hl.dsp.window.close())
-hl.bind(metaMod .. " + SHIFT + Q", hl.dsp.exec_cmd("hyprlock"))
+hl.bind(metaMod .. " + CTRL + Q", hl.dsp.exec_cmd("hyprlock"))
+hl.bind(metaMod .. " + SHIFT + Q", hl.dsp.exit())
 hl.bind(metaMod .. " + CTRL + A", hl.dsp.exec_cmd("QT_SCALE_FACTOR=0.65 flameshot gui"))
 
 -- Switch workspaces and move active windows with ALT + [0-9].
