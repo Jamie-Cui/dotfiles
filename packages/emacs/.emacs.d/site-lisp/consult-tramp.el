@@ -27,8 +27,8 @@
 
 (defcustom consult-tramp-methods
   '(ssh sshx scp rsync
-    docker dockercp podman podmancp kubernetes
-    sudo su)
+        docker dockercp podman podmancp kubernetes
+        sudo su)
   "TRAMP methods searched by `consult-tramp-source-methods'.
 The default is a fixed list of method symbols.  Only methods that are also
 currently registered in `tramp-methods' are searched.  An empty customized
@@ -54,6 +54,15 @@ TRAMP location strings.  Sources are evaluated in list order; the first
 occurrence of an identical location wins.  An error in one source does
 not prevent later sources from contributing candidates."
   :type '(repeat function)
+  :group 'consult-tramp)
+
+(defcustom consult-tramp-ignored-locations nil
+  "TRAMP locations hidden from `consult-tramp'.
+Each entry is a concrete TRAMP location string.  A candidate is hidden
+when it matches an entry exactly, or when its connection prefix matches
+an entry, so removing a prefix such as \"/ssh:host:\" also hides every
+location below that host."
+  :type '(repeat (string :tag "Location"))
   :group 'consult-tramp)
 
 (defvar consult-tramp--completion-cache nil
@@ -115,6 +124,21 @@ not prevent later sources from contributing candidates."
 (defun consult-tramp--valid-location-p (location)
   "Return non-nil when LOCATION is a concrete TRAMP location."
   (and (consult-tramp--location-vector location) t))
+
+(defun consult-tramp--location-prefix (location)
+  "Return LOCATION's TRAMP connection prefix, or nil when unavailable."
+  (when-let* ((vector (consult-tramp--location-vector location)))
+    (tramp-make-tramp-file-name vector 'no-localname)))
+
+(defun consult-tramp--ignored-location-p (location)
+  "Return non-nil when LOCATION is hidden by `consult-tramp-ignored-locations'.
+A location matches when it equals an ignored entry, or when its connection
+prefix equals an ignored entry."
+  (let ((prefix (consult-tramp--location-prefix location)))
+    (seq-some (lambda (ignored)
+                (or (string= location ignored)
+                    (string= prefix ignored)))
+              consult-tramp-ignored-locations)))
 
 (defun consult-tramp-source-active ()
   "Return currently active TRAMP connection prefixes."
@@ -228,7 +252,7 @@ completion rows or the captured error."
            (lambda (line)
              (and (string-prefix-p "/" line)
                   (not (string-match-p (rx (or "false" "nologin")
-                                            string-end)
+                                           string-end)
                                        line))))
            (split-string (or contents "") "\n" t "[[:blank:]]+"))))
     (or shells
@@ -350,9 +374,10 @@ evaluated once per call to `consult-tramp-locations'."
 
 (defun consult-tramp-locations ()
   "Return concrete TRAMP locations collected from `consult-tramp-sources'.
-Sources and method completion hooks fail independently.  Results are
-deduplicated without reordering, and no remote path is contacted to
-validate its existence."
+Sources and method completion hooks fail independently.  Locations listed
+in `consult-tramp-ignored-locations' are skipped.  Results are deduplicated
+without reordering, and no remote path is contacted to validate its
+existence."
   (let ((consult-tramp--completion-cache (make-hash-table :test #'equal))
         (consult-tramp--diagnostics nil)
         (seen (make-hash-table :test #'equal))
@@ -362,7 +387,8 @@ validate its existence."
           (dolist (candidate (funcall source))
             (if (consult-tramp--valid-location-p candidate)
                 (let ((location (substring-no-properties candidate)))
-                  (unless (gethash location seen)
+                  (unless (or (gethash location seen)
+                              (consult-tramp--ignored-location-p location))
                     (puthash location t seen)
                     (push location locations)))
               (consult-tramp--record-diagnostic
@@ -462,6 +488,30 @@ only begins after a location is submitted; candidate preview is disabled."
     (unless (consult-tramp--valid-location-p location)
       (user-error "Not a valid TRAMP location: %s" location))
     (consult-tramp--open-location location)))
+
+;;;###autoload
+(defun consult-tramp-remove-location ()
+  "Remove a TRAMP location from the candidates offered by `consult-tramp'.
+The selected location is persisted to `consult-tramp-ignored-locations'
+and hidden from future candidate lists.  Removing a connection prefix also
+hides every location sharing that prefix."
+  (interactive)
+  (let* ((locations
+          (consult--slow-operation "Collecting TRAMP locations..."
+            (consult-tramp-locations)))
+         (location
+          (consult--read
+           (consult-tramp--sort-locations locations)
+           :prompt "Remove TRAMP location: "
+           :require-match t
+           :category 'file
+           :sort nil
+           :group #'consult-tramp--group
+           :preview-key nil)))
+    (customize-save-variable
+     'consult-tramp-ignored-locations
+     (delete-dups (cons location consult-tramp-ignored-locations)))
+    (message "Removed %s from consult-tramp" location)))
 
 (provide 'consult-tramp)
 ;;; consult-tramp.el ends here

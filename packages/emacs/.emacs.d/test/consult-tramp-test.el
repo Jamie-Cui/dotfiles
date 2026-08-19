@@ -225,5 +225,35 @@
            'home-buffer))
       (should (equal opened "/ssh:alpha:")))))
 
+(ert-deftest consult-tramp-locations-hides-ignored-locations ()
+  (let ((consult-tramp-sources
+         (list (lambda () '("/ssh:alpha:" "/ssh:alpha:/srv" "/ssh:beta:"))))
+        (consult-tramp-ignored-locations '("/ssh:alpha:/srv")))
+    (should
+     (equal (consult-tramp-locations)
+            '("/ssh:alpha:" "/ssh:beta:")))))
+
+(ert-deftest consult-tramp-locations-hides-ignored-prefix-and-its-paths ()
+  (let ((consult-tramp-sources
+         (list (lambda () '("/ssh:alpha:" "/ssh:alpha:/srv" "/ssh:beta:"))))
+        (consult-tramp-ignored-locations '("/ssh:alpha:")))
+    (should
+     (equal (consult-tramp-locations)
+            '("/ssh:beta:")))))
+
+(ert-deftest consult-tramp-remove-location-persists-selection ()
+  (let ((consult-tramp-sources
+         (list (lambda () '("/ssh:alpha:" "/ssh:beta:"))))
+        (consult-tramp-ignored-locations nil)
+        saved)
+    (cl-letf (((symbol-function 'consult--read)
+               (lambda (&rest _) "/ssh:alpha:"))
+              ((symbol-function 'customize-save-variable)
+               (lambda (symbol value)
+                 (setq saved (list symbol value)))))
+      (consult-tramp-remove-location)
+      (should (equal saved
+                     '(consult-tramp-ignored-locations ("/ssh:alpha:")))))))
+
 (provide 'consult-tramp-test)
 ;;; consult-tramp-test.el ends here

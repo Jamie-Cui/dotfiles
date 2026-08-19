@@ -315,11 +315,14 @@
    "cj"     #'consult-eglot-symbols
    "cl"     #'eglot-list-connections
    "cq"     #'eglot-shutdown
+   "r" '(:ignore t :which-key "remote (tramp)")
+   "r RET"  #'consult-tramp ;
+   "rr"     #'consult-tramp ;
+   "rx"     #'consult-tramp-remove-location ; remove item from consult-tramp
    ;; find
    "f" '(:ignore t :which-key "find")
    "fr"     #'consult-recent-file ; find recent file (globally)
-   "fR"     #'consult-tramp ; find remote file
-   ;; "fR"     #'ff-find-related-file ; find related file
+   "fR"     #'ff-find-related-file ; find related file
    "fb"     #'consult-buffer
    "fB"     #'consult-bookmark ; find recent file (globally)
    ;; FIXME consult-fd is a better alternative, but it seems consult-fd only finds the
