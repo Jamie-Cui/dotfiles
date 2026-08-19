@@ -19,6 +19,11 @@ include ./themes/modus-vivendi.conf
 # shell config
 # shell /bin/zsh
 
+# Keep a beam cursor at shell prompts, including across plain SSH sessions.
+# Cursor switching is the only disabled shell-integration feature.
+cursor_shape beam
+shell_integration enabled no-cursor
+
 # terminal opacity and blur
 # background_opacity 1
 # background_blur 1
@@ -50,6 +55,11 @@ map @KITTY_META_MOD@+x     send_text all \x1bx
 map @KITTY_META_MOD@+y     send_text all \x1by
 map @KITTY_META_MOD@+slash send_text all \x1b/
 map @KITTY_META_MOD@+enter send_text all \x1b\x0d
+
+# Restore the platform clipboard shortcuts after the Meta mappings above.
+# On macOS, copy_or_noop preserves Command+C pass-through when nothing is selected.
+map @KITTY_CLIPBOARD_MOD@+c @KITTY_COPY_ACTION@
+map @KITTY_CLIPBOARD_MOD@+v paste_from_clipboard
 
 # Allow OSC 52 writes; keep clipboard reads behind Kitty's permission prompt.
 clipboard_control write-clipboard write-primary read-clipboard-ask read-primary-ask

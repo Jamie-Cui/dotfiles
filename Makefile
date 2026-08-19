@@ -30,6 +30,12 @@ RIME_TARGET_linux ?= $(DEPLOY_HOME)/.local/share/fcitx5/rime
 KITTY_META_MOD_macos := super
 KITTY_META_MOD_linux := alt
 KITTY_META_MOD := $(or $(KITTY_META_MOD_$(PROFILE)),alt)
+KITTY_CLIPBOARD_MOD_macos := super
+KITTY_CLIPBOARD_MOD_linux := ctrl+shift
+KITTY_CLIPBOARD_MOD := $(or $(KITTY_CLIPBOARD_MOD_$(PROFILE)),ctrl+shift)
+KITTY_COPY_ACTION_macos := copy_or_noop
+KITTY_COPY_ACTION_linux := copy_to_clipboard
+KITTY_COPY_ACTION := $(or $(KITTY_COPY_ACTION_$(PROFILE)),copy_to_clipboard)
 
 PACKAGES := $(sort $(PACKAGES_$(PROFILE)) $(EXTRA_PACKAGES))
 REGULAR_PACKAGES := $(filter-out skills,$(PACKAGES))
@@ -101,7 +107,7 @@ bootstrap: stow ## Deploy the selected profile on a new machine
 
 generate: ## Render package files from *.in templates
 	@find "$(PACKAGES_DIR)" -type f -name "*.in" \
-		-exec sh -c 'for f; do out=$${f%.in}; sed -e "s/@FONT_SIZE@/$(FONT_SIZE)/g" -e "s/@KITTY_META_MOD@/$(KITTY_META_MOD)/g" "$$f" > "$$out"; done' _ {} \;
+		-exec sh -c 'for f; do out=$${f%.in}; sed -e "s/@FONT_SIZE@/$(FONT_SIZE)/g" -e "s/@KITTY_META_MOD@/$(KITTY_META_MOD)/g" -e "s/@KITTY_CLIPBOARD_MOD@/$(KITTY_CLIPBOARD_MOD)/g" -e "s/@KITTY_COPY_ACTION@/$(KITTY_COPY_ACTION)/g" "$$f" > "$$out"; done' _ {} \;
 	@rm -f "$(LEGACY_HYPR_CONFIG)"
 	@echo "Generated package files with font_size=$(FONT_SIZE)"
 
