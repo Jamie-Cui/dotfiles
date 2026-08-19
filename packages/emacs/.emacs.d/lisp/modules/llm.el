@@ -74,6 +74,7 @@
   :ensure t
   :demand t
   :custom
+  (agent-shell-transcript-file-path-function nil) ; do not generate transcript
   (agent-shell-display-action 'display-buffer-other-window)
   ;; (agent-shell-display-action
   ;;  '((display-buffer-reuse-window
