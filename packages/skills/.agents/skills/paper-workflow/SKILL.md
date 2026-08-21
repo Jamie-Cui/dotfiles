@@ -1,6 +1,6 @@
 ---
 name: paper-workflow
-description: Coordinate an academic paper from research consolidation through content approval and publication handoff, with a durable source of truth, workflow phases, claim-evidence tracking, specialist reviewer and writer routing, consistency audits, and explicit LaTeX gates. Use when Codex needs to initialize or migrate a paper workspace, manage iterative research decisions, resume paper work from files, audit open claims and cross-section consistency, keep typesetting artifacts frozen, or translate an approved draft without introducing new research claims.
+description: Coordinate an academic paper from research consolidation through content approval and publication handoff, with a durable source of truth, workflow phases, claim-evidence tracking, independent review closure, consistency audits, and explicit LaTeX gates. Use when Codex needs to initialize or migrate a paper workspace, manage iterative research decisions, resume paper work from files, close experiment or review blockers, audit open claims and cross-section consistency, keep typesetting artifacts frozen, or translate an approved draft without introducing new research claims.
 ---
 
 # Paper Workflow
@@ -59,6 +59,8 @@ Run `scripts/paper_state.py status` when the project uses the standard Org keywo
 
 End each discussion turn with one highest-impact next decision. Store durable decisions in the draft rather than relying on chat history.
 
+When a resumed workspace is already in experiment, review, or submission closure, read [references/evidence-closure.md](references/evidence-closure.md). Use its provenance and review gates before treating polished publication files as current research state.
+
 ## Maintain Claim And Evidence Traceability
 
 Represent every central contribution with a stable ID such as `C1`. Record:
@@ -91,6 +93,12 @@ Keep this skill responsible for workflow state, durable decisions, traceability,
 - Do not ask a reviewer workflow to edit the paper or treat a writer workflow as independent evidence.
 
 For cryptography and security papers, prefer `crypto-reviewer` and `crypto-writer` for those specialist roles.
+
+## Close Evidence And Review Loops
+
+Read [references/evidence-closure.md](references/evidence-closure.md) when claims depend on measured artifacts, a fresh independent review is due, or the paper is approaching submission packaging.
+
+Do not close a research blocker merely because the paper compiles or its wording was narrowed. Separate blockers that existing evidence can resolve from those that require a new experiment, a design change, an author decision, or external coordination. Preserve negative results and reopen affected claims instead of hiding them through prose.
 
 ## Iterate With The Author
 
