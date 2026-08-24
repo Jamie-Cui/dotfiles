@@ -74,13 +74,11 @@
   :ensure t
   :demand t
   :custom
+  (shell-maker-prompt-before-killing-buffer nil) ; do not prompt for save when quit buffer
+  (agent-shell-session-restore-verbosity 'last) ; render only last turn
   (agent-shell-transcript-file-path-function nil) ; do not generate transcript
   (agent-shell-display-action 'display-buffer-other-window)
-  ;; (agent-shell-display-action
-  ;;  '((display-buffer-reuse-window
-  ;;     display-buffer-use-some-window
-  ;;     display-buffer-pop-up-window)
-  ;;    (inhibit-same-window . t)))
+  ;; the following configs make ui clean
   (agent-shell-show-welcome-message nil)
   (agent-shell-header-style 'text)
   (agent-shell-show-config-icons nil)
@@ -89,7 +87,6 @@
   (agent-shell-tool-use-group-expand-by-default nil)
   (agent-shell-user-message-expand-by-default nil)
   :config
-
   ;; Agent Shell prompts are edited as prose: RET inserts a newline in insert
   ;; state and submits from normal state.  Bind its child map so other
   ;; Shell Maker consumers keep the global Evil Collection policy.
@@ -180,7 +177,7 @@
 
 (use-package agent-shell-permission-transient
   :vc (:url "https://github.com/Jamie-Cui/agent-shell-permission-transient"
-       :rev "main")
+            :rev "main")
   :ensure t
   :after agent-shell
   :demand t
@@ -420,6 +417,13 @@ functionality, allowing you to diff/ediff/merge the changes."
   :demand t
   :config
   (magent-submit-pr-register))
+
+(use-package magent-repo-summary-action
+  :load-path (lambda () (concat +emacs/repo-directory "/site-lisp/"))
+  :after magent
+  :demand t
+  :config
+  (magent-repo-summary-register))
 
 
 (provide 'init-llm)
