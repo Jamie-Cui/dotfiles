@@ -4,12 +4,6 @@
 
 (require 'subr-x)
 
-(defcustom +eshell/proxy
-  "127.0.0.1:10808"
-  "Proxy used by local Eshell proxy helpers."
-  :type 'string
-  :group 'eshell)
-
 (defun +shell/zsh ()
   "Call /bin/zsh in shell mode"
   (interactive)
@@ -80,54 +74,30 @@
   (let ((current-prefix-arg ""))
     (call-interactively 'eshell)))
 
-(defun +eshell/set-proxy (proxy)
-  "Set proxy environment variables and git proxy configuration."
-  ;; Set environment variables
-  (setenv "http_proxy" proxy)
-  (setenv "https_proxy" proxy)
-  (setenv "ftp_proxy" proxy)
-  (setenv "HTTP_PROXY" proxy)
-  (setenv "HTTPS_PROXY" proxy)
-  (setenv "FTP_PROXY" proxy)
-
-  ;; Set git proxy configuration
-  (if proxy
-      (progn (shell-command (format "git config --global http.proxy %s" proxy))
-             (shell-command (format "git config --global https.proxy %s" proxy)))
-    (progn (shell-command (format "git config --global --unset http.proxy"))
-           (shell-command (format "git config --global --unset https.proxy")))))
-
 (defun eshell/set-proxy ()
-  "Set proxy environment variables and git proxy configuration."
+  "Enable the configured proxy throughout the Emacs session."
   (interactive)
-  (let ((my-proxy +eshell/proxy))
-    (when my-proxy
-      ;; Set proxy
-      (+eshell/set-proxy my-proxy)
-      ;; Show proxy settings
-      (eshell/show-proxy))))
-
-(defun eshell/unset-proxy ()
-  "Set proxy environment variables and git proxy configuration."
-  (interactive)
-  (+eshell/set-proxy nil)
-  ;; Show proxy settings
+  (+emacs/set-proxy)
   (eshell/show-proxy))
 
-(defun +eshell/format-shell-command (command)
-  (let* ((str
-          (replace-regexp-in-string "\n$" ""
-                                    (shell-command-to-string command))))
-    (if (string-empty-p str) nil str)))
+(defun eshell/unset-proxy ()
+  "Disable the proxy throughout the Emacs session."
+  (interactive)
+  (+emacs/unset-proxy)
+  (eshell/show-proxy))
 
 (defun eshell/show-proxy ()
   "Display current proxy settings."
   (interactive)
+  (eshell-printn (format "[url] http_proxy  : %s"
+                         (alist-get "http" url-proxy-services nil nil
+                                    #'string=)))
+  (eshell-printn (format "[url] https_proxy : %s"
+                         (alist-get "https" url-proxy-services nil nil
+                                    #'string=)))
   (eshell-printn (format "[env] http_proxy  : %s" (getenv "http_proxy")))
   (eshell-printn (format "[env] https_proxy : %s" (getenv "https_proxy")))
-  (eshell-printn (format "[env] ftp_proxy   : %s" (getenv "ftp_proxy")))
-  (eshell-printn (format "[git] http_proxy  : %s" (+eshell/format-shell-command "git config --global --get http.proxy")))
-  (eshell-printn (format "[git] https_proxy : %s" (+eshell/format-shell-command "git config --global --get https.proxy"))))
+  (eshell-printn (format "[env] all_proxy   : %s" (getenv "all_proxy"))))
 
 ;; HACK redefine eshell/clear function using advice
 (defun +eshell/clear-buffer-a (&rest _)

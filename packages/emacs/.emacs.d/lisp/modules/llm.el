@@ -21,18 +21,6 @@
   :ensure t
   :commands agent-switch)
 
-;; (use-package gptel-agent
-;;   :ensure t
-;;   :after gptel
-;;   :config
-;;   (require 'gptel-agent-tools)
-;;   (add-to-list 'gptel-agent-dirs (concat +emacs/repo-directory "/agents"))
-;;   (gptel-agent-update)
-;;   ;; this package automatically add presets to gptel
-;;   ;; @gptel-agent
-;;   ;; @gptel-plan
-;;   )
-
 (defun +agent-shell/focus-input (shell-buffer)
   "Move point in visible SHELL-BUFFER to the current input's beginning."
   (when-let* ((window (get-buffer-window shell-buffer t)))
@@ -129,33 +117,6 @@
                    #'+agent-shell/bind-return-in-action-keymap-a)
     (advice-add 'agent-shell-ui-make-action-keymap
                 :filter-return #'+agent-shell/bind-return-in-action-keymap-a))
-
-  ;; HACK using +emacs/proxy for codex-acp
-  (with-eval-after-load 'agent-shell-openai
-    (let ((proxy (concat "http://" +emacs/proxy)))
-      (setq agent-shell-openai-codex-environment
-            (list
-             (format "http_proxy=%s" proxy)
-             (format "https_proxy=%s" proxy)
-             (format "HTTP_PROXY=%s" proxy)
-             (format "HTTPS_PROXY=%s" proxy)
-             (format "all_proxy=%s" proxy)
-             (format "ALL_PROXY=%s" proxy)
-             "no_proxy=localhost,127.0.0.1,::1"
-             "NO_PROXY=localhost,127.0.0.1,::1"))))
-
-  (with-eval-after-load 'agent-shell-anthropic
-    (let ((proxy (concat "http://" +emacs/proxy)))
-      (setq agent-shell-anthropic-claude-environment
-            (list
-             (format "http_proxy=%s" proxy)
-             (format "https_proxy=%s" proxy)
-             (format "HTTP_PROXY=%s" proxy)
-             (format "HTTPS_PROXY=%s" proxy)
-             (format "all_proxy=%s" proxy)
-             (format "ALL_PROXY=%s" proxy)
-             "no_proxy=localhost,127.0.0.1,::1"
-             "NO_PROXY=localhost,127.0.0.1,::1"))))
 
   ;; HACK using sssaicode api key
 
@@ -271,6 +232,15 @@
       :key (lambda ()
              (auth-source-pick-first-password :host "gemini"))
       :stream t))
+
+  ;; register moonshot backend
+  (defvar +llm/moonshot-cn
+    (gptel-make-openai "Moonshot (CN)"
+      :host "api.moonshot.cn"
+      :key (lambda ()
+             (auth-source-pick-first-password :host "moonshot-cn"))
+      :stream t
+      :models '(kimi-k3)))
 
   ;; register aliyun backend
   (defvar +llm/aliyun

@@ -55,9 +55,55 @@
 ;; is normally still unloaded, so guarding this with `boundp' silently skipped
 ;; the proxy and made package.el attempt a direct connection.
 (require 'url-vars)
-(dolist (scheme '("http" "https"))
-  (setf (alist-get scheme url-proxy-services nil nil #'string=)
-        +emacs/proxy))
+
+(defconst +emacs/proxy-environment-variables
+  '("http_proxy" "https_proxy" "ftp_proxy" "all_proxy"
+    "HTTP_PROXY" "HTTPS_PROXY" "FTP_PROXY" "ALL_PROXY")
+  "Environment variables managed by the Emacs proxy commands.")
+
+(defun +emacs/setenv-globally (variable value)
+  "Set environment VARIABLE to VALUE throughout the Emacs session.
+Update the top-level environment used by ordinary buffers as well as
+copies already made buffer-local by modes such as Eshell."
+  (let ((process-environment
+         (copy-sequence (default-toplevel-value 'process-environment))))
+    (setenv variable value)
+    (set-default-toplevel-value 'process-environment process-environment))
+  (dolist (buffer (buffer-list))
+    (with-current-buffer buffer
+      (when (local-variable-p 'process-environment)
+        (setenv variable value)))))
+
+(defun +emacs/set-proxy (&optional proxy)
+  "Enable PROXY for Emacs URL access and future subprocesses.
+PROXY defaults to `+emacs/proxy' and should have the form host:port."
+  (interactive)
+  (setq proxy (or proxy +emacs/proxy))
+  (dolist (scheme '("http" "https" "ftp"))
+    (setf (alist-get scheme url-proxy-services nil nil #'string=) proxy))
+  (let ((proxy-url (concat "http://" proxy)))
+    (dolist (variable +emacs/proxy-environment-variables)
+      (+emacs/setenv-globally variable proxy-url)))
+  ;; Gptel uses its own proxy setting instead of `url-proxy-services'.
+  (when (boundp 'gptel-proxy)
+    (set 'gptel-proxy proxy))
+  (when (called-interactively-p 'interactive)
+    (message "Emacs proxy enabled: %s" proxy)))
+
+(defun +emacs/unset-proxy ()
+  "Disable the proxy for Emacs URL access and future subprocesses."
+  (interactive)
+  (dolist (scheme '("http" "https" "ftp"))
+    (setq url-proxy-services
+          (assoc-delete-all scheme url-proxy-services)))
+  (dolist (variable +emacs/proxy-environment-variables)
+    (+emacs/setenv-globally variable nil))
+  (when (boundp 'gptel-proxy)
+    (set 'gptel-proxy nil))
+  (when (called-interactively-p 'interactive)
+    (message "Emacs proxy disabled")))
+
+(+emacs/set-proxy)
 
 ;; Work around an Emacs 30.2+ native-comp regression in built-in Org.
 (defvar native-comp-jit-compilation-deny-list nil)

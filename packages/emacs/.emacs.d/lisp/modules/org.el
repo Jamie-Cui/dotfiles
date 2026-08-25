@@ -162,6 +162,17 @@
 (setopt org-export-dispatch-use-expert-ui t)
 (setopt org-export-with-toc nil)
 (setopt org-cite-export-processors '((latex biblatex) (beamer natbib) (t basic)))
+
+(defun +org/use-default-cite-fontification-on-remote-h ()
+  "Avoid synchronous bibliography checks while fontifying remote Org buffers.
+
+This only changes citation activation used for display.  Citation insertion,
+following, and export continue to use their configured processors."
+  (when (file-remote-p (or buffer-file-name default-directory))
+    (setq-local org-cite-activate-processor nil)))
+
+(add-hook 'org-mode-hook #'+org/use-default-cite-fontification-on-remote-h)
+
 (add-to-list 'org-file-apps '("\\.pdf\\'" . emacs))
 
 (add-to-list 'org-export-backends 'beamer)
