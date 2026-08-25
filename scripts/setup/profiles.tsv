@@ -1,4 +1,4 @@
 # profile	components
 minimal	-
-recommended	shell font vim nvim kitty tailscale rime alfred stats aerospace
-all	shell font vim nvim emacs ctags org-root git-overleaf tdlib kitty flameshot tailscale rime x11 i3 rofi hyprland waybar dunst mail secrets alfred stats aerospace borders
+recommended	shell font vim nvim kitty tailscale rime alfred stats caffeine aerospace
+all	shell font vim nvim emacs ctags org-root git-overleaf tdlib kitty flameshot tailscale rime x11 i3 rofi hyprland waybar dunst mail secrets alfred stats caffeine aerospace borders

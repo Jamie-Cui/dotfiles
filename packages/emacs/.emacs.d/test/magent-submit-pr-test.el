@@ -78,7 +78,7 @@
     (should (equal (magent-action-step-name step) "Resolve repository"))
     (should
      (equal (magent-submit-pr-test--step-argv step)
-            (list "git" "-C" root "rev-parse" "--show-toplevel")))
+            '("git" "rev-parse" "--show-toplevel")))
 
     (setq step (magent-submit-pr-test--complete iterator root))
     (should
@@ -88,11 +88,15 @@
     (setq step (magent-submit-pr-test--complete iterator "main\n"))
     (should
      (equal (magent-submit-pr-test--step-argv step)
-            '("git" "status" "--porcelain=v1" "--untracked-files=all")))
+            '("git" "add" "-A")))
 
-    (setq step
-          (magent-submit-pr-test--complete
-           iterator " M lisp/modules/llm.el\n")
+    (setq step (magent-submit-pr-test--complete iterator ""))
+    (should
+     (equal (magent-submit-pr-test--step-argv step)
+            '("git" "diff" "--cached" "--name-only")))
+
+    (setq step (magent-submit-pr-test--complete
+                iterator "lisp/modules/llm.el\n")
           branch (car (last (magent-submit-pr-test--step-argv step))))
     (should
      (string-match-p
@@ -103,17 +107,6 @@
             (list "git" "switch" "-c" branch)))
 
     (setq step (magent-submit-pr-test--complete iterator ""))
-    (should (equal (magent-submit-pr-test--step-argv step)
-                   '("git" "add" "-A")))
-
-    (setq step (magent-submit-pr-test--complete iterator ""))
-    (should
-     (equal (magent-submit-pr-test--step-argv step)
-            '("git" "diff" "--cached" "--name-only")))
-
-    (setq step
-          (magent-submit-pr-test--complete iterator
-                                           "lisp/modules/llm.el\n"))
     (should (eq (magent-action-step-type step) 'agent))
     (should (equal (magent-action-step-name step) "Write commit subject"))
     (should (equal (plist-get (magent-action-step-options step) :tools)
@@ -166,7 +159,7 @@
     (should (string-match-p "Commit: deadbeef" result))
     (should (string-match-p "pull/42" result))))
 
-(ert-deftest magent-submit-pr-test-yields-reused-submit-branch ()
+(ert-deftest magent-submit-pr-test-skips-switch-on-submit-branch ()
   (let* ((root (file-name-as-directory temporary-file-directory))
          (iterator
           (magent-submit-pr--workflow
@@ -176,36 +169,28 @@
     (setq step
           (magent-submit-pr-test--complete
            iterator "submit-pr/existing\n"))
-    (setq step
-          (magent-submit-pr-test--complete iterator " M file.el\n"))
-    (should (equal (magent-action-step-name step)
-                   "Reuse pull request branch"))
-    (should
-     (equal (magent-submit-pr-test--step-argv step)
-            '("git" "switch" "submit-pr/existing")))))
+    (should (equal (magent-submit-pr-test--step-argv step)
+                   '("git" "add" "-A")))
+    (setq step (magent-submit-pr-test--complete iterator ""))
+    (should (equal (magent-submit-pr-test--step-argv step)
+                   '("git" "diff" "--cached" "--name-only")))
+    (setq step (magent-submit-pr-test--complete iterator "file.el\n"))
+    (should (eq (magent-action-step-type step) 'agent))
+    (should (equal (magent-action-step-name step) "Write commit subject"))))
 
 (ert-deftest magent-submit-pr-test-rejects-empty-change-sets ()
-  (let* ((root (file-name-as-directory temporary-file-directory))
-         (iterator
-          (magent-submit-pr--workflow
-           (magent-submit-pr-test--invocation :origin-directory root))))
-    (iter-next iterator)
-    (magent-submit-pr-test--complete iterator root)
-    (magent-submit-pr-test--complete iterator "main\n")
-    (should-error (magent-submit-pr-test--complete iterator "") :type 'error))
-  (let* ((root (file-name-as-directory temporary-file-directory))
-         (iterator
-          (magent-submit-pr--workflow
-           (magent-submit-pr-test--invocation :origin-directory root))))
-    (iter-next iterator)
-    (magent-submit-pr-test--complete iterator root)
-    (magent-submit-pr-test--complete iterator "main\n")
-    (magent-submit-pr-test--complete iterator " M file.el\n")
-    (magent-submit-pr-test--complete iterator "")
-    (magent-submit-pr-test--complete iterator "")
-    (should-error
-     (magent-submit-pr-test--complete iterator " \n\t")
-     :type 'error)))
+  (dolist (output '("" " \n\t"))
+    (let* ((root (file-name-as-directory temporary-file-directory))
+           (iterator
+            (magent-submit-pr--workflow
+             (magent-submit-pr-test--invocation :origin-directory root))))
+      (iter-next iterator)
+      (magent-submit-pr-test--complete iterator root)
+      (magent-submit-pr-test--complete iterator "main\n")
+      (magent-submit-pr-test--complete iterator "")
+      (should-error
+       (magent-submit-pr-test--complete iterator output)
+       :type 'error))))
 
 (ert-deftest magent-submit-pr-test-reports-step-failure-with-progress ()
   (let* ((root (file-name-as-directory temporary-file-directory))
@@ -231,7 +216,7 @@
       (error-message-string condition)))
     (should
      (string-match-p
-      "Branch: not created"
+      "Target branch: not resolved"
       (error-message-string condition)))))
 
 (ert-deftest magent-submit-pr-test-registers-public-action-contract ()

@@ -67,6 +67,7 @@ git config --global --unset https.proxy
 - [[#macos-apps][MacOS apps]]
     - [[#alfred-alfred][Alfred]]
     - [[#stats-stats][Stats]]
+    - [[#caffeine-caffeine][Caffeine]]
     - [[#aerospace-aerospace][AeroSpace]]
 
 ** Quick setup
@@ -104,7 +105,7 @@ curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26
 
 The profiles are =minimal= (prerequisites plus dotfiles), =recommended= (common
 shell, font, editor, terminal, Tailscale, and Rime tools; plus Alfred, Stats,
-and AeroSpace on macOS), and =all=.  Individual components can be adjusted with repeatable =--with= and
+Caffeine, and AeroSpace on macOS), and =all=.  Individual components can be adjusted with repeatable =--with= and
 =--without= arguments; each occurrence accepts one component:
 
 #+begin_src bash
@@ -604,6 +605,14 @@ The recommended setup profile installs Stats with Homebrew:
 
 #+begin_src bash
 brew install --cask stats
+#+end_src
+
+*** Caffeine (=caffeine=)
+
+The recommended setup profile installs Caffeine with Homebrew:
+
+#+begin_src bash
+brew install --cask caffeine
 #+end_src
 
 *** [[https://github.com/Jamie-Cui/AeroSpace][AeroSpace fork]] (=aerospace=)

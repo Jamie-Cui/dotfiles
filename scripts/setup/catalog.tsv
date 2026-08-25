@@ -22,5 +22,6 @@ mail	fedora	secrets	DavMail and isync
 secrets	all	-	GnuPG encrypted credentials
 alfred	macos	-	Alfred
 stats	macos	-	Stats system monitor
+caffeine	macos	-	Caffeine
 aerospace	macos	kitty	AeroSpace source
 borders	macos	-	JankyBorders

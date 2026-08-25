@@ -82,7 +82,10 @@
             (if (string-empty-p (or argument "")) "(none)" argument)))
          (environment '(("GIT_TERMINAL_PROMPT" . "0")))
          branch
-         commit)
+         commit
+         subject
+         body
+         url)
     (condition-case err
         (let* ((root
                 (file-name-as-directory
@@ -90,8 +93,7 @@
                   (string-trim
                    (magent-workflow-process
                        "Resolve repository"
-                       (list "git" "-C" origin
-                             "rev-parse" "--show-toplevel")
+                       '("git" "rev-parse" "--show-toplevel")
                      :directory origin
                      :environment environment)))))
                (current-branch
@@ -106,26 +108,6 @@
                     current-branch
                   (format "submit-pr/%s"
                           (format-time-string "%Y%m%d-%H%M%S"))))
-
-          (when
-              (string-empty-p
-               (magent-workflow-process
-                   "Check worktree"
-                   '("git" "status" "--porcelain=v1"
-                     "--untracked-files=all")
-                 :directory root
-                 :environment environment))
-            (error "The worktree has no changes to finish"))
-
-          (magent-workflow-process
-              (if (equal branch current-branch)
-                  "Reuse pull request branch"
-                "Create pull request branch")
-              (if (equal branch current-branch)
-                  (list "git" "switch" branch)
-                (list "git" "switch" "-c" branch))
-            :directory root
-            :environment environment)
 
           (magent-workflow-process
               "Stage changes" '("git" "add" "-A")
@@ -142,62 +124,72 @@
                   :environment environment)))
             (error "No staged changes remain to commit"))
 
-          (let* ((subject
-                  (magent-submit-pr--extract-subject
-                   (magent-workflow-agent-turn
-                       "Write commit subject"
-                       (format magent-submit-pr--subject-prompt
-                               root branch root context)
-                     :tools '(bash))))
-                 (_commit-output
-                  (magent-workflow-process
-                      "Create commit"
-                      (list "git" "commit" "-m" subject)
-                    :directory root
-                    :environment environment)))
-            (setq commit
-                  (string-trim
-                   (magent-workflow-process
-                       "Read commit" '("git" "rev-parse" "HEAD")
-                     :directory root
-                     :environment environment)))
-
+          (unless (equal branch current-branch)
             (magent-workflow-process
-                "Push branch"
-                (list "git" "push" "--set-upstream" "origin" branch)
+                "Create pull request branch"
+                (list "git" "switch" "-c" branch)
               :directory root
-              :environment environment)
+              :environment environment))
 
-            (let* ((body
-                    (magent-submit-pr--normalize-body
-                     (magent-workflow-agent-turn
-                         "Write pull request"
-                         (format magent-submit-pr--body-prompt
-                                 commit branch root root context)
-                       :tools '(bash))))
-                   (url
-                    (magent-submit-pr--extract-url
-                     (magent-workflow-process
-                         "Create pull request"
-                         (list "gh" "pr" "create"
-                               "--head" branch
-                               "--title" subject
-                               "--body" body)
-                       :directory root
-                       :environment environment
-                       :record-command nil))))
-              (format
-               (concat "Finish work completed.\n\nBranch: %s\n"
-                       "Commit: %s\nPull request: %s")
-               branch commit url))))
+          (setq subject
+                (magent-submit-pr--extract-subject
+                 (magent-workflow-agent-turn
+                     "Write commit subject"
+                     (format magent-submit-pr--subject-prompt
+                             root branch root context)
+                   :tools '(bash))))
+
+          (magent-workflow-process
+              "Create commit"
+              (list "git" "commit" "-m" subject)
+            :directory root
+            :environment environment)
+
+          (setq commit
+                (string-trim
+                 (magent-workflow-process
+                     "Read commit" '("git" "rev-parse" "HEAD")
+                   :directory root
+                   :environment environment)))
+
+          (magent-workflow-process
+              "Push branch"
+              (list "git" "push" "--set-upstream" "origin" branch)
+            :directory root
+            :environment environment)
+
+          (setq body
+                (magent-submit-pr--normalize-body
+                 (magent-workflow-agent-turn
+                     "Write pull request"
+                     (format magent-submit-pr--body-prompt
+                             commit branch root root context)
+                   :tools '(bash))))
+
+          (setq url
+                (magent-submit-pr--extract-url
+                 (magent-workflow-process
+                     "Create pull request"
+                     (list "gh" "pr" "create"
+                           "--head" branch
+                           "--title" subject
+                           "--body" body)
+                   :directory root
+                   :environment environment
+                   :record-command nil)))
+
+          (format
+           (concat "Finish work completed.\n\nBranch: %s\n"
+                   "Commit: %s\nPull request: %s")
+           branch commit url))
       (error
        (signal
         (car err)
         (cons
          (format
-          "Finish work stopped: %s\n\nBranch: %s\nCommit: %s"
+          "Finish work stopped: %s\n\nTarget branch: %s\nCommit: %s"
           (error-message-string err)
-          (or branch "not created")
+          (or branch "not resolved")
           (or commit "not created"))
          (cddr err)))))))
 

@@ -107,12 +107,13 @@ prepare_mock_environment() {
 	[ ! -e "$BATS_TEST_TMPDIR/repo" ]
 }
 
-@test "recommended macOS plan includes Alfred, Stats, and AeroSpace" {
+@test "recommended macOS plan includes Alfred, Stats, Caffeine, and AeroSpace" {
 	run env SETUP_TEST_PLATFORM=macos SETUP_NO_TTY=1 \
 		"$setup_script" plan --profile recommended
 	[ "$status" -eq 0 ]
 	[[ "$output" == *"alfred: Alfred"* ]]
 	[[ "$output" == *"stats: Stats system monitor"* ]]
+	[[ "$output" == *"caffeine: Caffeine"* ]]
 	[[ "$output" == *"aerospace: AeroSpace source"* ]]
 	[[ "$output" == *"tailscale: Tailscale mesh VPN"* ]]
 	[[ "$output" != *"hyprland:"* ]]
@@ -174,6 +175,16 @@ prepare_mock_environment() {
 		--yes --repo-dir "$mock_repo"
 	[ "$status" -eq 0 ]
 	run grep -F 'brew install --cask stats' "$SETUP_TEST_LOG"
+	[ "$status" -eq 0 ]
+}
+
+@test "Caffeine apply installs the Homebrew cask" {
+	prepare_mock_environment
+	run env SETUP_TEST_PLATFORM=macos \
+		"$setup_script" apply --profile minimal --with caffeine \
+		--yes --repo-dir "$mock_repo"
+	[ "$status" -eq 0 ]
+	run grep -F 'brew install --cask caffeine' "$SETUP_TEST_LOG"
 	[ "$status" -eq 0 ]
 }
 
