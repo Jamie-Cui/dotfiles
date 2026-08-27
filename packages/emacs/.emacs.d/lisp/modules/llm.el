@@ -369,7 +369,9 @@ functionality, allowing you to diff/ediff/merge the changes."
   )
 
 (use-package magent
-  :vc (:url "https://github.com/Jamie-Cui/magent" :rev "master")
+  :vc (:url "https://github.com/Jamie-Cui/magent"
+       :rev "master"
+       :lisp-dir "lisp")
   :ensure t
   :after (agent-shell gptel)
   :demand t
