@@ -194,7 +194,7 @@
   (+agent-shell/configure-help-menu)
 
   (with-eval-after-load 'evil
-    (evil-define-key 'normal agent-shell-mode-map (kbd "?")
+    (evil-define-key* 'normal agent-shell-mode-map (kbd "?")
       #'agent-shell-help-menu))
 
   (agent-shell-permission-transient-mode +1))

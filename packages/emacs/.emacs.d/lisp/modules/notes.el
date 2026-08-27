@@ -91,6 +91,8 @@
 (defvar org-caldav-inbox nil)
 
 (declare-function org-journal--get-entry-path "org-journal" (&optional time))
+(declare-function org-journal--search-forward-created
+                  "org-journal" (date &optional bound noerror count))
 
 (defun +notes/caldav-ensure-files ()
   "Create dedicated CalDAV Org files and add them to the agenda."
@@ -113,6 +115,8 @@
   "Return today's journal heading as an `org-caldav-inbox' target."
   (require 'org-journal)
   (let* ((time (current-time))
+         (decoded (decode-time time))
+         (date (list (nth 4 decoded) (nth 3 decoded) (nth 5 decoded)))
          (file (org-journal--get-entry-path time))
          (buffer (find-file-noselect file))
          heading)
@@ -122,6 +126,9 @@
           (widen)
           ;; A prefix creates today's date heading without a time entry.
           (org-journal-new-entry t time)
+          (goto-char (point-min))
+          (unless (org-journal--search-forward-created date nil t)
+            (error "Could not find today's journal heading in %s" file))
           (org-back-to-heading t)
           (setq heading (org-get-heading t t t t))
           (when (buffer-modified-p)
@@ -394,7 +401,7 @@ FILE and BELL are the arguments accepted by `org-caldav-create-uid'."
         ("C-c C-a" . +notes/denote-menu-archive)
         ("C-c C-d" . +notes/denote-menu-delete))
   :config
-  (evil-define-key 'normal denote-menu-mode-map
+  (evil-define-key* 'normal denote-menu-mode-map
     (kbd "R") #'+notes/denote-menu-rename-title
     (kbd "N") #'+notes/denote-menu-new
     (kbd "A") #'+notes/denote-menu-archive

@@ -194,7 +194,7 @@
      "=" #'ignore
      )
 
-    (evil-define-key '(normal visual motion) pdf-view-mode-map
+    (evil-define-key* '(normal visual motion) pdf-view-mode-map
       (kbd "C-d") #'pdf-view-next-page-command
       (kbd "C-u") #'pdf-view-previous-page-command)
 
