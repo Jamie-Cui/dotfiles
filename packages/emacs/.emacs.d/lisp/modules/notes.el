@@ -76,6 +76,167 @@
               :after
               #'+org-agenda--prune-after-journal-update))
 
+(defconst +notes/caldav-inbox-file
+  (expand-file-name "caldav-inbox.org" +emacs/org-root-dir)
+  "Org file receiving tasks created through CalDAV clients.")
+
+(defconst +notes/caldav-tasks-file
+  (expand-file-name "caldav-tasks.org" +emacs/org-root-dir)
+  "Legacy Org file containing tasks exported through CalDAV.")
+
+(defvar +notes/caldav--syncing nil
+  "Non-nil while syncing the project TODO view through CalDAV.")
+
+(defvar org-caldav-files nil)
+(defvar org-caldav-inbox nil)
+
+(declare-function org-journal--get-entry-path "org-journal" (&optional time))
+
+(defun +notes/caldav-ensure-files ()
+  "Create dedicated CalDAV Org files and add them to the agenda."
+  (make-directory +emacs/org-root-dir t)
+  (dolist (file (list +notes/caldav-inbox-file
+                      +notes/caldav-tasks-file))
+    (unless (file-exists-p file)
+      (with-temp-file file))
+    (add-to-list 'org-agenda-files file t)))
+
+(defun +notes/caldav-source-files ()
+  "Return the Org files backing `org-project-todo-list'."
+  (+org-project-sync-agenda-files)
+  (+org-agenda-prune-files)
+  (delete-dups
+   (append (+org-project--agenda-non-project-files)
+           (+org-project-known-files))))
+
+(defun +notes/caldav--journal-inbox-target ()
+  "Return today's journal heading as an `org-caldav-inbox' target."
+  (require 'org-journal)
+  (let* ((time (current-time))
+         (file (org-journal--get-entry-path time))
+         (buffer (find-file-noselect file))
+         heading)
+    (with-current-buffer buffer
+      (save-excursion
+        (save-restriction
+          (widen)
+          ;; A prefix creates today's date heading without a time entry.
+          (org-journal-new-entry t time)
+          (org-back-to-heading t)
+          (setq heading (org-get-heading t t t t))
+          (when (buffer-modified-p)
+            (save-buffer)))))
+    (list 'file+headline file heading)))
+
+(defun +notes/caldav--inbox-target ()
+  "Return the journal inbox target, falling back to a dedicated file."
+  (condition-case err
+      (+notes/caldav--journal-inbox-target)
+    (error
+     (display-warning
+      'org-caldav
+      (format "Could not prepare journal inbox; using %s: %s"
+              +notes/caldav-inbox-file
+              (error-message-string err)))
+     +notes/caldav-inbox-file)))
+
+(defun +notes/caldav--leaf-action-item-p ()
+  "Return non-nil when point is shown by `org-project-todo-list'."
+  (+org-project--action-item-p
+   nil
+   (if (+org-project-file-p) 'project 'non-project)))
+
+(defun +notes/caldav--create-leaf-uids-a (fn file &optional bell)
+  "Create CalDAV UIDs only for leaf action items, or call FN normally.
+FILE and BELL are the arguments accepted by `org-caldav-create-uid'."
+  (if (not +notes/caldav--syncing)
+      (funcall fn file bell)
+    (let (modified)
+      (save-excursion
+        (save-restriction
+          (widen)
+          (goto-char (point-min))
+          (while (re-search-forward org-outline-regexp-bol nil t)
+            (goto-char (match-beginning 0))
+            (when (and (+notes/caldav--leaf-action-item-p)
+                       (not (org-entry-get nil "ID")))
+              (org-id-get-create)
+              (setq modified t))
+            (org-back-to-heading t)
+            (forward-line 1))))
+      (when (and bell modified)
+        (message "CalDAV IDs created for leaf tasks in %s" file)))))
+
+(defun +notes/caldav--filter-export-buffer (backend)
+  "Keep only project TODO leaf items when exporting BACKEND through CalDAV."
+  (when (and +notes/caldav--syncing (eq backend 'icalendar))
+    (let ((preamble
+           (save-excursion
+             (goto-char (point-min))
+             (if (re-search-forward org-outline-regexp-bol nil t)
+                 (buffer-substring-no-properties
+                  (point-min) (match-beginning 0))
+               (buffer-string))))
+          entries)
+      (save-excursion
+        (goto-char (point-min))
+        (while (re-search-forward org-outline-regexp-bol nil t)
+          (goto-char (match-beginning 0))
+          (when (+notes/caldav--leaf-action-item-p)
+            (let* ((begin (line-beginning-position))
+                   (end (save-excursion (org-end-of-subtree t t)))
+                   (subtree (buffer-substring-no-properties begin end)))
+              ;; Each exported leaf is independent of its source hierarchy.
+              (push (replace-regexp-in-string "\\`\\*+" "*" subtree)
+                    entries)))
+          (forward-line 1)))
+      (erase-buffer)
+      (insert preamble)
+      (dolist (entry (nreverse entries))
+        (unless (or (bobp) (bolp))
+          (insert "\n"))
+        (insert entry)
+        (unless (bolp)
+          (insert "\n"))))))
+
+(defun +notes/caldav--sync-project-todos-a (fn &rest args)
+  "Call FN with ARGS using the files backing `org-project-todo-list'."
+  (let ((+notes/caldav--syncing t))
+    (setq org-caldav-inbox (+notes/caldav--inbox-target)
+          org-caldav-files (+notes/caldav-source-files))
+    (apply fn args)))
+
+(use-package org-caldav
+  :ensure t
+  :commands org-caldav-sync
+  :init
+  (+notes/caldav-ensure-files)
+  :custom
+  ;; Emacs's URL library resolves Basic Auth credentials through auth-source.
+  (org-caldav-url "https://jamie@gw-api.xyz:443/dav/jamie")
+  (org-caldav-calendar-id "org-tasks")
+  (org-caldav-inbox +notes/caldav-inbox-file)
+  ;; The actual list is refreshed immediately before every sync.
+  (org-caldav-files nil)
+  (org-icalendar-timezone "Asia/Shanghai")
+  (org-icalendar-include-todo 'all)
+  (org-caldav-sync-todo t)
+  (org-caldav-sync-direction 'twoway)
+  (org-caldav-show-sync-results nil)
+  :config
+  (add-hook 'org-export-before-parsing-functions
+            #'+notes/caldav--filter-export-buffer)
+  (unless (advice-member-p #'+notes/caldav--create-leaf-uids-a
+                           'org-caldav-create-uid)
+    (advice-add 'org-caldav-create-uid
+                :around
+                #'+notes/caldav--create-leaf-uids-a))
+  (unless (advice-member-p #'+notes/caldav--sync-project-todos-a
+                           'org-caldav-sync)
+    (advice-add 'org-caldav-sync
+                :around
+                #'+notes/caldav--sync-project-todos-a)))
+
 (defvar-local +notes/denote--syncing-file-name nil
   "Non-nil while synchronizing a Denote file name after saving.")
 
