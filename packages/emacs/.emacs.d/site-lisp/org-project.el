@@ -25,7 +25,7 @@
 
 ;;; Commentary:
 
-;;; Helpers for central project task capture, journal audit logs, and project-local archive handling.
+;;; Helpers for central project task capture, append-only journal events, and project-local archive handling.
 
 ;;; Code:
 
@@ -102,13 +102,23 @@
   :type '(alist :key-type string :value-type string)
   :group '+org-project)
 
-(defcustom +org-capture-audit-log-enabled t
-  "When non-nil, log project captures to the current journal day."
+(define-obsolete-variable-alias
+  '+org-capture-audit-log-enabled
+  '+org-project-capture-journal-log-enabled
+  "2026-08-28")
+
+(define-obsolete-variable-alias
+  '+org-project-done-journal-log-enabled
+  '+org-project-state-journal-log-enabled
+  "2026-08-28")
+
+(defcustom +org-project-capture-journal-log-enabled t
+  "When non-nil, append project capture events to the current journal day."
   :type 'boolean
   :group '+org-project)
 
-(defcustom +org-project-done-journal-log-enabled t
-  "When non-nil, log completed project task states to the current journal day."
+(defcustom +org-project-state-journal-log-enabled t
+  "When non-nil, append project task state events to the current journal day."
   :type 'boolean
   :group '+org-project)
 
@@ -117,34 +127,11 @@
   :type 'boolean
   :group '+org-project)
 
-(defcustom +org-project-audit-refresh-delay 0.25
-  "Idle delay before refreshing journal capture audit state."
-  :type 'number
-  :group '+org-project)
-
-(defcustom +org-project-audit-refresh-interval 60
-  "Minimum seconds between automatic audit refreshes in one journal buffer."
-  :type 'number
-  :group '+org-project)
-
-(defvar-local +org-project--audit-last-refresh 0
-  "Last automatic audit refresh time for the current journal buffer.")
-
 (defconst +org-project--capture-tags '("captured" "human")
   "Tags applied to human-captured project tasks.")
 
-(defconst +org-project--audit-base-tags '("capture-log" "journal")
-  "Base tags applied to journal capture audit entries.")
-
-(defconst +org-project--audit-status-tags
-  '("active" "archived" "deleted" "done" "moved" "reverted")
-  "Status tags used by journal capture audit entries.")
-
-(defconst +org-project--done-log-base-tags '("done-log" "journal")
-  "Base tags applied to journal task completion entries.")
-
-(defconst +org-project--done-log-property "DONE_JOURNAL_LOGGED_AT"
-  "Property used to avoid duplicate terminal-state journal entries.")
+(defconst +org-project--journal-event-base-tags '("journal" "project-event")
+  "Base tags applied to immutable project journal events.")
 
 (defconst org-project-todo-list-buffer-name "*Org Project TODO List*"
   "Buffer name used by `org-project-todo-list'.")
@@ -228,9 +215,11 @@
   "Save the current buffer without org-heavy save hooks."
   (unless buffer-file-name
     (user-error "Current buffer is not visiting a file"))
-  (write-region (point-min) (point-max) buffer-file-name nil 0)
-  (set-visited-file-modtime)
-  (set-buffer-modified-p nil))
+  (let ((before-save-hook nil)
+        (after-save-hook nil))
+    (save-restriction
+      (widen)
+      (save-buffer))))
 
 (defun +org-project--inactive-timestamp (&optional time)
   "Return TIME as an inactive org timestamp string."
@@ -741,14 +730,16 @@ Optional FILTER limits the result to matching TODO keywords."
 (defun +org-project--scan-buffer-for-file (file)
   "Return a buffer for scanning FILE without interactive stale-file prompts.
 
-When FILE is already visited and its on-disk contents changed, silently revert
-the buffer so refreshes reflect disk changes without prompting."
+When an unmodified FILE buffer is stale, silently revert it so refreshes see
+disk changes.  Prefer unsaved buffer contents over disk changes so scanning
+never discards user edits."
   (let* ((expanded (expand-file-name file))
          (buffer (find-buffer-visiting expanded)))
     (if (buffer-live-p buffer)
         (progn
           (with-current-buffer buffer
             (when (and buffer-file-name
+                       (not (buffer-modified-p))
                        (not (verify-visited-file-modtime buffer)))
               (revert-buffer t t t)))
           buffer)
@@ -813,11 +804,9 @@ the buffer so refreshes reflect disk changes without prompting."
   "Return the face used for DEADLINE."
   (if (string-empty-p deadline)
       'org-project-todo-list-deadline-face
-    (let ((days-left (floor (/ (float-time
-                                (time-subtract
-                                 (org-time-string-to-time deadline)
-                                 (current-time)))
-                               86400.0))))
+    (let ((days-left (- (time-to-days
+                         (org-time-string-to-time deadline))
+                        (time-to-days (current-time)))))
       (cond ((< days-left 0) 'org-project-todo-list-deadline-overdue-face)
             ((<= days-left 7) 'org-project-todo-list-deadline-soon-face)
             (t 'org-project-todo-list-deadline-face)))))
@@ -1504,19 +1493,8 @@ TODO keyword like `org-todo-list'."
      nil 'file)
     marker))
 
-(defun +org-project--audit-entry-body (status task-id &optional marker)
-  "Return audit log body text for STATUS, TASK-ID, and optional MARKER."
-  (pcase status
-    ('active (format "- task: [[id:%s][open project task]]\n" task-id))
-    ('done (format "- task completed: [[id:%s][open project task]]\n" task-id))
-    ('archived (format "- task archived: [[id:%s][open project task]]\n" task-id))
-    ('reverted (format "- task marked KILL: [[id:%s][open project task]]\n" task-id))
-    ('moved (format "- task moved to %s\n"
-                    (abbreviate-file-name
-                     (or (and marker
-                              (buffer-file-name (marker-buffer marker)))
-                         ""))))
-    (_ "- task removed from project file after capture\n")))
+;; Journal entries below are append-only records.  Current task state belongs
+;; to project files; this module never rewrites history to mirror that state.
 
 (defun +org-project--message-text (text)
   "Return TEXT stripped of text properties for user-facing messages."
@@ -1524,135 +1502,158 @@ TODO keyword like `org-todo-list'."
       (substring-no-properties text)
     text))
 
-(defun +org-project-log-capture (context source-id task-title)
-  "Write a journal audit entry for a captured project task."
-  (require 'org-journal)
-  (let* ((time (current-time))
-         (created (format-time-string "%Y%m%d" time))
-         (entry-path (org-journal--get-entry-path time))
-         (slug (plist-get context :slug))
-         (project-file (plist-get context :file)))
-    (save-window-excursion
-      (let ((org-journal-find-file-fn #'find-file))
-        (org-journal-new-entry t time))
-      (with-current-buffer (find-file-noselect entry-path)
-        (save-excursion
-          (widen)
-          (goto-char (+org-project--find-journal-day-heading created))
-          (org-back-to-heading t)
-          (org-end-of-subtree t t)
-          (unless (bolp)
-            (insert "\n"))
-          (insert (format "** CAPTURED [%s] %s\n:PROPERTIES:\n:SOURCE_ID: %s\n:PROJECT: %s\n:PROJECT_FILE: %s\n:AUDIT_STATUS: active\n:CREATED_AT: %s\n:END:\n%s"
-                          slug
-                          task-title
-                          source-id
-                          slug
-                          project-file
-                          (+org-project--inactive-timestamp time)
-                          (+org-project--audit-entry-body 'active source-id)))
-          (org-back-to-heading t)
-          (+org-project--set-tags (append +org-project--audit-base-tags '("active")))
-          (+org-project--save-buffer-no-hooks)
-          (message "org-project: wrote CAPTURED journal entry for %s to %s"
-                   (+org-project--message-text task-title)
-                   (abbreviate-file-name entry-path)))))))
+(defun +org-project--journal-state-event (current-state previous-state)
+  "Return an immutable journal event for a task state transition.
+CURRENT-STATE and PREVIOUS-STATE are Org TODO keyword strings."
+  (cond
+   ((member current-state org-done-keywords) current-state)
+   ((and (member previous-state org-done-keywords)
+         (member current-state org-not-done-keywords))
+    "REOPENED")))
 
-(defun +org-project--done-log-entry-body (source-id project-file final-state
-                                                    previous-state)
-  "Return journal body text for SOURCE-ID completed in FINAL-STATE.
-PROJECT-FILE is the source file.  PREVIOUS-STATE is the task state before
-completion, or nil."
-  (let ((lines (list (if (equal final-state "DONE")
-                         (format "- task completed: [[id:%s][open project task]]"
-                                 source-id)
-                       (format "- task marked %s: [[id:%s][open project task]]"
-                               final-state source-id)))))
-    (when (and (stringp previous-state)
-               (not (string-empty-p previous-state)))
-      (setq lines (append lines (list (format "- previous state: %s"
-                                              previous-state)))))
-    (setq lines (append lines
-                        (list (format "- source: %s"
-                                      (abbreviate-file-name project-file)))))
+(defun +org-project--journal-event-body (event source-id project-file
+                                               previous-state new-state)
+  "Return the body for an immutable project journal EVENT.
+SOURCE-ID links to the source task, PROJECT-FILE records its file, and
+PREVIOUS-STATE and NEW-STATE describe an optional state transition."
+  (let ((lines
+         (list
+          (format "- %s: [[id:%s][open project task]]"
+                  (pcase event
+                    ("CAPTURED" "task captured")
+                    ("DONE" "task completed")
+                    ("REOPENED" "task reopened")
+                    (_ (format "task entered %s" event)))
+                  source-id))))
+    (cond
+     ((and previous-state new-state)
+      (setq lines
+            (append lines
+                    (list (format "- state: %s -> %s"
+                                  previous-state new-state)))))
+     (previous-state
+      (setq lines
+            (append lines
+                    (list (format "- previous state: %s" previous-state)))))
+     (new-state
+      (setq lines
+            (append lines
+                    (list (format "- new state: %s" new-state))))))
+    (setq lines
+          (append lines
+                  (list (format "- source: %s"
+                                (abbreviate-file-name project-file)))))
     (concat (string-join lines "\n") "\n")))
 
-(defun +org-project--log-done-to-journal (source-id task-title project project-file
-                                                    final-state done-at
-                                                    previous-state time)
-  "Write a journal entry for a project task completed in FINAL-STATE.
-SOURCE-ID links to the task.  TASK-TITLE, PROJECT and PROJECT-FILE describe the
-source task.  DONE-AT is the inactive timestamp string, PREVIOUS-STATE is the
-task state before completion, and TIME selects the journal day."
-  (require 'org-journal)
-  (let* ((created (format-time-string "%Y%m%d" time))
-         (entry-path (org-journal--get-entry-path time))
+(defun +org-project--journal-event-entry (event context source-id task-title
+                                                event-at &optional
+                                                previous-state new-state)
+  "Return an Org entry for immutable journal EVENT.
+CONTEXT identifies the project, SOURCE-ID and TASK-TITLE identify the source
+task, and EVENT-AT is an inactive timestamp.  PREVIOUS-STATE and NEW-STATE
+describe an optional state transition."
+  (let* ((project (or (plist-get context :slug) "project"))
+         (project-file (or (plist-get context :file) ""))
          (previous-property
-          (if (and (stringp previous-state)
-                   (not (string-empty-p previous-state)))
+          (if previous-state
               (format ":PREVIOUS_STATE: %s\n" previous-state)
+            ""))
+         (new-property
+          (if new-state
+              (format ":NEW_STATE: %s\n" new-state)
             "")))
+    (format (concat "** %s [%s] %s\n"
+                    ":PROPERTIES:\n"
+                    ":EVENT: %s\n"
+                    ":EVENT_AT: %s\n"
+                    ":SOURCE_ID: %s\n"
+                    ":PROJECT: %s\n"
+                    ":PROJECT_FILE: %s\n"
+                    "%s%s"
+                    ":END:\n"
+                    "%s")
+            event project task-title event event-at source-id project
+            project-file previous-property new-property
+            (+org-project--journal-event-body
+             event source-id project-file previous-state new-state))))
+
+(defun +org-project--journal-event-tags (event context)
+  "Return tags for project journal EVENT and CONTEXT."
+  (append +org-project--journal-event-base-tags
+          (list (+org-project--slugify event)
+                (+org-project--slugify (plist-get context :slug)))))
+
+(defun +org-project--write-journal-event (event context source-id task-title
+                                                &optional previous-state
+                                                new-state time)
+  "Append immutable project journal EVENT to the day selected by TIME.
+CONTEXT, SOURCE-ID and TASK-TITLE identify the source task.  PREVIOUS-STATE and
+NEW-STATE describe an optional state transition."
+  (require 'org-journal)
+  (let* ((time (or time (current-time)))
+         (created (format-time-string "%Y%m%d" time))
+         (event-at (+org-project--inactive-timestamp time))
+         (entry-path (org-journal--get-entry-path time)))
     (save-window-excursion
       (let ((org-journal-find-file-fn #'find-file))
         (org-journal-new-entry t time))
       (with-current-buffer (find-file-noselect entry-path)
         (save-excursion
           (widen)
-          (goto-char (+org-project--find-journal-day-heading created))
+          (let ((day-heading (+org-project--find-journal-day-heading created)))
+            (unless day-heading
+              (error "No journal day heading for %s" created))
+            (goto-char day-heading))
           (org-back-to-heading t)
           (org-end-of-subtree t t)
           (unless (bolp)
             (insert "\n"))
-          (insert (format "** %s [%s] %s\n:PROPERTIES:\n:SOURCE_ID: %s\n:PROJECT: %s\n:PROJECT_FILE: %s\n%s:DONE_AT: %s\n:END:\n%s"
-                          final-state
-                          project
-                          task-title
-                          source-id
-                          project
-                          project-file
-                          previous-property
-                          done-at
-                          (+org-project--done-log-entry-body
-                           source-id project-file final-state previous-state)))
+          (insert (+org-project--journal-event-entry
+                   event context source-id task-title event-at
+                   previous-state new-state))
           (org-back-to-heading t)
-          (+org-project--set-tags (append +org-project--done-log-base-tags
-                                          (list (+org-project--slugify
-                                                 final-state))))
+          (+org-project--set-tags
+           (+org-project--journal-event-tags event context))
           (+org-project--save-buffer-no-hooks)
-          (message "org-project: wrote %s journal entry for %s to %s"
-                   final-state
+          (message "org-project: appended %s event for %s to %s"
+                   event
                    (+org-project--message-text task-title)
                    (abbreviate-file-name entry-path)))))))
 
-(defun +org-project-log-done-to-journal-h ()
-  "Log central project tasks to `org-journal' when they reach a done state."
-  (when (and +org-project-done-journal-log-enabled
-             (member (bound-and-true-p org-state) org-done-keywords)
-             (+org-project-file-p)
-             (not (+org-project-journal-file-p)))
-    (condition-case err
-        (save-excursion
-          (org-back-to-heading t)
-          (unless (or (+org-project-in-archive-p)
-                      (org-entry-get (point) +org-project--done-log-property))
-            (let* ((time (current-time))
-                   (done-at (+org-project--inactive-timestamp time))
-                   (project-file (buffer-file-name))
-                   (project (or (org-entry-get-with-inheritance "PROJECT")
-                                (file-name-base project-file)
-                                "project"))
-                   (task-title (or (org-get-heading t t t t)
-                                   "Completed task"))
-                   (source-id (org-id-get-create))
-                   (final-state (bound-and-true-p org-state))
-                   (previous-state (bound-and-true-p org-last-state)))
-              (+org-project--log-done-to-journal
-               source-id task-title project project-file final-state done-at
-               previous-state time)
-              (+org-project--set-property +org-project--done-log-property done-at))))
-      (error
-       (message "org-project: failed to write done-state journal entry: %s"
-                (error-message-string err))))))
+(defun +org-project-log-capture (context source-id task-title)
+  "Append an immutable capture event for CONTEXT.
+SOURCE-ID and TASK-TITLE identify the captured project task."
+  (+org-project--write-journal-event
+   "CAPTURED" context source-id task-title))
+
+(defun +org-project-log-state-to-journal-h ()
+  "Append immutable journal events for terminal and reopened project tasks."
+  (let* ((current-state (bound-and-true-p org-state))
+         (previous-state (bound-and-true-p org-last-state))
+         (event (+org-project--journal-state-event
+                 current-state previous-state)))
+    (when (and +org-project-state-journal-log-enabled
+               event
+               (+org-project-file-p)
+               (not (+org-project-journal-file-p)))
+      (condition-case err
+          (save-excursion
+            (org-back-to-heading t)
+            (unless (+org-project-in-archive-p)
+              (let* ((project-file (buffer-file-name))
+                     (project (or (org-entry-get-with-inheritance "PROJECT")
+                                  (file-name-base project-file)
+                                  "project"))
+                     (context (list :slug project :file project-file))
+                     (task-title (or (org-get-heading t t t t)
+                                     "Project task"))
+                     (source-id (org-id-get-create)))
+                (+org-project--write-journal-event
+                 event context source-id task-title
+                 previous-state current-state))))
+        (error
+         (message "org-project: failed to append state journal event: %s"
+                  (error-message-string err)))))))
 
 (defun +org-project--save-captured-project-buffer (context)
   "Save the project buffer associated with capture CONTEXT and return its file."
@@ -1671,7 +1672,7 @@ task state before completion, and TIME selects the journal day."
            (task-title (or (org-capture-get :project-task-title) "Captured task")))
       (when project-file
         (+org-project--refresh-id-locations (list project-file)))
-      (when (and +org-capture-audit-log-enabled task-id)
+      (when (and +org-project-capture-journal-log-enabled task-id)
         (+org-project-log-capture context task-id task-title)))))
 
 (defun +org-project-note-capture-after-finalize ()
@@ -1680,79 +1681,6 @@ task state before completion, and TIME selects the journal day."
              (org-capture-get :project-context))
     (+org-project--save-captured-project-buffer
      (org-capture-get :project-context))))
-
-(defun +org-project-audit-status-for-task-id (task-id &optional expected-file)
-  "Return audit status symbol for TASK-ID.
-EXPECTED-FILE is the project file recorded in the journal audit entry."
-  (when task-id
-    (let ((marker (+org-project-find-task-by-id task-id)))
-      (cond
-       ((not marker) 'deleted)
-       (t
-        (org-with-point-at marker
-          (cond
-           ((+org-project-in-archive-p marker) 'archived)
-           ((equal (org-get-todo-state) "KILL") 'reverted)
-           ((equal (org-get-todo-state) "DONE") 'done)
-           ((and expected-file
-                 (buffer-file-name (marker-buffer marker))
-                 (not (equal (file-truename expected-file)
-                             (file-truename
-                              (buffer-file-name (marker-buffer marker))))))
-            'moved)
-           (t 'active))))))))
-
-(defun +org-project--replace-subtree-body (text)
-  "Replace current top-level subtree body with TEXT."
-  (org-back-to-heading t)
-  (let ((beg (save-excursion
-               (forward-line 1)
-               (when (looking-at ":PROPERTIES:")
-                 (re-search-forward "^:END:$" nil t)
-                 (forward-line 1))
-               (point)))
-        (end (save-excursion
-               (forward-line 1)
-               (if (re-search-forward "^\\* " nil t)
-                   (match-beginning 0)
-                 (point-max)))))
-    (delete-region beg end)
-    (goto-char beg)
-    (insert (string-trim-right text) "\n")))
-
-(defun +org-project-audit-refresh-entry ()
-  "Refresh the capture audit entry at point."
-  (interactive)
-  (org-back-to-heading t)
-  (let* ((source-id (org-entry-get (point) "SOURCE_ID"))
-         (expected-file (org-entry-get (point) "PROJECT_FILE"))
-         (current-status (org-entry-get (point) "AUDIT_STATUS"))
-         (marker (+org-project-find-task-by-id source-id))
-         (status (or (+org-project-audit-status-for-task-id source-id expected-file)
-                     'deleted))
-         (status-name (symbol-name status)))
-    (when (not (equal current-status status-name))
-      (+org-project--set-property "REVIEWED_AT" (+org-project--inactive-timestamp)))
-    (+org-project--set-property "AUDIT_STATUS" status-name)
-    (+org-project--set-tags
-     (append +org-project--audit-base-tags (list status-name)))
-    (+org-project--replace-subtree-body
-     (+org-project--audit-entry-body status source-id marker))))
-
-(defun +org-project-audit-refresh-current-journal ()
-  "Refresh capture audit entries in the current journal file."
-  (interactive)
-  (unless (+org-project-journal-file-p)
-    (user-error "Current buffer is not an org-journal file"))
-  (+org-project--refresh-id-locations)
-  (save-excursion
-    (widen)
-    (org-map-entries
-     #'+org-project-audit-refresh-entry
-     "+capture-log"
-     'file))
-  (setq-local +org-project--audit-last-refresh (float-time))
-  (+org-project--save-buffer-no-hooks))
 
 (defun +org-project--configure-project-buffer-h ()
   "Disable heavyweight org extras in central project files."
@@ -1765,24 +1693,6 @@ EXPECTED-FILE is the project file recorded in the journal audit entry."
       (ignore-errors
         (when (bound-and-true-p xenops-mode)
           (xenops-mode -1))))))
-
-(defun +org-project--maybe-refresh-journal-audit-h ()
-  "Lazy refresh capture audit state when opening a journal buffer."
-  (when (and (+org-project-journal-file-p)
-             (> (- (float-time) +org-project--audit-last-refresh)
-                +org-project-audit-refresh-interval)
-             (save-excursion
-               (goto-char (point-min))
-               (search-forward ":capture-log:" nil t)))
-    (let ((buffer (current-buffer)))
-      (run-with-idle-timer
-       +org-project-audit-refresh-delay nil
-       (lambda (buf)
-         (when (buffer-live-p buf)
-           (with-current-buffer buf
-             (when (+org-project-journal-file-p)
-               (+org-project-audit-refresh-current-journal)))))
-       buffer))))
 
 (defun +org-project-collapse-archive ()
   "Collapse the Archive subtree in the current project file."
@@ -1935,10 +1845,13 @@ REASON defaults to `manual-cleanup'."
             :after-finalize +org-project-note-capture-after-finalize))
          org-capture-templates)))
 
+(remove-hook 'org-mode-hook '+org-project--maybe-refresh-journal-audit-h)
+(remove-hook 'org-after-todo-state-change-hook
+             '+org-project-log-done-to-journal-h)
 (add-hook 'org-mode-hook #'+org-project--configure-project-buffer-h)
-(add-hook 'org-mode-hook #'+org-project--maybe-refresh-journal-audit-h)
 (add-hook 'org-mode-hook #'+org-project--maybe-collapse-archive-h)
-(add-hook 'org-after-todo-state-change-hook #'+org-project-log-done-to-journal-h)
+(add-hook 'org-after-todo-state-change-hook
+          #'+org-project-log-state-to-journal-h)
 
 (with-eval-after-load 'org-agenda
   (+org-project-sync-agenda-files))
