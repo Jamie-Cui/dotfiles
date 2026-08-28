@@ -261,6 +261,7 @@
    "np"      #'+org-project-consult-notes
    "nd"      #'list-denotes
    "nq"      #'org-set-tags-command
+   "ns"      #'org-caldav-sync
    "nT" '(:ignore t :which-key "timer")
    "nTa"     #'org-timer-set-timer ; add timer
    "nT RET"  #'org-timer-pause-or-continue ; pause or continue
