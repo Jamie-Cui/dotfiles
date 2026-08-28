@@ -615,6 +615,14 @@ The recommended setup profile installs Caffeine with Homebrew:
 brew install --cask caffeine
 #+end_src
 
+*** [[https://github.com/jordanbaird/Ice][Ice]] (=ice=)
+
+The recommended setup profile installs Ice with Homebrew:
+
+#+begin_src bash
+brew install --cask jordanbaird-ice
+#+end_src
+
 *** [[https://github.com/Jamie-Cui/AeroSpace][AeroSpace fork]] (=aerospace=)
 
 #+begin_src bash

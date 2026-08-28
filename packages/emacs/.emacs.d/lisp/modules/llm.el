@@ -383,6 +383,13 @@ functionality, allowing you to diff/ediff/merge the changes."
                (expand-file-name "~/.agents/skills") t)
   (magent-agent-shell-ensure-config))
 
+(use-package magent-profile-memory
+  :load-path (lambda () (concat +emacs/repo-directory "/site-lisp/"))
+  :after magent
+  :demand t
+  :config
+  (magent-profile-memory-register))
+
 (use-package magent-submit-pr
   :load-path (lambda () (concat +emacs/repo-directory "/site-lisp/"))
   :after magent

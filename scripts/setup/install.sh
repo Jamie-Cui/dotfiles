@@ -65,6 +65,7 @@ setup_component_present() {
 		alfred) [ -d /Applications/Alfred\ 5.app ] || [ -d /Applications/Alfred.app ] ;;
 		stats) [ -d /Applications/Stats.app ] ;;
 		caffeine) [ -d /Applications/Caffeine.app ] ;;
+		ice) [ -d /Applications/Ice.app ] ;;
 		aerospace) [ -d "$setup_aerospace_dir/.git" ] ;;
 		borders) command -v borders >/dev/null 2>&1 ;;
 		*) return 2 ;;
@@ -418,6 +419,7 @@ setup_run_component() {
 		alfred) setup_brew_cask alfred alfred ;;
 		stats) setup_brew_cask stats stats ;;
 		caffeine) setup_brew_cask caffeine caffeine ;;
+		ice) setup_brew_cask jordanbaird-ice jordanbaird-ice ;;
 		aerospace) setup_install_aerospace ;;
 		borders) setup_install_borders ;;
 		*) setup_die "no installer for component $component" 2 ;;
