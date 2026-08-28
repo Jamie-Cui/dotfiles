@@ -125,6 +125,7 @@ pre-date the external-operation helper API."
 (use-package docker
   :ensure t
   :custom
+  (docker-pop-to-buffer-action '(display-buffer-same-window))
   (docker-show-messages nil)
   (docker-container-shell-file-name "/bin/bash"))
 
