@@ -79,6 +79,7 @@
    "lang/markdown"
    "org"
    "notes"
+   "caldav"
    "bibliography"
    "latex"
    "reading"

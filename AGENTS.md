@@ -66,6 +66,40 @@ tool where possible, for example:
 - `make -C packages/emacs/.emacs.d compile`
 - `make -C packages/emacs/.emacs.d smoke`
 
+### Emacs Executable Discovery
+
+The setup program builds Emacs from `~/opt/emacs-src`, and Codex must not assume
+that `emacs` or `emacsclient` is present in its non-interactive `PATH`.  Probe
+the platform-specific absolute paths below and use the first executable one:
+
+- macOS `emacs`: `/usr/local/bin/emacs`,
+  `/Applications/Emacs.app/Contents/MacOS/Emacs`, then
+  `~/opt/emacs-src/src/emacs`.
+- macOS `emacsclient`: `/usr/local/bin/emacsclient`,
+  `/Applications/Emacs.app/Contents/MacOS/bin/emacsclient`, then
+  `~/opt/emacs-src/lib-src/emacsclient`.
+- Fedora/Linux `emacs`: `/usr/local/bin/emacs`, then
+  `~/opt/emacs-src/src/emacs`.
+- Fedora/Linux `emacsclient`: `/usr/local/bin/emacsclient`, then
+  `~/opt/emacs-src/lib-src/emacsclient`.
+
+The `/usr/local/bin` entries are the normal post-install commands.  On macOS
+they are symlinks into `Emacs.app`; on Fedora/Linux they are installed directly
+by the default-prefix `sudo make install`.  The build-tree paths are valid
+fallbacks after compilation even when installation or CLI-link creation was
+left as a manual setup step.
+
+When a repository script invokes bare `emacs` and `command -v emacs` fails,
+prepend the directory containing the selected lowercase `emacs` executable.
+For example, the shared build-tree fallback is:
+
+`env PATH="$HOME/opt/emacs-src/src:$PATH" make -C packages/emacs/.emacs.d compile`
+
+Codex should treat the verified host-specific `emacs` and `emacsclient` paths
+as durable context eligible for persistent local memory, and record them when
+the client exposes memory generation or a memory-write action.  Memory is only
+a recall aid: this checked-in section remains authoritative.
+
 ## Stow Safety
 
 Use the Makefile rather than raw Stow commands so template exclusion,

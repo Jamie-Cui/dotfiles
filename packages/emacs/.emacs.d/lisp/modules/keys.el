@@ -261,7 +261,11 @@
    "np"      #'+org-project-consult-notes
    "nd"      #'list-denotes
    "nq"      #'org-set-tags-command
-   "ns"      #'org-caldav-sync
+   "ns" '(:ignore t :which-key "CalDAV")
+   "nsl"     #'+notes/caldav-pull
+   "nsp"     #'+notes/caldav-push
+   "nsL"     #'+notes/caldav-force-pull
+   "nsP"     #'+notes/caldav-force-push
    "nT" '(:ignore t :which-key "timer")
    "nTa"     #'org-timer-set-timer ; add timer
    "nT RET"  #'org-timer-pause-or-continue ; pause or continue
