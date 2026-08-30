@@ -7,6 +7,12 @@
 (require 'init-notes)
 (require 'org-project)
 
+(defconst +notes/caldav-url "https://jamie@gw-api.xyz:443/dav/jamie"
+  "Base URL of the task CalDAV collection.")
+
+(defconst +notes/caldav-calendar-id "org-tasks"
+  "Calendar ID of the task CalDAV collection.")
+
 (defconst +notes/caldav-inbox-file
   (expand-file-name "caldav-inbox.org" +emacs/org-root-dir)
   "Org file receiving tasks created through CalDAV clients.")
@@ -50,6 +56,7 @@
 
 (defvar org-caldav-files nil)
 (defvar org-caldav-inbox nil)
+(defvar org-caldav-url nil)
 (defvar org-caldav-event-list nil)
 (defvar org-caldav-sync-result nil)
 (defvar org-caldav-empty-calendar nil)
@@ -76,6 +83,19 @@
 (declare-function org-caldav-load-sync-state "org-caldav" ())
 (declare-function org-caldav-sync "org-caldav" ())
 (declare-function org-caldav-sync-state-filename "org-caldav" (id))
+
+(defun +notes/caldav-configure ()
+  "Apply this configuration's explicit org-caldav settings."
+  (setq org-caldav-url +notes/caldav-url
+        org-caldav-calendar-id +notes/caldav-calendar-id
+        org-caldav-inbox +notes/caldav-inbox-file
+        ;; The actual list is refreshed immediately before every sync.
+        org-caldav-files nil
+        org-icalendar-timezone "Asia/Shanghai"
+        org-icalendar-include-todo 'all
+        org-caldav-sync-todo t
+        org-caldav-sync-direction 'cal->org
+        org-caldav-show-sync-results nil))
 
 (defun +notes/caldav-ensure-files ()
   "Create dedicated CalDAV Org files and add them to the agenda."
@@ -321,6 +341,7 @@ update which can subsequently be wrapped in conflict markers."
 
 (defun +notes/caldav--fetch-remote-etags ()
   "Return the current remote CalDAV ETag list after checking connectivity."
+  (+notes/caldav-configure)
   (org-caldav-check-connection)
   (+notes/caldav--normalize-etag-list
    (org-caldav-get-event-etag-list)))
@@ -592,6 +613,7 @@ deletion."
   "Pull CalDAV into Org, representing every remote change as a conflict."
   (interactive)
   (require 'org-caldav)
+  (+notes/caldav-configure)
   (+notes/caldav--assert-org-buffers-saved)
   (+notes/caldav--assert-no-conflicts)
   (let ((+notes/caldav--pulling t)
@@ -614,6 +636,7 @@ deletion."
   "Push Org to CalDAV only if the remote still matches the last pull."
   (interactive)
   (require 'org-caldav)
+  (+notes/caldav-configure)
   (+notes/caldav--assert-org-buffers-saved)
   (+notes/caldav--assert-no-conflicts)
   (+notes/caldav--prepare-project-files)
@@ -641,6 +664,7 @@ counterparts, and local-only CalDAV tasks are deleted.  Existing conflict
 markers are resolved by choosing their CALDAV side."
   (interactive)
   (require 'org-caldav)
+  (+notes/caldav-configure)
   (+notes/caldav--assert-org-buffers-saved)
   (unless (yes-or-no-p
            "FORCE PULL: replace/delete local CalDAV tasks to match remote? ")
@@ -677,6 +701,7 @@ This is destructive: local entries win and remote-only entries are deleted.
 Existing conflict markers are resolved by choosing their LOCAL side."
   (interactive)
   (require 'org-caldav)
+  (+notes/caldav-configure)
   (+notes/caldav--assert-org-buffers-saved)
   (unless (yes-or-no-p
            "FORCE PUSH: replace/delete remote CalDAV entries to match local? ")
@@ -775,19 +800,8 @@ FILE and BELL are the arguments accepted by `org-caldav-create-uid'."
   :commands org-caldav-sync
   :init
   (+notes/caldav-ensure-files)
-  :custom
-  ;; Emacs's URL library resolves Basic Auth credentials through auth-source.
-  (org-caldav-url "https://jamie@gw-api.xyz:443/dav/jamie")
-  (org-caldav-calendar-id "org-tasks")
-  (org-caldav-inbox +notes/caldav-inbox-file)
-  ;; The actual list is refreshed immediately before every sync.
-  (org-caldav-files nil)
-  (org-icalendar-timezone "Asia/Shanghai")
-  (org-icalendar-include-todo 'all)
-  (org-caldav-sync-todo t)
-  ;; Explicit commands dynamically bind this to the requested direction.
-  (org-caldav-sync-direction 'cal->org)
-  (org-caldav-show-sync-results nil)
+  ;; Do not rely on deferred `:custom' initialization for connection values.
+  (+notes/caldav-configure)
   :config
   (add-hook 'org-export-before-parsing-functions
             #'+notes/caldav--filter-export-buffer)

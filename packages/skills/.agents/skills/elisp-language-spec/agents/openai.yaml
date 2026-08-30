@@ -1,0 +1,3 @@
+interface:
+  display_name: "Elisp Language Spec"
+  short_description: "Apply explicit Elisp error and checkdoc rules"

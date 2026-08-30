@@ -21,8 +21,261 @@
 (load (expand-file-name "lisp/modules/caldav.el"
                         (getenv "DOTFILES_EMACS_TEST_REPO"))
       nil t)
+(load (expand-file-name "lisp/modules/caldav-magit.el"
+                        (getenv "DOTFILES_EMACS_TEST_REPO"))
+      nil t)
 (defun caldav-test--event (uid etag &optional status)
   (list uid "md5" etag nil (or status 'synced)))
+
+(defun caldav-test--local-item (uid md5 &optional title)
+  (cons uid (list :uid uid :md5 md5 :title (or title uid))))
+
+(defun caldav-test--transient-command (prefix key)
+  "Return the command bound to KEY in transient PREFIX."
+  (plist-get (cdr (transient-get-suffix prefix key)) :command))
+
+(ert-deftest caldav-magit-installs-only-pull-and-push-transient-suffixes ()
+  (require 'magit-fetch)
+  (require 'magit-pull)
+  (require 'magit-push)
+  (let* ((sections (default-value 'magit-status-sections-hook))
+         (tail (memq #'+notes/caldav-magit-insert-status sections)))
+    (should tail)
+    (should (eq (cadr tail) #'magit-insert-stashes)))
+  (should-error (transient-get-suffix 'magit-fetch "c"))
+  (dolist (binding '((magit-pull "c" +notes/caldav-magit-pull)
+                     (magit-push "c" +notes/caldav-magit-push)))
+    (should (eq (caldav-test--transient-command
+                 (nth 0 binding) (nth 1 binding))
+                (nth 2 binding)))))
+
+(ert-deftest caldav-configuration-initializes-connection-values-explicitly ()
+  (let (org-caldav-url org-caldav-calendar-id)
+    (+notes/caldav-configure)
+    (should (equal org-caldav-url +notes/caldav-url))
+    (should (equal org-caldav-calendar-id +notes/caldav-calendar-id))))
+
+(ert-deftest caldav-status-classifies-three-way-changes ()
+  (let* ((base (mapcar (lambda (uid)
+                         (list uid (concat "md5-" uid)
+                               (concat "etag-" uid) nil 'synced))
+                       '("synced" "local-modified" "remote-modified"
+                         "diverged" "local-deleted" "remote-deleted"
+                         "conflict")))
+         (local (list
+                 (caldav-test--local-item "synced" "md5-synced")
+                 (caldav-test--local-item "local-modified" "new-local")
+                 (caldav-test--local-item
+                  "remote-modified" "md5-remote-modified")
+                 (caldav-test--local-item "diverged" "new-local")
+                 (caldav-test--local-item
+                  "remote-deleted" "md5-remote-deleted")
+                 (caldav-test--local-item "conflict" "md5-conflict")
+                 (caldav-test--local-item "local-added" "new-local")))
+         (remote '(("synced" . "etag-synced")
+                   ("local-modified" . "etag-local-modified")
+                   ("remote-modified" . "new-remote")
+                   ("diverged" . "new-remote")
+                   ("local-deleted" . "etag-local-deleted")
+                   ("conflict" . "etag-conflict")
+                   ("remote-added" . "new-remote")))
+         (entries (+notes/caldav-status--classify
+                   base local remote t '("conflict")))
+         (states (mapcar (lambda (entry)
+                           (cons (plist-get entry :uid)
+                                 (plist-get entry :state)))
+                         entries)))
+    (dolist (expected '(("synced" . synced)
+                        ("local-modified" . local-modified)
+                        ("remote-modified" . remote-modified)
+                        ("diverged" . diverged)
+                        ("local-deleted" . local-deleted)
+                        ("remote-deleted" . remote-deleted)
+                        ("conflict" . conflict)
+                        ("local-added" . local-added)
+                        ("remote-added" . remote-added)))
+      (should (eq (alist-get (car expected) states nil nil #'equal)
+                  (cdr expected))))))
+
+(ert-deftest caldav-status-keeps-remote-unknown-separate-from-empty ()
+  (let* ((base (list (list "same" "md5-same" "etag-same" nil 'synced)
+                     (list "changed" "md5-old" "etag-old" nil 'synced)))
+         (local (list (caldav-test--local-item "same" "md5-same")
+                      (caldav-test--local-item "changed" "md5-new")))
+         (entries (+notes/caldav-status--classify base local nil nil nil)))
+    (should (eq (plist-get (seq-find
+                            (lambda (entry)
+                              (equal (plist-get entry :uid) "same"))
+                            entries)
+                           :state)
+                'unchecked))
+    (should (eq (plist-get (seq-find
+                            (lambda (entry)
+                              (equal (plist-get entry :uid) "changed"))
+                            entries)
+                           :state)
+                'local-modified))))
+
+(ert-deftest caldav-magit-sections-have-no-custom-keymaps ()
+  (dolist (class '(+notes/caldav-magit-section
+                   +notes/caldav-magit-group-section
+                   +notes/caldav-magit-entry-section))
+    (should-not (oref (make-instance class) keymap))))
+
+(ert-deftest caldav-magit-applies-only-to-the-org-root-status-buffer ()
+  (let ((other-root (make-temp-file "caldav-other-repo-" t)))
+    (unwind-protect
+        (with-temp-buffer
+          (setq major-mode 'magit-status-mode)
+          (cl-letf (((symbol-function 'magit-toplevel)
+                     (lambda (&optional _directory)
+                       caldav-test--org-root)))
+            (should (+notes/caldav-magit--applicable-p)))
+          (cl-letf (((symbol-function 'magit-toplevel)
+                     (lambda (&optional _directory) other-root)))
+            (should-not (+notes/caldav-magit--applicable-p))))
+      (delete-directory other-root t))))
+
+(ert-deftest caldav-magit-does-not-target-org-status-from-another-repo ()
+  (let ((other-root (make-temp-file "caldav-other-repo-" t))
+        consulted)
+    (unwind-protect
+        (with-temp-buffer
+          (setq major-mode 'magit-status-mode)
+          (cl-letf (((symbol-function 'magit-toplevel)
+                     (lambda (&optional _directory) other-root))
+                    ((symbol-function 'magit-get-mode-buffer)
+                     (lambda (&rest _arguments)
+                       (setq consulted t))))
+            (should-not (+notes/caldav-magit--status-buffer))
+            (should-not consulted)))
+      (delete-directory other-root t))))
+
+(ert-deftest caldav-status-push-gate-blocks-remote-drift ()
+  (cl-letf (((symbol-function '+notes/caldav--modified-org-buffers)
+             (lambda () nil)))
+    (let ((gate (+notes/caldav-status--push-gate
+                 '(:baseline-exists t
+                   :remote-current t
+                   :entries ((:uid "uid" :state remote-modified))))))
+      (should (string-prefix-p "BLOCKED" (car gate)))
+      (should (eq (cadr gate) 'error)))
+    (let ((gate (+notes/caldav-status--push-gate
+                 '(:baseline-exists t
+                   :remote-current t
+                   :entries ((:uid "uid" :state local-modified))))))
+      (should (string-prefix-p "READY" (car gate)))
+      (should (eq (cadr gate) 'success)))
+    (let ((gate (+notes/caldav-status--push-gate
+                 '(:baseline-exists t
+                   :remote-current nil
+                   :entries ((:uid "uid" :state local-modified))))))
+      (should (string-prefix-p "GUARDED" (car gate)))
+      (should (eq (cadr gate) 'warning)))))
+
+(ert-deftest caldav-magit-inserts-status-into-the-magit-section-tree ()
+  (let ((org-caldav-calendar-id "test-calendar")
+        (org-caldav-url nil)
+        (+notes/caldav-status--remote-etags '(("remote" . "etag-new")))
+        (+notes/caldav-status--remote-current-p t)
+        (+notes/caldav-status--last-checked (current-time)))
+    (with-temp-buffer
+      (magit-section-mode)
+      (let ((inhibit-read-only t))
+        (cl-letf (((symbol-function '+notes/caldav-magit--applicable-p)
+                   (lambda () t))
+                  ((symbol-function '+notes/caldav-configure) #'ignore)
+                  ((symbol-function '+notes/caldav-status--collect-data)
+                   (lambda ()
+                     '(:baseline-exists t
+                       :remote-current t
+                       :entries ((:uid "remote"
+                                  :title nil
+                                  :state remote-added)))))
+                  ((symbol-function '+notes/caldav--modified-org-buffers)
+                   (lambda () nil)))
+          (magit-insert-section (magit-section)
+            (+notes/caldav-magit-insert-status))))
+      (should magit-root-section)
+      (let ((section (car (oref magit-root-section children))))
+        (should (object-of-class-p section '+notes/caldav-magit-section))
+        (should (object-of-class-p
+                 (car (oref section children))
+                 '+notes/caldav-magit-group-section)))
+      (should (string-match-p "CalDAV: test-calendar" (buffer-string)))
+      (should (string-match-p "Remote: (not configured)/test-calendar"
+                              (buffer-string)))
+      (should (string-match-p "^  Remote changes" (buffer-string)))
+      (should-not (string-match-p "^Remote changes" (buffer-string)))
+      (should (string-match-p "^    added remotely" (buffer-string)))
+      (goto-char (point-min))
+      (re-search-forward "^  Remote changes")
+      (should (eq (get-text-property (match-beginning 0) 'font-lock-face)
+                  'magit-section-secondary-heading)))))
+
+(ert-deftest caldav-magit-interprets-native-force-arguments ()
+  (should (eq (+notes/caldav-magit--pull-mode nil) 'normal))
+  (should (eq (+notes/caldav-magit--pull-mode '("-f")) 'force))
+  (should-error (+notes/caldav-magit--pull-mode '("--autostash"))
+                :type 'user-error)
+  (should (eq (+notes/caldav-magit--push-mode nil) 'normal))
+  (should (eq (+notes/caldav-magit--push-mode
+               '("--force-with-lease"))
+              'normal))
+  (should (eq (+notes/caldav-magit--push-mode '("--force")) 'force))
+  (should-error (+notes/caldav-magit--push-mode '("--dry-run"))
+                :type 'user-error))
+
+(ert-deftest caldav-magit-dispatches-native-transients-to-safe-commands ()
+  (let (commands)
+    (cl-letf (((symbol-function '+notes/caldav-magit--run-sync)
+               (lambda (command) (push command commands))))
+      (+notes/caldav-magit-pull nil)
+      (+notes/caldav-magit-pull '("--force"))
+      (+notes/caldav-magit-push '("--force-with-lease"))
+      (+notes/caldav-magit-push '("-f")))
+    (should (equal (nreverse commands)
+                   '(+notes/caldav-pull
+                     +notes/caldav-force-pull
+                     +notes/caldav-push
+                     +notes/caldav-force-push)))))
+
+(ert-deftest caldav-magit-refreshes-remote-without-running-a-sync ()
+  (let (refreshed)
+    (with-temp-buffer
+      (cl-letf (((symbol-function '+notes/caldav-magit--require-status-buffer)
+                 (lambda () (current-buffer)))
+                ((symbol-function '+notes/caldav-configure) #'ignore)
+                ((symbol-function '+notes/caldav--fetch-remote-etags)
+                 (lambda () '(("uid" . "etag"))))
+                ((symbol-function 'magit-refresh)
+                 (lambda () (setq refreshed t))))
+        (should (+notes/caldav-magit--refresh-remote))
+        (should refreshed)
+        (should +notes/caldav-status--remote-current-p)
+        (should (equal +notes/caldav-status--remote-etags
+                       '(("uid" . "etag"))))
+        (should +notes/caldav-status--last-checked)
+        (should-not +notes/caldav-status--remote-error)))))
+
+(ert-deftest caldav-magit-invalidates-after-a-failed-sync ()
+  (let (invalidated refreshed)
+    (with-temp-buffer
+      (cl-letf (((symbol-function 'caldav-test--failing-sync)
+                 (lambda ()
+                   (interactive)
+                   (error "simulated sync failure")))
+                ((symbol-function '+notes/caldav-magit--require-status-buffer)
+                 (lambda () (current-buffer)))
+                ((symbol-function '+notes/caldav-magit--invalidate)
+                 (lambda (_buffer) (setq invalidated t)))
+                ((symbol-function '+notes/caldav-magit--refresh-remote)
+                 (lambda () (setq refreshed t))))
+        (should-error
+         (+notes/caldav-magit--run-sync #'caldav-test--failing-sync)
+         :type 'error)))
+    (should invalidated)
+    (should-not refreshed)))
 
 (ert-deftest caldav-normal-pull-classifies-remote-snapshot ()
   (let ((org-caldav-event-list

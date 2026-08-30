@@ -80,6 +80,7 @@
    "org"
    "notes"
    "caldav"
+   "caldav-magit"
    "bibliography"
    "latex"
    "reading"
