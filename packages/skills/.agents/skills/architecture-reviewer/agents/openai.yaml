@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Reviewer"
+  short_description: "Evidence-first, system-wide architecture audit"
+  default_prompt: "Use $architecture-reviewer to audit this system end to end and report prioritized, evidence-backed architectural findings without modifying it."
