@@ -86,6 +86,7 @@
    "reading"
    ;; "email"
    "llm"
+   "llm-config"
    "input"
    "keys"))
 

@@ -64,6 +64,7 @@ order are the contract.
 | ~latex~                  | auctex, pdf-tools, xenops, git-overleaf (GUI)             |
 | ~reading~                | elfeed                                                    |
 | ~llm~                    | gptel, agent-shell, magent, magit-gptel                   |
+| ~llm-config~             | GPTel backends, model discovery/cache, defaults           |
 | ~input~                  | PDF/text zoom, pinch and mouse-wheel handlers             |
 | ~keys~                   | which-key, general.el, the SPC leader map (loaded last)   |
 
