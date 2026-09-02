@@ -290,6 +290,34 @@
   (setopt gptel-backend +llm/deepseek)
   (setopt gptel-model 'deepseek-v4-pro)
 
+  (use-package gptel-model-discovery
+    :load-path (lambda () (concat +emacs/repo-directory "/site-lisp/"))
+    :demand t
+    :custom
+    (gptel-model-discovery-sources
+     '((+llm/deepseek
+        "https://api.deepseek.com/v1/models"
+        openai)
+       (+llm/gemini
+        "https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000"
+        gemini)
+       (+llm/moonshot-cn
+        "https://api.moonshot.cn/v1/models"
+        openai)
+       (+llm/aliyun
+        "https://dashscope.aliyuncs.com/api/v1/models?providers=qwen&capabilities=TG&page_no=1&page_size=100"
+        aliyun)
+       (+llm/sssaicode
+        "https://codex1.sssaicode.com/api/v1/models"
+        openai)
+       (+llm/zhipu
+        "https://open.bigmodel.cn/api/coding/paas/v4/models"
+        openai)))
+    :config
+    ;; Startup stays offline.  Refresh explicitly with
+    ;; `M-x gptel-model-discovery-refresh'.
+    (gptel-model-discovery-load-cache))
+
   ;; set context
   (setf (alist-get 'org-mode gptel-prompt-prefix-alist) "=@Jamie=\n")
   (setf (alist-get 'org-mode gptel-response-prefix-alist) "=@AI=\n")
