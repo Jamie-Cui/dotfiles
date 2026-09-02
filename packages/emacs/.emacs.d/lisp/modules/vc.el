@@ -85,7 +85,8 @@ Do not overwrite an existing non-empty global `github.user' value."
   ;; Evil Collection owns the Magit/Forge transient bindings.  Forge's
   ;; defaults still look for Magit's original `o' suffix after Evil Collection
   ;; has remapped it, which otherwise produces an error during every startup.
-  (setq forge-add-default-bindings nil)
+  (setq forge-add-default-bindings nil
+        forge--show-topic-legend nil)
   :custom
   (forge-owned-accounts '(("Jamie-Cui")))
   :config
