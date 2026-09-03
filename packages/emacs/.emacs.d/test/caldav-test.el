@@ -438,8 +438,11 @@
 (ert-deftest caldav-configuration-initializes-connection-values-explicitly ()
   (let (org-caldav-url org-caldav-calendar-id)
     (+notes/caldav-configure)
+    (should (equal org-caldav-url "https://caldav.gw-api.xyz/jamie"))
     (should (equal org-caldav-url +notes/caldav-url))
-    (should (equal org-caldav-calendar-id +notes/caldav-calendar-id))))
+    (should (equal org-caldav-calendar-id +notes/caldav-calendar-id))
+    (should (equal (org-caldav-events-url)
+                   "https://caldav.gw-api.xyz/jamie/org-tasks/"))))
 
 (ert-deftest caldav-status-classifies-three-way-changes ()
   (let* ((base (mapcar (lambda (uid)

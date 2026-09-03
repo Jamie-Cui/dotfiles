@@ -8,7 +8,9 @@
 (require 'init-notes)
 (require 'org-project)
 
-(defconst +notes/caldav-url "https://caldav.gw-api.xyz/.web"
+;; The Emacs URL library resolves both the login and password through
+;; `auth-source' after the server's Basic Auth challenge.
+(defconst +notes/caldav-url "https://caldav.gw-api.xyz/jamie"
   "Base URL of the task CalDAV collection.")
 
 (defconst +notes/caldav-calendar-id "org-tasks"
