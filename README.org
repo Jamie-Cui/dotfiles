@@ -355,11 +355,13 @@ The =ctags= component shallow-clones the source with depth 1 into
 scripts/setup.sh apply --profile minimal --with ctags --yes
 #+end_src
 
-*** [[https://github.com/Jamie-Cui/org-root][org-root]] (=org-root=)
+*** org-root (=org-root=)
 
-The =org-root= component clones the private repository with its full history
-over SSH into =~/opt/org-root=, which is the default path used by the managed
-Emacs configuration.  GitHub SSH access must already be configured.
+The =org-root= component clones the private repository
+=ssh://git@git.gw-api.xyz:2222/jamie/org-root.git= with its full history over
+SSH into =~/opt/org-root=, which is the default path used by the managed Emacs
+configuration.  SSH access to =git.gw-api.xyz= on port =2222= must already be
+configured.
 
 #+begin_src bash
 scripts/setup.sh apply --profile minimal --with org-root --yes

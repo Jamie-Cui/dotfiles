@@ -320,7 +320,7 @@ prepare_mock_environment() {
 	[ "$status" -eq 0 ]
 	run grep -F "git clone --depth 1 https://github.com/universal-ctags/ctags.git $HOME/opt/ctags" "$SETUP_TEST_LOG"
 	[ "$status" -eq 0 ]
-	run grep -F "git clone git@github.com:Jamie-Cui/org-root.git $HOME/opt/org-root" "$SETUP_TEST_LOG"
+	run grep -F "git clone ssh://git@git.gw-api.xyz:2222/jamie/org-root.git $HOME/opt/org-root" "$SETUP_TEST_LOG"
 	[ "$status" -eq 0 ]
 	run grep -F "git clone git@github.com:Jamie-Cui/git-overleaf.git $HOME/opt/git-overleaf" "$SETUP_TEST_LOG"
 	[ "$status" -eq 0 ]

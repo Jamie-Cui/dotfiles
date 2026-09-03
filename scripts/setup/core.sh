@@ -10,7 +10,7 @@ setup_repo_branch=master
 setup_aerospace_repo=https://github.com/Jamie-Cui/AeroSpace.git
 setup_aerospace_branch=main
 setup_ctags_repo=https://github.com/universal-ctags/ctags.git
-setup_org_root_repo=git@github.com:Jamie-Cui/org-root.git
+setup_org_root_repo=ssh://git@git.gw-api.xyz:2222/jamie/org-root.git
 setup_git_overleaf_repo=git@github.com:Jamie-Cui/git-overleaf.git
 setup_tdlib_repo=https://github.com/tdlib/td.git
 
