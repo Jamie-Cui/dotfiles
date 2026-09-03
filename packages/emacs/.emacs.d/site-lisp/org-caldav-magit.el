@@ -12,8 +12,8 @@
 ;; does not.
 ;;
 ;; The status section is inserted only in `magit-status-mode' when that check
-;; succeeds.  The CalDAV pull and push suffixes are installed in Magit's
-;; transients globally, but executing either operation performs the same
+;; succeeds.  CalDAV fetch, pull, and push suffixes are installed in Magit's
+;; transients globally, but executing any operation performs the same
 ;; repository check and requires the Org root status buffer to be open.
 ;;; Code:
 
@@ -33,6 +33,7 @@
 (declare-function org-caldav-sync-state-filename "org-caldav" (id))
 (declare-function magit-add-section-hook "magit-section"
                   (hook function &optional at append local))
+(declare-function magit-fetch-arguments "magit-fetch" ())
 (declare-function magit-get-mode-buffer "magit-mode"
                   (mode &optional value frame))
 (declare-function magit-pull-arguments "magit-pull" ())
@@ -570,13 +571,16 @@ This command never writes Org files or advances the org-caldav baseline."
             +notes/caldav-status--remote-error nil)
       (+notes/caldav-magit--refresh-buffer buffer))))
 
-(defun +notes/caldav-magit--run-sync (command)
-  "Run interactive CalDAV COMMAND and refresh its Magit section."
+(defun +notes/caldav-magit--run-sync (command &rest arguments)
+  "Run CalDAV COMMAND with ARGUMENTS and refresh its Magit section.
+Call COMMAND interactively when ARGUMENTS is empty."
   (let ((buffer (+notes/caldav-magit--require-status-buffer))
         completed)
     (unwind-protect
         (progn
-          (call-interactively command)
+          (if arguments
+              (apply command arguments)
+            (call-interactively command))
           (setq completed t))
       (+notes/caldav-magit--invalidate buffer))
     (when (and completed (buffer-live-p buffer))
@@ -587,16 +591,21 @@ This command never writes Org files or advances the org-caldav baseline."
   "Return the transient description for the configured CalDAV calendar."
   (format "CalDAV: %s" +notes/caldav-calendar-id))
 
+(defun +notes/caldav-magit--validate-fetch-args (args)
+  "Reject Magit fetch ARGS unsupported by the CalDAV transport."
+  (when args
+    (user-error "CalDAV fetch does not support arguments; got: %s"
+                (mapconcat #'identity args " "))))
+
 (defun +notes/caldav-magit--pull-mode (args)
   "Return the CalDAV pull mode selected by Magit ARGS."
-  (cond
-   ((null args) 'normal)
-   ((and (null (cdr args))
-         (member (car args) '("-f" "--force")))
-    'force)
-   (t
-    (user-error "Only --force applies to CalDAV pull; got: %s"
-                (mapconcat #'identity args " ")))))
+  (when-let* ((unsupported
+               (seq-remove
+                (lambda (arg) (equal arg "--ff-only"))
+                args)))
+    (user-error "Only --ff-only applies to CalDAV pull; got: %s"
+                (mapconcat #'identity unsupported " ")))
+  (if (member "--ff-only" args) 'ff-only 'normal))
 
 (defun +notes/caldav-magit--push-mode (args)
   "Return the CalDAV push mode selected by Magit ARGS."
@@ -611,14 +620,20 @@ This command never writes Org files or advances the org-caldav baseline."
              "got: %s")
      (mapconcat #'identity args " ")))))
 
+(transient-define-suffix +notes/caldav-magit-fetch (args)
+  "Fetch the configured CalDAV calendar without merging."
+  :description #'+notes/caldav-magit--operation-description
+  (interactive (list (magit-fetch-arguments)))
+  (+notes/caldav-magit--validate-fetch-args args)
+  (+notes/caldav-magit--run-sync #'+notes/caldav-fetch))
+
 (transient-define-suffix +notes/caldav-magit-pull (args)
   "Pull the configured CalDAV calendar."
   :description #'+notes/caldav-magit--operation-description
   (interactive (list (magit-pull-arguments)))
   (+notes/caldav-magit--run-sync
-   (if (eq (+notes/caldav-magit--pull-mode args) 'force)
-       #'+notes/caldav-force-pull
-     #'+notes/caldav-pull)))
+   #'+notes/caldav-pull
+   (eq (+notes/caldav-magit--pull-mode args) 'ff-only)))
 
 (transient-define-suffix +notes/caldav-magit-push (args)
   "Push the configured CalDAV calendar."
@@ -629,8 +644,16 @@ This command never writes Org files or advances the org-caldav baseline."
        #'+notes/caldav-force-push
      #'+notes/caldav-push)))
 
+(defvar +notes/caldav-magit--fetch-integration-installed nil)
 (defvar +notes/caldav-magit--pull-integration-installed nil)
 (defvar +notes/caldav-magit--push-integration-installed nil)
+
+(defun +notes/caldav-magit--install-fetch-integration ()
+  "Add the CalDAV action to `magit-fetch'."
+  (unless +notes/caldav-magit--fetch-integration-installed
+    (setq +notes/caldav-magit--fetch-integration-installed t)
+    (transient-append-suffix
+      'magit-fetch "e" '("c" +notes/caldav-magit-fetch))))
 
 (defun +notes/caldav-magit--install-pull-integration ()
   "Add the CalDAV action to `magit-pull'."
@@ -655,6 +678,8 @@ This command never writes Org files or advances the org-caldav baseline."
    #'+notes/caldav-magit-insert-status
    'magit-insert-stashes
    nil)
+  (with-eval-after-load 'magit-fetch
+    (+notes/caldav-magit--install-fetch-integration))
   (with-eval-after-load 'magit-pull
     (+notes/caldav-magit--install-pull-integration))
   (with-eval-after-load 'magit-push

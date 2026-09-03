@@ -108,6 +108,71 @@
                 (should (string-match-p "^>>>>>>> " contents))))))
       (delete-directory repo t))))
 
+(ert-deftest caldav-fetch-preserves-local-state-and-ff-only-refuses-divergence ()
+  (let* ((repo (caldav-test--git-repo))
+         (remote-tree (make-temp-file "caldav-remote-tree." t))
+         (+emacs/org-root-dir repo))
+    (unwind-protect
+        (progn
+          (caldav-test--write repo "tasks.org" "base\n")
+          (let* ((base (caldav-test--commit repo "base"))
+                 (context (+notes/caldav--git-context)))
+            (git-foreign-register-remote
+             context +notes/caldav-git-remote-name)
+            (git-foreign-set-base-ref context base)
+            (git-foreign-set-remote-ref context base)
+            (caldav-test--write repo "tasks.org" "local\n")
+            (let* ((local (caldav-test--commit repo "local"))
+                   (_ (caldav-test--write
+                       remote-tree "tasks.org" "remote\n"))
+                   (remote
+                    (git-foreign-commit-directory
+                     context remote-tree base "remote")))
+              (cl-letf
+                  (((symbol-function
+                     '+notes/caldav--capture-remote-snapshot)
+                    (lambda (sync-context)
+                      (git-foreign-set-remote-ref sync-context remote)
+                      remote)))
+                (should (equal (+notes/caldav-fetch) remote))
+                (should (equal (git-foreign-rev-parse context "HEAD") local))
+                (should (equal
+                         (git-foreign-rev-parse
+                          context (git-foreign-base-ref context))
+                         base))
+                (should (equal
+                         (git-foreign-rev-parse
+                          context (git-foreign-remote-ref context))
+                         remote))
+                (should (equal
+                         (caldav-test--read repo "tasks.org") "local\n"))
+                (should-error (+notes/caldav-pull t) :type 'user-error)
+                (should (equal
+                         (git-foreign-rev-parse context "HEAD") local))
+                (should-not
+                 (git-foreign-rev-parse-noerror context "MERGE_HEAD"))))))
+      (delete-directory remote-tree t)
+      (delete-directory repo t))))
+
+(ert-deftest caldav-git-does-not-recreate-a-removed-logical-remote ()
+  (let* ((repo (caldav-test--git-repo))
+         (+emacs/org-root-dir repo))
+    (unwind-protect
+        (progn
+          (caldav-test--write repo "tasks.org" "base\n")
+          (let* ((base (caldav-test--commit repo "base"))
+                 (context (+notes/caldav--git-context)))
+            (git-foreign-register-remote
+             context +notes/caldav-git-remote-name)
+            (git-foreign-set-base-ref context base)
+            (git-foreign-set-remote-ref context base)
+            (caldav-test--git
+             repo "remote" "remove" +notes/caldav-git-remote-name)
+            (should-error (+notes/caldav--ensure-git-state context)
+                          :type 'user-error)
+            (should-not (git-foreign-remote-name context))))
+      (delete-directory repo t))))
+
 (ert-deftest caldav-git-snapshot-failure-rolls-back-worktree-and-state ()
   (let* ((repo (caldav-test--git-repo))
          (+emacs/org-root-dir repo)
@@ -158,7 +223,7 @@
            :type 'user-error))
       (delete-directory repo t))))
 
-(ert-deftest caldav-magit-installs-only-pull-and-push-transient-suffixes ()
+(ert-deftest caldav-magit-installs-fetch-pull-and-push-transient-suffixes ()
   (require 'magit-fetch)
   (require 'magit-pull)
   (require 'magit-push)
@@ -166,8 +231,8 @@
          (tail (memq #'+notes/caldav-magit-insert-status sections)))
     (should tail)
     (should (eq (cadr tail) #'magit-insert-stashes)))
-  (should-error (transient-get-suffix 'magit-fetch "c"))
-  (dolist (binding '((magit-pull "c" +notes/caldav-magit-pull)
+  (dolist (binding '((magit-fetch "c" +notes/caldav-magit-fetch)
+                     (magit-pull "c" +notes/caldav-magit-pull)
                      (magit-push "c" +notes/caldav-magit-push)))
     (should (eq (caldav-test--transient-command
                  (nth 0 binding) (nth 1 binding))
@@ -347,9 +412,14 @@
       (should (eq (get-text-property (match-beginning 0) 'font-lock-face)
                   'magit-section-secondary-heading)))))
 
-(ert-deftest caldav-magit-interprets-native-force-arguments ()
+(ert-deftest caldav-magit-interprets-native-sync-arguments ()
+  (should-not (+notes/caldav-magit--validate-fetch-args nil))
+  (should-error (+notes/caldav-magit--validate-fetch-args '("--force"))
+                :type 'user-error)
   (should (eq (+notes/caldav-magit--pull-mode nil) 'normal))
-  (should (eq (+notes/caldav-magit--pull-mode '("-f")) 'force))
+  (should (eq (+notes/caldav-magit--pull-mode '("--ff-only")) 'ff-only))
+  (should-error (+notes/caldav-magit--pull-mode '("--force"))
+                :type 'user-error)
   (should-error (+notes/caldav-magit--pull-mode '("--autostash"))
                 :type 'user-error)
   (should (eq (+notes/caldav-magit--push-mode nil) 'normal))
@@ -363,16 +433,19 @@
 (ert-deftest caldav-magit-dispatches-native-transients-to-safe-commands ()
   (let (commands)
     (cl-letf (((symbol-function '+notes/caldav-magit--run-sync)
-               (lambda (command) (push command commands))))
+               (lambda (command &rest arguments)
+                 (push (cons command arguments) commands))))
+      (+notes/caldav-magit-fetch nil)
       (+notes/caldav-magit-pull nil)
-      (+notes/caldav-magit-pull '("--force"))
+      (+notes/caldav-magit-pull '("--ff-only"))
       (+notes/caldav-magit-push '("--force-with-lease"))
       (+notes/caldav-magit-push '("-f")))
     (should (equal (nreverse commands)
-                   '(+notes/caldav-pull
-                     +notes/caldav-force-pull
-                     +notes/caldav-push
-                     +notes/caldav-force-push)))))
+                   '((+notes/caldav-fetch)
+                     (+notes/caldav-pull nil)
+                     (+notes/caldav-pull t)
+                     (+notes/caldav-push)
+                     (+notes/caldav-force-push))))))
 
 (ert-deftest caldav-magit-refreshes-remote-without-running-a-sync ()
   (let (refreshed)

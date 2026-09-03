@@ -257,21 +257,46 @@
 
 (defun +notes/caldav--ensure-git-state
     (context &optional allow-without-sync-state)
-  "Register and initialize CalDAV refs for foreign CONTEXT.
+  "Validate the logical remote and initialize refs for foreign CONTEXT.
 When ALLOW-WITHOUT-SYNC-STATE is non-nil, permit an explicit forced operation
 to establish the first baseline."
-  (git-foreign-register-remote context +notes/caldav-git-remote-name)
-  (unless (git-foreign-rev-parse-noerror
-           context (git-foreign-base-ref context))
-    (let ((state-file
-           (org-caldav-sync-state-filename org-caldav-calendar-id)))
-      (unless (or allow-without-sync-state (file-exists-p state-file))
-        (user-error
-         "Run a forced CalDAV pull or push before initializing Git state")))
-    (let ((head (git-foreign-rev-parse context "HEAD")))
-      (git-foreign-set-base-ref context head)
-      (git-foreign-set-remote-ref context head)))
+  (let ((base (git-foreign-rev-parse-noerror
+               context (git-foreign-base-ref context)))
+        (remote-name (git-foreign-remote-name context)))
+    (when (and base (not remote-name))
+      (user-error
+       (concat "The CalDAV logical remote was removed; run "
+               "`+notes/caldav-register-remote' to restore it")))
+    (unless remote-name
+      (git-foreign-register-remote context +notes/caldav-git-remote-name))
+    ;; Reapply the skip flags after a user-visible `git remote rename'.
+    (when remote-name
+      (git-foreign-register-remote context remote-name))
+    (unless base
+      (let ((state-file
+             (org-caldav-sync-state-filename org-caldav-calendar-id)))
+        (unless (or allow-without-sync-state (file-exists-p state-file))
+          (user-error
+           "Run a forced CalDAV pull or push before initializing Git state")))
+      (let ((head (git-foreign-rev-parse context "HEAD")))
+        (git-foreign-set-base-ref context head)
+        (git-foreign-set-remote-ref context head)))
+    (when (and base
+               (not (git-foreign-rev-parse-noerror
+                     context (git-foreign-remote-ref context))))
+      (git-foreign-set-remote-ref context base)))
   context)
+
+(defun +notes/caldav-register-remote (&optional name)
+  "Register the branchless CalDAV logical remote as NAME.
+NAME defaults to `+notes/caldav-git-remote-name'."
+  (interactive)
+  (let ((remote
+         (git-foreign-register-remote
+          (+notes/caldav--git-context)
+          (or name +notes/caldav-git-remote-name))))
+    (message "Registered CalDAV logical remote `%s'" remote)
+    remote))
 
 (defun +notes/caldav--repo-file-buffers ()
   "Return live file buffers below the Org Git repository."
@@ -761,8 +786,25 @@ REQUEST-METHOD, REQUEST-DATA, and EXTRA-HEADERS are the corresponding
                       (symbol-name (or (nth 3 result) 'unknown))))
    org-caldav-sync-result))
 
-(defun +notes/caldav-pull ()
-  "Pull CalDAV through a complete snapshot and a real Git merge."
+(defun +notes/caldav-fetch ()
+  "Fetch a complete CalDAV snapshot without merging it into HEAD."
+  (interactive)
+  (require 'org-caldav)
+  (+notes/caldav-configure)
+  (+notes/caldav--assert-org-buffers-saved)
+  (let ((context (+notes/caldav--git-context)))
+    (+notes/caldav--assert-clean-git-worktree context)
+    (+notes/caldav--ensure-git-state context)
+    (let* ((remote-commit
+            (+notes/caldav--capture-remote-snapshot context))
+           (state (git-foreign-read-state context remote-commit)))
+      (message "Fetched CalDAV snapshot: %s"
+               (plist-get state :status))
+      remote-commit)))
+
+(defun +notes/caldav-pull (&optional ff-only)
+  "Pull CalDAV through a complete snapshot and a real Git merge.
+When FF-ONLY is non-nil, fetch the snapshot but refuse a three-way merge."
   (interactive)
   (require 'org-caldav)
   (+notes/caldav-configure)
@@ -774,25 +816,31 @@ REQUEST-METHOD, REQUEST-DATA, and EXTRA-HEADERS are the corresponding
     (let* ((remote-commit
             (+notes/caldav--capture-remote-snapshot context))
            (state (git-foreign-read-state context remote-commit))
-           (result (git-foreign-apply-pull context state)))
-      (+notes/caldav--revert-repo-buffers
-       (+notes/caldav--repo-file-buffers))
-      (pcase result
-        ('in-sync
-         (message "CalDAV is already in sync"))
-        ('matching
-         (+notes/caldav--mark-head-synchronized context)
-         (message "Local and CalDAV content already match"))
-        ('no-remote-changes
-         (message "No remote CalDAV changes to pull"))
-        ('fast-forward
-         (message "Pulled CalDAV changes with a Git fast-forward"))
-        ('merged
-         (message "Pulled CalDAV changes with a Git merge"))
-        ('conflict
-         (message
-          "CalDAV created a Git merge conflict; resolve it in Magit and commit")))
-      result)))
+           (status (plist-get state :status)))
+      (when (and ff-only (eq status 'diverged))
+        (user-error
+         "CalDAV pull is not a fast-forward; fetched snapshot was not merged"))
+      (let ((result (git-foreign-apply-pull context state)))
+        (+notes/caldav--revert-repo-buffers
+         (+notes/caldav--repo-file-buffers))
+        (pcase result
+          ('in-sync
+           (message "CalDAV is already in sync"))
+          ('matching
+           (+notes/caldav--mark-head-synchronized context)
+           (message "Local and CalDAV content already match"))
+          ('no-remote-changes
+           (message "No remote CalDAV changes to pull"))
+          ('fast-forward
+           (message "Pulled CalDAV changes with a Git fast-forward"))
+          ('merged
+           (message "Pulled CalDAV changes with a Git merge"))
+          ('conflict
+           (message
+            (concat
+             "CalDAV created a Git merge conflict; resolve it in Magit "
+             "and commit"))))
+        result))))
 
 (defun +notes/caldav-push ()
   "Push Org to CalDAV only if the remote still matches the last pull."
