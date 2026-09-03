@@ -74,12 +74,20 @@
 (defvar org-caldav-files nil)
 (defvar org-caldav-inbox nil)
 (defvar org-caldav-url nil)
+(defvar org-caldav-backup-file nil)
 (defvar org-caldav-event-list nil)
 (defvar org-caldav-sync-result nil)
 (defvar org-caldav-empty-calendar nil)
 (defvar org-caldav-previous-files nil)
 (defvar org-caldav-calendar-id nil)
 (defvar org-caldav-uuid-extension ".ics")
+(defvar org-id--locations-checksum nil)
+(defvar org-id-extra-files nil)
+(defvar org-id-files nil)
+(defvar org-id-locations nil)
+(defvar org-id-locations-file nil)
+(defvar org-id-search-archives nil)
+(defvar org-journal-dir nil)
 
 (declare-function org-journal--get-entry-path "org-journal" (&optional time))
 (declare-function org-journal--search-forward-created
@@ -100,6 +108,9 @@
 (declare-function org-caldav-load-sync-state "org-caldav" ())
 (declare-function org-caldav-sync "org-caldav" ())
 (declare-function org-caldav-sync-state-filename "org-caldav" (id))
+(declare-function git-foreign-materialize-commit
+                  "git-foreign" (context revision))
+(declare-function org-id-find "org-id" (id &optional markerp))
 
 (defun +notes/caldav-configure ()
   "Apply this configuration's explicit org-caldav settings."
@@ -301,10 +312,9 @@ NAME defaults to `+notes/caldav-git-remote-name'."
     (message "Registered CalDAV logical remote `%s'" remote)
     remote))
 
-(defun +notes/caldav--repo-file-buffers ()
-  "Return live file buffers below the Org Git repository."
-  (let ((root (file-name-as-directory
-               (file-truename +emacs/org-root-dir))))
+(defun +notes/caldav--file-buffers-below (directory)
+  "Return live file buffers below DIRECTORY."
+  (let ((root (file-name-as-directory (file-truename directory))))
     (seq-filter
      (lambda (buffer)
        (and (buffer-live-p buffer)
@@ -314,6 +324,31 @@ NAME defaults to `+notes/caldav-git-remote-name'."
                     (expand-file-name buffer-file-name)
                     root)))))
      (buffer-list))))
+
+(defun +notes/caldav--org-buffers-below (function directory &rest arguments)
+  "Call FUNCTION with ARGUMENTS and keep Org file buffers below DIRECTORY."
+  (let ((root (file-name-as-directory (file-truename directory))))
+    (seq-filter
+     (lambda (buffer)
+       (and (buffer-live-p buffer)
+            (with-current-buffer buffer
+              (and buffer-file-name
+                   (file-in-directory-p
+                    (expand-file-name buffer-file-name)
+                    root)))))
+     (apply function arguments))))
+
+(defun +notes/caldav--repo-file-buffers ()
+  "Return live file buffers below the Org Git repository."
+  (+notes/caldav--file-buffers-below +emacs/org-root-dir))
+
+(defun +notes/caldav--discard-file-buffers-below (directory)
+  "Kill disposable file buffers below temporary DIRECTORY."
+  (dolist (buffer (+notes/caldav--file-buffers-below directory))
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (set-buffer-modified-p nil))
+      (kill-buffer buffer))))
 
 (defun +notes/caldav--revert-repo-buffers (buffers)
   "Revert unmodified repository BUFFERS after an external Git change."
@@ -325,19 +360,6 @@ NAME defaults to `+notes/caldav-git-remote-name'."
                  (buffer-name buffer)))
         (if (and buffer-file-name (file-exists-p buffer-file-name))
             (revert-buffer t t t)
-          (kill-buffer buffer))))))
-
-(defun +notes/caldav--restore-repo-buffers (original-buffers)
-  "Restore ORIGINAL-BUFFERS and close temporary repository buffers."
-  (let ((current (+notes/caldav--repo-file-buffers)))
-    (+notes/caldav--revert-repo-buffers original-buffers)
-    (dolist (buffer current)
-      (unless (or (memq buffer original-buffers)
-                  (not (buffer-live-p buffer)))
-        (with-current-buffer buffer
-          (when (buffer-modified-p)
-            (error "Temporary CalDAV buffer is unexpectedly modified: %s"
-                   (buffer-name buffer)))
           (kill-buffer buffer))))))
 
 (defun +notes/caldav--sync-state-backup ()
@@ -366,21 +388,11 @@ NAME defaults to `+notes/caldav-git-remote-name'."
     (condition-case err
         (when (file-exists-p file)
           (delete-file file))
-      (file-error
+      (error
        (display-warning
         'org-caldav
         (format "Could not remove CalDAV state backup %s: %s"
                 file (error-message-string err)))))))
-
-(defun +notes/caldav--restore-worktree
-    (context revision original-buffers)
-  "Restore foreign CONTEXT to REVISION and ORIGINAL-BUFFERS."
-  (git-foreign-output
-   context "restore" "--source" revision "--worktree" "--" ".")
-  ;; The transaction begins from a worktree with no untracked files, so every
-  ;; non-ignored untracked path here was created by the remote projection.
-  (git-foreign-output context "clean" "-fd")
-  (+notes/caldav--restore-repo-buffers original-buffers))
 
 (defun +notes/caldav--run-remote-pull (&optional force)
   "Update the projected worktree from CalDAV.
@@ -403,45 +415,103 @@ When FORCE is non-nil, make the remote collection the complete snapshot."
         (user-error "CalDAV pull finished with errors; inspect the results"))
       (+notes/caldav--finish-remote-pull))))
 
+(defun +notes/caldav--snapshot-agenda-files
+    (files repository snapshot)
+  "Rebase agenda FILES below REPOSITORY into SNAPSHOT."
+  (let ((repository (file-name-as-directory (expand-file-name repository))))
+    (delq nil
+          (mapcar
+           (lambda (file)
+             (when (stringp file)
+               (let ((file (expand-file-name file)))
+                 (when (file-in-directory-p file repository)
+                   (expand-file-name
+                    (file-relative-name file repository)
+                    snapshot)))))
+           files))))
+
 (defun +notes/caldav--capture-remote-snapshot (context)
   "Capture a complete remote CalDAV commit for foreign CONTEXT.
-The local branch, index, and clean worktree are restored before the new
-snapshot ref becomes visible."
+The projection runs in a temporary directory materialized from the previous
+remote commit, so the local branch, index, worktree, and live buffers are never
+changed."
   (let* ((base (git-foreign-rev-parse
                 context (git-foreign-base-ref context)))
          (parent (or (git-foreign-rev-parse-noerror
                       context (git-foreign-remote-ref context))
                      base))
-         (head (git-foreign-rev-parse context "HEAD"))
-         (original-buffers (+notes/caldav--repo-file-buffers))
          (state-backup (+notes/caldav--sync-state-backup))
+         snapshot
+         id-locations-file
          remote-commit
          primary-error)
     (condition-case err
         (progn
-          ;; The org-caldav state file describes the latest fetched snapshot,
-          ;; so incremental projection must begin at the matching remote ref.
-          (git-foreign-output
-           context "restore" "--source" parent "--worktree" "--" ".")
-          (+notes/caldav--revert-repo-buffers original-buffers)
-          (let ((+notes/caldav--snapshotting t))
-            (+notes/caldav--run-remote-pull))
+          (setq snapshot (git-foreign-materialize-commit context parent)
+                id-locations-file
+                (concat (directory-file-name snapshot) ".org-id-locations"))
+          (let* ((repository (git-foreign-context-repo context))
+                 (+emacs/org-root-dir snapshot)
+                 (+org-project-root-dir snapshot)
+                 (+org-projects-dir (expand-file-name "projects" snapshot))
+                 (+notes/caldav-inbox-file
+                  (expand-file-name "caldav-inbox.org" snapshot))
+                 (+notes/caldav-tasks-file
+                  (expand-file-name "caldav-tasks.org" snapshot))
+                 (org-journal-dir (expand-file-name "journal" snapshot))
+                 (org-agenda-files
+                  (+notes/caldav--snapshot-agenda-files
+                   org-agenda-files repository snapshot))
+                 (org-caldav-files nil)
+                 (org-caldav-inbox +notes/caldav-inbox-file)
+                 (org-caldav-backup-file nil)
+                 (org-id-locations-file id-locations-file)
+                 (org-id-locations nil)
+                 (org-id-extra-files nil)
+                 (org-id-files nil)
+                 (org-id--locations-checksum nil)
+                 (org-id-search-archives nil)
+                 (+notes/caldav--snapshotting t))
+            ;; `org-id-update-id-locations' normally includes every live Org
+            ;; buffer.  Hide the real worktree here so duplicate IDs across
+            ;; the real and materialized trees cannot leak into resolution.
+            (let ((org-buffer-list-function
+                   (symbol-function 'org-buffer-list)))
+              (cl-letf (((symbol-function 'org-buffer-list)
+                         (lambda (&rest arguments)
+                           (apply #'+notes/caldav--org-buffers-below
+                                  org-buffer-list-function
+                                  snapshot
+                                  arguments))))
+                (+notes/caldav--run-remote-pull))))
           (setq remote-commit
                 (git-foreign-commit-directory
                  context
-                 (git-foreign-context-repo context)
+                 snapshot
                  parent
                  (format "caldav: remote snapshot %s"
                          (format-time-string "%Y-%m-%d %H:%M:%S")))))
       (error (setq primary-error err)))
     (condition-case err
-        (+notes/caldav--restore-worktree
-         context head original-buffers)
+        (when snapshot
+          (+notes/caldav--discard-file-buffers-below snapshot)
+          (delete-directory snapshot t))
       (error
        (if primary-error
            (display-warning
             'org-caldav
-            (format "CalDAV worktree rollback failed: %s"
+            (format "CalDAV snapshot cleanup failed: %s"
+                    (error-message-string err)))
+         (setq primary-error err))))
+    (condition-case err
+        (when (and id-locations-file
+                   (file-exists-p id-locations-file))
+          (delete-file id-locations-file))
+      (error
+       (if primary-error
+           (display-warning
+            'org-caldav
+            (format "CalDAV Org ID cleanup failed: %s"
                     (error-message-string err)))
          (setq primary-error err))))
     (when primary-error
@@ -606,29 +676,44 @@ deletion."
               (dolist (event remove-events)
                 (setq org-caldav-event-list
                       (delq event org-caldav-event-list))))
-          (dolist (event org-caldav-event-list)
-            (let* ((uid (car event))
-                   (saved (assoc uid baseline))
-                   (remote (assoc uid +notes/caldav--remote-etags))
-                   (saved-etag (and saved (org-caldav-event-etag saved))))
-              (cond
-               ((and remote (not saved))
-                (org-caldav-event-set-etag event (cdr remote))
-                (org-caldav-event-set-status event 'new-in-cal))
-               ((and remote (not saved-etag))
-                ;; The saved baseline represented absence, so this is a new
-                ;; external version even though an old state entry remains.
-                (org-caldav-event-set-etag event (cdr remote))
-                (org-caldav-event-set-status event 'new-in-cal))
-               ((and remote (not (equal (cdr remote) saved-etag)))
-                (org-caldav-event-set-etag event (cdr remote))
-                (org-caldav-event-set-status event 'changed-in-cal))
-               (remote
-                (org-caldav-event-set-status event 'synced))
-               (saved-etag
-                (org-caldav-event-set-status event 'deleted-in-cal))
-               (t
-                (org-caldav-event-set-status event 'synced))))))))))
+          (let (remove-events)
+            (dolist (event org-caldav-event-list)
+              (let* ((uid (car event))
+                     (saved (assoc uid baseline))
+                     (remote (assoc uid +notes/caldav--remote-etags))
+                     (saved-etag (and saved (org-caldav-event-etag saved)))
+                     (local (and saved-etag (org-id-find uid))))
+                (cond
+                 ((and remote (not saved))
+                  (org-caldav-event-set-etag event (cdr remote))
+                  (org-caldav-event-set-status event 'new-in-cal))
+                 ((and remote (not saved-etag))
+                  ;; The saved baseline represented absence, so this is a new
+                  ;; external version even though an old state entry remains.
+                  (org-caldav-event-set-etag event (cdr remote))
+                  (org-caldav-event-set-status event 'new-in-cal))
+                 ((and remote (not local))
+                  ;; A saved UID without a local entry is remote-only now.
+                  ;; Import it instead of trying to update a missing heading.
+                  (org-caldav-event-set-etag event (cdr remote))
+                  (org-caldav-event-set-status event 'new-in-cal))
+                 ((and remote (not (equal (cdr remote) saved-etag)))
+                  (org-caldav-event-set-etag event (cdr remote))
+                  (org-caldav-event-set-status event 'changed-in-cal))
+                 (remote
+                  (org-caldav-event-set-status event 'synced))
+                 (local
+                  (org-caldav-event-set-status event 'deleted-in-cal))
+                 (saved-etag
+                  ;; The UID disappeared on both sides.  Keeping it as a
+                  ;; remote deletion would make org-caldav call `org-id-goto'
+                  ;; for an entry which no longer exists.
+                  (push event remove-events))
+                 (t
+                  (org-caldav-event-set-status event 'synced)))))
+            (dolist (event remove-events)
+              (setq org-caldav-event-list
+                    (delq event org-caldav-event-list)))))))))
 
 (defun +notes/caldav--remote-drift (state remote)
   "Return UIDs whose REMOTE ETags differ from saved STATE."
@@ -824,9 +909,7 @@ REQUEST-METHOD, REQUEST-DATA, and EXTRA-HEADERS are the corresponding
   (require 'org-caldav)
   (+notes/caldav-configure)
   (setq +notes/caldav--last-verified-remote-etags :unknown)
-  (+notes/caldav--assert-org-buffers-saved)
   (let ((context (+notes/caldav--git-context)))
-    (+notes/caldav--assert-clean-git-worktree context)
     (+notes/caldav--ensure-git-state context)
     (let* ((remote-commit
             (+notes/caldav--capture-remote-snapshot context))
