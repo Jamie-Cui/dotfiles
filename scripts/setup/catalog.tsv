@@ -20,6 +20,7 @@ waybar	fedora	-	Waybar desktop utilities
 dunst	fedora	-	Dunst notifications
 mail	fedora	secrets	DavMail and isync
 secrets	all	-	GnuPG encrypted credentials
+bitwarden-cli	macos	-	Bitwarden CLI
 alfred	macos	-	Alfred
 stats	macos	-	Stats system monitor
 caffeine	macos	-	Caffeine

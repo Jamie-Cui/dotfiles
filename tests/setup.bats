@@ -107,10 +107,11 @@ prepare_mock_environment() {
 	[ ! -e "$BATS_TEST_TMPDIR/repo" ]
 }
 
-@test "recommended macOS plan includes Alfred, Stats, Caffeine, Ice, and AeroSpace" {
+@test "recommended macOS plan includes Bitwarden CLI and desktop apps" {
 	run env SETUP_TEST_PLATFORM=macos SETUP_NO_TTY=1 \
 		"$setup_script" plan --profile recommended
 	[ "$status" -eq 0 ]
+	[[ "$output" == *"bitwarden-cli: Bitwarden CLI"* ]]
 	[[ "$output" == *"alfred: Alfred"* ]]
 	[[ "$output" == *"stats: Stats system monitor"* ]]
 	[[ "$output" == *"caffeine: Caffeine"* ]]
@@ -118,6 +119,16 @@ prepare_mock_environment() {
 	[[ "$output" == *"aerospace: AeroSpace source"* ]]
 	[[ "$output" == *"tailscale: Tailscale mesh VPN"* ]]
 	[[ "$output" != *"hyprland:"* ]]
+}
+
+@test "Bitwarden CLI apply installs the Homebrew formula" {
+	prepare_mock_environment
+	run env SETUP_TEST_PLATFORM=macos \
+		"$setup_script" apply --profile minimal --with bitwarden-cli \
+		--yes --repo-dir "$mock_repo"
+	[ "$status" -eq 0 ]
+	run grep -F 'brew install bitwarden-cli' "$SETUP_TEST_LOG"
+	[ "$status" -eq 0 ]
 }
 
 @test "Tailscale apply installs the macOS standalone app cask" {

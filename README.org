@@ -65,6 +65,7 @@ git config --global --unset https.proxy
     - [[#davmail-davmail][DavMail]]
     - [[#isync-isync][isync]]
 - [[#macos-apps][MacOS apps]]
+    - [[#bitwarden-cli-bitwarden-cli][Bitwarden CLI]]
     - [[#alfred-alfred][Alfred]]
     - [[#stats-stats][Stats]]
     - [[#caffeine-caffeine][Caffeine]]
@@ -104,8 +105,8 @@ curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26
 #+end_src
 
 The profiles are =minimal= (prerequisites plus dotfiles), =recommended= (common
-shell, font, editor, terminal, Tailscale, and Rime tools; plus Alfred, Stats,
-Caffeine, and AeroSpace on macOS), and =all=.  Individual components can be adjusted with repeatable =--with= and
+shell, font, editor, terminal, Tailscale, and Rime tools; plus Bitwarden CLI,
+Alfred, Stats, Caffeine, Ice, and AeroSpace on macOS), and =all=.  Individual components can be adjusted with repeatable =--with= and
 =--without= arguments; each occurrence accepts one component:
 
 #+begin_src bash
@@ -121,7 +122,7 @@ curl -fsSL https://gist.githubusercontent.com/Jamie-Cui/3c22bc591b4d372813b6ce26
 Components are =shell=, =font=, =vim=, =nvim=, =emacs=, =ctags=,
 =org-root=, =git-overleaf=, =tdlib=, =kitty=, =flameshot=, =tailscale=, =rime=, =x11=,
 =i3=, =rofi=, =hyprland=, =waybar=, =dunst=, =mail=, =secrets=,
-=alfred=, =stats=, =aerospace=, and =borders=.  Dependencies are added automatically; explicitly
+=bitwarden-cli=, =alfred=, =stats=, =caffeine=, =ice=, =aerospace=, and =borders=.  Dependencies are added automatically; explicitly
 excluding a required dependency is an error.  The clone-only =ctags=,
 =org-root=, =git-overleaf=, and =tdlib= components are selected only with
 =--with= or the =all= profile.
@@ -590,6 +591,15 @@ machine 127.0.0.1 login you@outlook.com password LOCAL_KEY port 1025
 ** MacOS apps
 
 Run =make bootstrap= after installing the apps.
+
+*** [[https://bitwarden.com/help/cli/][Bitwarden CLI]] (=bitwarden-cli=)
+
+The recommended setup profile installs the Bitwarden command-line client with
+Homebrew:
+
+#+begin_src bash
+brew install bitwarden-cli
+#+end_src
 
 *** [[https://www.alfredapp.com/][Alfred]] (=alfred=)
 

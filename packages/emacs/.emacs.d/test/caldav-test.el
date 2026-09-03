@@ -25,14 +25,138 @@
                         (getenv "DOTFILES_EMACS_TEST_REPO"))
       nil t)
 (defun caldav-test--event (uid etag &optional status)
+  "Return a test event for UID, ETAG, and optional STATUS."
   (list uid "md5" etag nil (or status 'synced)))
 
 (defun caldav-test--local-item (uid md5 &optional title)
+  "Return a local test item for UID, MD5, and optional TITLE."
   (cons uid (list :uid uid :md5 md5 :title (or title uid))))
 
 (defun caldav-test--transient-command (prefix key)
   "Return the command bound to KEY in transient PREFIX."
   (plist-get (cdr (transient-get-suffix prefix key)) :command))
+
+(defun caldav-test--git (repo &rest args)
+  "Run Git ARGS in REPO and return trimmed output."
+  (let ((default-directory repo))
+    (with-temp-buffer
+      (let ((status (apply #'process-file "git" nil (current-buffer) nil args)))
+        (unless (zerop status)
+          (error "Git failed: %s" (buffer-string)))
+        (string-trim-right (buffer-string))))))
+
+(defun caldav-test--git-repo ()
+  "Create and return a temporary Git repository."
+  (let ((repo (make-temp-file "caldav-git-test." t)))
+    (caldav-test--git repo "init" "--quiet")
+    (caldav-test--git repo "config" "user.name" "CalDAV Test")
+    (caldav-test--git repo "config" "user.email" "caldav@example.test")
+    repo))
+
+(defun caldav-test--write (repo file text)
+  "Write TEXT to FILE below REPO."
+  (let ((path (expand-file-name file repo)))
+    (make-directory (file-name-directory path) t)
+    (write-region text nil path nil 'silent)))
+
+(defun caldav-test--commit (repo message)
+  "Commit REPO with MESSAGE and return HEAD."
+  (caldav-test--git repo "add" "--all")
+  (caldav-test--git repo "commit" "--quiet" "-m" message)
+  (caldav-test--git repo "rev-parse" "HEAD"))
+
+(defun caldav-test--read (repo file)
+  "Return FILE contents below REPO."
+  (with-temp-buffer
+    (insert-file-contents (expand-file-name file repo))
+    (buffer-string)))
+
+(ert-deftest caldav-git-snapshot-pull-creates-a-real-merge-conflict ()
+  (let* ((repo (caldav-test--git-repo))
+         (+emacs/org-root-dir repo))
+    (unwind-protect
+        (progn
+          (caldav-test--write repo "tasks.org" "base\n")
+          (let* ((base (caldav-test--commit repo "base"))
+                 (context (+notes/caldav--git-context)))
+            (git-foreign-register-remote
+             context +notes/caldav-git-remote-name)
+            (git-foreign-set-base-ref context base)
+            (git-foreign-set-remote-ref context base)
+            (caldav-test--write repo "tasks.org" "local\n")
+            (caldav-test--commit repo "local")
+            (let ((remote
+                   (cl-letf
+                       (((symbol-function
+                          '+notes/caldav--run-complete-remote-pull)
+                         (lambda ()
+                           (caldav-test--write
+                            repo "tasks.org" "remote\n"))))
+                     (+notes/caldav--capture-remote-snapshot context))))
+              (should (equal (caldav-test--read repo "tasks.org") "local\n"))
+              (should (string-empty-p
+                       (+notes/caldav--git-worktree-status context)))
+              (should
+               (eq (git-foreign-apply-pull
+                    context (git-foreign-read-state context remote))
+                   'conflict))
+              (should (string-match-p
+                       "UU tasks.org"
+                       (+notes/caldav--git-worktree-status context)))
+              (let ((contents (caldav-test--read repo "tasks.org")))
+                (should (string-match-p "^<<<<<<< HEAD$" contents))
+                (should (string-match-p "^>>>>>>> " contents))))))
+      (delete-directory repo t))))
+
+(ert-deftest caldav-git-snapshot-failure-rolls-back-worktree-and-state ()
+  (let* ((repo (caldav-test--git-repo))
+         (+emacs/org-root-dir repo)
+         (state-file (make-temp-file "caldav-git-state.")))
+    (unwind-protect
+        (progn
+          (caldav-test--write repo "tasks.org" "base\n")
+          (let* ((base (caldav-test--commit repo "base"))
+                 (context (+notes/caldav--git-context)))
+            (git-foreign-set-base-ref context base)
+            (git-foreign-set-remote-ref context base)
+            (caldav-test--write repo "tasks.org" "local\n")
+            (caldav-test--commit repo "local")
+            (write-region "old-state\n" nil state-file nil 'silent)
+            (cl-letf
+                (((symbol-function 'org-caldav-sync-state-filename)
+                  (lambda (_id) state-file))
+                 ((symbol-function '+notes/caldav--run-complete-remote-pull)
+                  (lambda ()
+                    (caldav-test--write repo "tasks.org" "remote\n")
+                    (write-region
+                     "new-state\n" nil state-file nil 'silent)
+                    (error "Simulated remote failure"))))
+              (should-error
+               (+notes/caldav--capture-remote-snapshot context)
+               :type 'error))
+            (should (equal (caldav-test--read repo "tasks.org") "local\n"))
+            (should (string-empty-p
+                     (+notes/caldav--git-worktree-status context)))
+            (with-temp-buffer
+              (insert-file-contents state-file)
+              (should (equal (buffer-string) "old-state\n")))))
+      (when (file-exists-p state-file)
+        (delete-file state-file))
+      (delete-directory repo t))))
+
+(ert-deftest caldav-git-rejects-an-uncommitted-worktree ()
+  (let* ((repo (caldav-test--git-repo))
+         (+emacs/org-root-dir repo))
+    (unwind-protect
+        (progn
+          (caldav-test--write repo "tasks.org" "base\n")
+          (caldav-test--commit repo "base")
+          (caldav-test--write repo "tasks.org" "dirty\n")
+          (should-error
+           (+notes/caldav--assert-clean-git-worktree
+            (+notes/caldav--git-context))
+           :type 'user-error))
+      (delete-directory repo t))))
 
 (ert-deftest caldav-magit-installs-only-pull-and-push-transient-suffixes ()
   (require 'magit-fetch)
@@ -171,7 +295,14 @@
                    :remote-current nil
                    :entries ((:uid "uid" :state local-modified))))))
       (should (string-prefix-p "GUARDED" (car gate)))
-      (should (eq (cadr gate) 'warning)))))
+      (should (eq (cadr gate) 'warning)))
+    (let ((gate (+notes/caldav-status--push-gate
+                 '(:baseline-exists t
+                   :git (:clean nil)
+                   :remote-current t
+                   :entries nil))))
+      (should (string-prefix-p "BLOCKED — commit Git" (car gate)))
+      (should (eq (cadr gate) 'error)))))
 
 (ert-deftest caldav-magit-inserts-status-into-the-magit-section-tree ()
   (let ((org-caldav-calendar-id "test-calendar")
@@ -205,6 +336,9 @@
       (should (string-match-p "CalDAV: test-calendar" (buffer-string)))
       (should (string-match-p "Remote: (not configured)/test-calendar"
                               (buffer-string)))
+      (should (string-match-p
+               "Git remote: unregistered — not initialized"
+               (buffer-string)))
       (should (string-match-p "^  Remote changes" (buffer-string)))
       (should-not (string-match-p "^Remote changes" (buffer-string)))
       (should (string-match-p "^    added remotely" (buffer-string)))
@@ -264,7 +398,7 @@
       (cl-letf (((symbol-function 'caldav-test--failing-sync)
                  (lambda ()
                    (interactive)
-                   (error "simulated sync failure")))
+                   (error "Simulated sync failure")))
                 ((symbol-function '+notes/caldav-magit--require-status-buffer)
                  (lambda () (current-buffer)))
                 ((symbol-function '+notes/caldav-magit--invalidate)
@@ -431,32 +565,5 @@
           (should (equal (+notes/caldav--saved-state-drift) '("uid"))))
       (delete-file state-file))))
 
-(ert-deftest caldav-force-conflict-resolution-chooses-requested-side ()
-  (let* ((root (make-temp-file "caldav-conflicts-" t))
-         (+emacs/org-root-dir root)
-         (org-mode-hook nil)
-         (local-file (expand-file-name "local.org" root))
-         (remote-file (expand-file-name "remote.org" root))
-         (conflict (concat "before\n<<<<<<< LOCAL\n* TODO local\n"
-                           "=======\n* DONE remote\n>>>>>>> CALDAV\nafter\n")))
-    (unwind-protect
-        (progn
-          (write-region conflict nil local-file nil 'silent)
-          (let ((+emacs/org-root-dir root))
-            (+notes/caldav--resolve-conflicts 'local)
-            (write-region conflict nil remote-file nil 'silent)
-            (+notes/caldav--resolve-conflicts 'remote))
-          (with-temp-buffer
-            (insert-file-contents local-file)
-            (should (search-forward "* TODO local" nil t))
-            (should-not (search-forward "* DONE remote" nil t)))
-          (with-temp-buffer
-            (insert-file-contents remote-file)
-            (should (search-forward "* DONE remote" nil t))
-            (should-not (search-forward "* TODO local" nil t))))
-      (dolist (file (list local-file remote-file))
-        (when-let* ((buffer (find-buffer-visiting file)))
-          (kill-buffer buffer)))
-      (delete-directory root t))))
 (provide 'caldav-test)
 ;;; caldav-test.el ends here

@@ -51,6 +51,13 @@
                                   (magit-commit-create (append args `("--message" ,message "--edit")))))))
     )
   )
+
+(use-package git-foreign-magit
+  :vc (:url "https://github.com/Jamie-Cui/git-foreign-magit"
+            :rev "main")
+  :ensure t
+  :demand t)
+
 (defun +vc/forge-ensure-github-user-h ()
   "Configure Ghub's GitHub user from the primary owned Forge account.
 Do not overwrite an existing non-empty global `github.user' value."
