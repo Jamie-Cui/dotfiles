@@ -84,8 +84,7 @@
             (caldav-test--commit repo "local")
             (let ((remote
                    (cl-letf
-                       (((symbol-function
-                          '+notes/caldav--run-complete-remote-pull)
+                       (((symbol-function '+notes/caldav--run-remote-pull)
                          (lambda ()
                            (caldav-test--write
                             repo "tasks.org" "remote\n"))))
@@ -103,6 +102,73 @@
               (let ((contents (caldav-test--read repo "tasks.org")))
                 (should (string-match-p "^<<<<<<< HEAD$" contents))
                 (should (string-match-p "^>>>>>>> " contents))))))
+      (delete-directory repo t))))
+
+(ert-deftest caldav-git-snapshot-starts-from-latest-remote-ref ()
+  (let* ((repo (caldav-test--git-repo))
+         (snapshot (make-temp-file "caldav-previous-remote." t))
+         (state-file (make-temp-file "caldav-remote-state."))
+         (+emacs/org-root-dir repo)
+         saw-previous-remote)
+    (unwind-protect
+        (progn
+          (caldav-test--write repo "tasks.org" "base\n")
+          (let* ((base (caldav-test--commit repo "base"))
+                 (context (+notes/caldav--git-context)))
+            (git-foreign-set-base-ref context base)
+            (caldav-test--write snapshot "tasks.org" "remote-old\n")
+            (let ((previous-remote
+                   (git-foreign-commit-directory
+                    context snapshot base "previous remote")))
+              (git-foreign-set-remote-ref context previous-remote)
+              (caldav-test--write repo "tasks.org" "local\n")
+              (let ((local (caldav-test--commit repo "local")))
+                (cl-letf
+                    (((symbol-function 'org-caldav-sync-state-filename)
+                      (lambda (_id) state-file))
+                     ((symbol-function '+notes/caldav--run-remote-pull)
+                      (lambda ()
+                        (setq saw-previous-remote
+                              (equal (caldav-test--read repo "tasks.org")
+                                     "remote-old\n"))
+                        (caldav-test--write
+                         repo "tasks.org" "remote-new\n"))))
+                  (+notes/caldav--capture-remote-snapshot context))
+                (should saw-previous-remote)
+                (should (equal (git-foreign-rev-parse context "HEAD") local))
+                (should (equal (caldav-test--read repo "tasks.org")
+                               "local\n"))))))
+      (when (file-exists-p state-file)
+        (delete-file state-file))
+      (delete-directory snapshot t)
+      (delete-directory repo t))))
+
+(ert-deftest caldav-git-unchanged-snapshot-reuses-remote-commit ()
+  (let* ((repo (caldav-test--git-repo))
+         (state-file (make-temp-file "caldav-unchanged-state."))
+         (+emacs/org-root-dir repo))
+    (unwind-protect
+        (progn
+          (caldav-test--write repo "tasks.org" "unchanged\n")
+          (let* ((base (caldav-test--commit repo "base"))
+                 (context (+notes/caldav--git-context)))
+            (git-foreign-set-base-ref context base)
+            (git-foreign-set-remote-ref context base)
+            (cl-letf
+                (((symbol-function 'org-caldav-sync-state-filename)
+                  (lambda (_id) state-file))
+                 ((symbol-function '+notes/caldav--run-remote-pull) #'ignore))
+              (should
+               (equal (+notes/caldav--capture-remote-snapshot context)
+                      base)))
+            (should (equal (git-foreign-rev-parse context "HEAD") base))
+            (should
+             (equal
+              (git-foreign-rev-parse
+               context (git-foreign-remote-ref context))
+              base))))
+      (when (file-exists-p state-file)
+        (delete-file state-file))
       (delete-directory repo t))))
 
 (ert-deftest caldav-fetch-preserves-local-state-and-ff-only-refuses-divergence ()
@@ -187,7 +253,7 @@
             (cl-letf
                 (((symbol-function 'org-caldav-sync-state-filename)
                   (lambda (_id) state-file))
-                 ((symbol-function '+notes/caldav--run-complete-remote-pull)
+                 ((symbol-function '+notes/caldav--run-remote-pull)
                   (lambda ()
                     (caldav-test--write repo "tasks.org" "remote\n")
                     (write-region
@@ -205,6 +271,49 @@
       (when (file-exists-p state-file)
         (delete-file state-file))
       (delete-directory repo t))))
+
+(ert-deftest caldav-local-event-inventory-always-includes-inbox ()
+  (let* ((inbox (expand-file-name "inbox.org" caldav-test--org-root))
+         (source (expand-file-name "source.org" caldav-test--org-root))
+         (org-caldav-inbox inbox)
+         (org-caldav-files (list source))
+         exported-files)
+    (cl-letf (((symbol-function 'org-caldav-generate-ics)
+               (lambda ()
+                 (setq exported-files (copy-sequence org-caldav-files))
+                 (let ((buffer (generate-new-buffer " *caldav-uids*")))
+                   (with-current-buffer buffer
+                     (insert "BEGIN:VCALENDAR\r\n"
+                             "BEGIN:VTODO\r\n"
+                             "UID:inbox-uid\r\n"
+                             "END:VTODO\r\n"
+                             "END:VCALENDAR\r\n"))
+                   buffer))))
+      (should (equal (+notes/caldav--local-event-uids) '("inbox-uid")))
+      (should (member inbox exported-files))
+      (should (member source exported-files)))))
+
+(ert-deftest caldav-incremental-pull-skips-complete-local-inventory ()
+  (let ((prepared 0)
+        force-value
+        synced)
+    (cl-letf (((symbol-function '+notes/caldav--prepare-project-files)
+               (lambda () (cl-incf prepared)))
+              ((symbol-function '+notes/caldav--local-event-uids)
+               (lambda () (ert-fail "Incremental pull exported local UIDs")))
+              ((symbol-function 'org-caldav-sync)
+               (lambda ()
+                 (setq force-value +notes/caldav--force-pulling
+                       synced t)))
+              ((symbol-function '+notes/caldav--sync-errors)
+               (lambda () nil))
+              ((symbol-function '+notes/caldav--finish-remote-pull)
+               (lambda () '(("uid" . "etag")))))
+      (should (equal (+notes/caldav--run-remote-pull)
+                     '(("uid" . "etag"))))
+      (should (= prepared 1))
+      (should synced)
+      (should-not force-value))))
 
 (ert-deftest caldav-git-rejects-an-uncommitted-worktree ()
   (let* ((repo (caldav-test--git-repo))
@@ -480,6 +589,26 @@
          :type 'error)))
     (should invalidated)
     (should-not refreshed)))
+
+(ert-deftest caldav-magit-reuses-sync-etags-and-refreshes-once ()
+  (let ((+notes/caldav--last-verified-remote-etags
+         '(("uid" . "etag")))
+        (refresh-count 0)
+        fetched)
+    (with-temp-buffer
+      (cl-letf (((symbol-function '+notes/caldav-magit--require-status-buffer)
+                 (lambda () (current-buffer)))
+                ((symbol-function 'caldav-test--successful-sync) #'ignore)
+                ((symbol-function '+notes/caldav--fetch-remote-etags)
+                 (lambda () (setq fetched t)))
+                ((symbol-function 'magit-refresh)
+                 (lambda () (cl-incf refresh-count))))
+        (+notes/caldav-magit--run-sync #'caldav-test--successful-sync)
+        (should (= refresh-count 1))
+        (should-not fetched)
+        (should +notes/caldav-status--remote-current-p)
+        (should (equal +notes/caldav-status--remote-etags
+                       '(("uid" . "etag"))))))))
 
 (ert-deftest caldav-normal-pull-classifies-remote-snapshot ()
   (let ((org-caldav-event-list

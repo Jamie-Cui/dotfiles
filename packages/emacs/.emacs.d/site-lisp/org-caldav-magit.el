@@ -44,6 +44,7 @@
 (declare-function magit-toplevel "magit-git" (&optional directory))
 
 (defvar org-caldav-url nil)
+(defvar +notes/caldav--last-verified-remote-etags :unknown)
 
 (defvar-local +notes/caldav-status--remote-etags :unknown
   "Remote ETags cached in the current Magit status buffer.")
@@ -535,6 +536,16 @@ When HIDDEN is non-nil, initially collapse the section."
       (when (+notes/caldav-magit--applicable-p)
         (magit-refresh)))))
 
+(defun +notes/caldav-magit--accept-remote-etags (buffer remote-etags)
+  "Cache verified REMOTE-ETAGS in BUFFER and refresh it once."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (setq +notes/caldav-status--remote-etags remote-etags
+            +notes/caldav-status--remote-current-p t
+            +notes/caldav-status--last-checked (current-time)
+            +notes/caldav-status--remote-error nil)
+      (magit-refresh))))
+
 (defun +notes/caldav-magit--refresh-remote ()
   "Read remote CalDAV ETags and refresh the Org root Magit buffer.
 
@@ -546,12 +557,8 @@ This command never writes Org files or advances the org-caldav baseline."
       (let ((org-caldav-empty-calendar nil))
         (condition-case err
             (progn
-              (setq +notes/caldav-status--remote-etags
-                    (+notes/caldav--fetch-remote-etags)
-                    +notes/caldav-status--remote-current-p t
-                    +notes/caldav-status--last-checked (current-time)
-                    +notes/caldav-status--remote-error nil)
-              (magit-refresh)
+              (+notes/caldav-magit--accept-remote-etags
+               buffer (+notes/caldav--fetch-remote-etags))
               (message "CalDAV remote status refreshed")
               t)
           (error
@@ -584,10 +591,14 @@ Call COMMAND interactively when ARGUMENTS is empty."
               (apply command arguments)
             (call-interactively command))
           (setq completed t))
-      (+notes/caldav-magit--invalidate buffer))
+      (unless completed
+        (+notes/caldav-magit--invalidate buffer)))
     (when (and completed (buffer-live-p buffer))
       (with-current-buffer buffer
-        (+notes/caldav-magit--refresh-remote)))))
+        (if (eq +notes/caldav--last-verified-remote-etags :unknown)
+            (+notes/caldav-magit--refresh-remote)
+          (+notes/caldav-magit--accept-remote-etags
+           buffer +notes/caldav--last-verified-remote-etags))))))
 
 (defun +notes/caldav-magit--operation-description ()
   "Return the transient description for the configured CalDAV calendar."
