@@ -8,7 +8,7 @@
 (require 'init-notes)
 (require 'org-project)
 
-(defconst +notes/caldav-url "https://jamie@gw-api.xyz:443/dav/jamie"
+(defconst +notes/caldav-url "https://caldav.gw-api.xyz/.web"
   "Base URL of the task CalDAV collection.")
 
 (defconst +notes/caldav-calendar-id "org-tasks"
