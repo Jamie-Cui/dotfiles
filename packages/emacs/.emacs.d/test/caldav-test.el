@@ -293,6 +293,25 @@
       (should (member inbox exported-files))
       (should (member source exported-files)))))
 
+(ert-deftest caldav-status-local-scan-always-includes-inbox ()
+  (let* ((inbox (expand-file-name "status-inbox.org"
+                                  caldav-test--org-root))
+         (source (expand-file-name "status-source.org"
+                                   caldav-test--org-root))
+         (+notes/caldav-inbox-file inbox)
+         scanned-files)
+    (write-region "" nil inbox nil 'silent)
+    (write-region "" nil source nil 'silent)
+    (cl-letf (((symbol-function '+notes/caldav-source-files)
+               (lambda () (list source)))
+              ((symbol-function '+notes/caldav-status--scan-local-file)
+               (lambda (file)
+                 (push file scanned-files)
+                 nil)))
+      (+notes/caldav-status--scan-local)
+      (should (equal (sort scanned-files #'string-lessp)
+                     (sort (list inbox source) #'string-lessp))))))
+
 (ert-deftest caldav-incremental-pull-skips-complete-local-inventory ()
   (let ((prepared 0)
         force-value

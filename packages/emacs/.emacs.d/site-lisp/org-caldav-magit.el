@@ -245,7 +245,9 @@ inside unresolved Git conflict markers."
 (defun +notes/caldav-status--scan-local ()
   "Return local items, untracked tasks, duplicate IDs, and scan errors."
   (let (items untracked duplicates errors)
-    (dolist (file (delete-dups (+notes/caldav-source-files)))
+    (dolist (file (delete-dups
+                   (cons +notes/caldav-inbox-file
+                         (+notes/caldav-source-files))))
       (when (and (stringp file) (file-readable-p file))
         (condition-case err
             (dolist (item (+notes/caldav-status--scan-local-file file))
