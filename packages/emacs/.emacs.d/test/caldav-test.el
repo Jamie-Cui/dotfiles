@@ -21,9 +21,6 @@
 (load (expand-file-name "lisp/modules/caldav.el"
                         (getenv "DOTFILES_EMACS_TEST_REPO"))
       nil t)
-(load (expand-file-name "lisp/modules/caldav-magit.el"
-                        (getenv "DOTFILES_EMACS_TEST_REPO"))
-      nil t)
 (defun caldav-test--event (uid etag &optional status)
   "Return a test event for UID, ETAG, and optional STATUS."
   (list uid "md5" etag nil (or status 'synced)))

@@ -19,13 +19,15 @@
 
 (require 'cl-lib)
 (require 'git-foreign-magit)
-(require 'init-caldav)
 (require 'org)
 (require 'seq)
 (eval-and-compile
   (require 'magit-section)
   (require 'transient))
 (require 'magit nil t)
+
+(unless (fboundp '+notes/caldav--git-context)
+  (error "Load `init-caldav' before `org-caldav-magit'"))
 
 (declare-function org-caldav-event-etag "org-caldav" (event))
 (declare-function org-caldav-event-md5 "org-caldav" (event))

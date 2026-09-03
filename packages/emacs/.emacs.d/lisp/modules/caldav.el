@@ -1063,5 +1063,8 @@ FILE and BELL are the arguments accepted by `org-caldav-create-uid'."
                 :around
                 #'+notes/caldav--delete-event-a)))
 
+(load "org-caldav-magit" nil t)
+(+notes/caldav-magit-setup)
+
 (provide 'init-caldav)
 ;;; caldav.el ends here
