@@ -1,9 +1,10 @@
 ;;; caldav.el --- explicit conflict-safe Org CalDAV sync -*- lexical-binding: t; -*-
 ;;; Commentary:
 ;; Explicit pull, push, force-pull, and force-push semantics for the Org task
-;; collection, including conflict markers and ETag concurrency protection.
+;; collection, including Git merges and ETag concurrency protection.
 ;;; Code:
 
+(require 'git-foreign)
 (require 'init-notes)
 (require 'org-project)
 
@@ -12,6 +13,19 @@
 
 (defconst +notes/caldav-calendar-id "org-tasks"
   "Calendar ID of the task CalDAV collection.")
+
+(defconst +notes/caldav-git-remote-name "caldav"
+  "Logical Git remote name for the task CalDAV collection.")
+
+(defconst +notes/caldav-git-base-ref "refs/git-foreign/caldav/base"
+  "Git ref storing the last integrated CalDAV snapshot.")
+
+(defconst +notes/caldav-git-remote-ref "refs/git-foreign/caldav/remote"
+  "Git ref storing the latest complete CalDAV snapshot.")
+
+(defconst +notes/caldav-git-backup-ref-prefix
+  "refs/git-foreign/caldav/backups"
+  "Git ref prefix for CalDAV safety backups.")
 
 (defconst +notes/caldav-inbox-file
   (expand-file-name "caldav-inbox.org" +emacs/org-root-dir)
@@ -36,9 +50,6 @@
 (defvar +notes/caldav--force-pushing nil
   "Non-nil while replacing the remote calendar from the local snapshot.")
 
-(defvar +notes/caldav--pull-conflicts nil
-  "UIDs for conflicts created by the current CalDAV pull.")
-
 (defvar +notes/caldav--remote-etags :not-fetched
   "Remote ETags observed while updating the current CalDAV pull.")
 
@@ -53,6 +64,9 @@
 
 (defvar +notes/caldav--push-races nil
   "UIDs changed remotely while the current CalDAV push was running.")
+
+(defvar +notes/caldav--snapshotting nil
+  "Non-nil while projecting a complete CalDAV snapshot into Git.")
 
 (defvar org-caldav-files nil)
 (defvar org-caldav-inbox nil)
@@ -152,8 +166,14 @@
 
 (defun +notes/caldav--prepare-project-files ()
   "Prepare the inbox and project files used by `org-caldav'."
-  (setq org-caldav-inbox (+notes/caldav--inbox-target)
-        org-caldav-files (+notes/caldav-source-files))
+  (let ((source-files (+notes/caldav-source-files)))
+    (setq org-caldav-inbox (if +notes/caldav--snapshotting
+                               +notes/caldav-inbox-file
+                             (+notes/caldav--inbox-target))
+          org-caldav-files
+          (if +notes/caldav--snapshotting
+              (seq-filter #'file-readable-p source-files)
+            source-files)))
   ;; org-caldav only refreshes IDs before an Org-to-CalDAV sync.  A pull also
   ;; needs current markers so remote changes land in their source files.
   (org-id-update-id-locations
@@ -186,7 +206,7 @@
    (lambda (file)
      (with-temp-buffer
        (insert-file-contents file)
-       (re-search-forward "^<<<<<<< LOCAL$" nil t)))
+       (re-search-forward "^<<<<<<< " nil t)))
    (directory-files-recursively +emacs/org-root-dir "\\.org\\'")))
 
 (defun +notes/caldav--assert-no-conflicts ()
@@ -198,116 +218,270 @@
                   (file-relative-name file +emacs/org-root-dir))
                 files ", "))))
 
-(defun +notes/caldav--resolve-conflicts (side)
-  "Resolve every CalDAV conflict marker by choosing SIDE.
+(defun +notes/caldav--git-context ()
+  "Return the foreign Git context for the Org repository."
+  (let* ((repo (directory-file-name
+                (file-truename +emacs/org-root-dir)))
+         (context
+          (git-foreign-make-context
+           :repo repo
+           :label "CalDAV"
+           :remote-marker-suffix "gitForeignCalendarId"
+           :remote-marker-value +notes/caldav-calendar-id
+           :base-ref +notes/caldav-git-base-ref
+           :remote-ref +notes/caldav-git-remote-ref
+           :backup-ref-prefix +notes/caldav-git-backup-ref-prefix
+           :identity-name "CalDAV Snapshot"
+           :identity-email "caldav@local"))
+         (toplevel
+          (git-foreign-output-noerror
+           context "rev-parse" "--show-toplevel")))
+    (unless (and toplevel (file-equal-p repo toplevel))
+      (user-error "Org root is not a Git repository: %s" repo))
+    context))
 
-SIDE must be `local' or `remote'."
-  (unless (memq side '(local remote))
-    (error "Unknown CalDAV conflict side: %S" side))
-  (dolist (file (+notes/caldav--conflict-files))
-    (with-current-buffer (find-file-noselect file)
-      (save-excursion
-        (save-restriction
-          (widen)
-          (goto-char (point-min))
-          (while (re-search-forward "^<<<<<<< LOCAL$" nil t)
-            (let ((block-begin (line-beginning-position))
-                  (local-begin (progn (forward-line 1) (point))))
-              (unless (re-search-forward "^=======$" nil t)
-                (error "Malformed CalDAV conflict in %s" file))
-              (let ((local-end (line-beginning-position))
-                    (remote-begin (progn (forward-line 1) (point))))
-                (unless (re-search-forward "^>>>>>>> CALDAV$" nil t)
-                  (error "Malformed CalDAV conflict in %s" file))
-                (let* ((remote-end (line-beginning-position))
-                       (block-end (progn (forward-line 1) (point)))
-                       (chosen
-                        (buffer-substring-no-properties
-                         (if (eq side 'local) local-begin remote-begin)
-                         (if (eq side 'local) local-end remote-end))))
-                  (delete-region block-begin block-end)
-                  (goto-char block-begin)
-                  (insert chosen)))))))
-      (when (buffer-modified-p)
-        (save-buffer))))
-  (+notes/caldav--assert-no-conflicts))
+(defun +notes/caldav--git-worktree-status (context)
+  "Return porcelain worktree status for foreign CONTEXT."
+  (git-foreign-output
+   context "status" "--porcelain=v1" "--untracked-files=all"))
 
-(defun +notes/caldav--entry-snapshot (uid)
-  "Return UID's current Org subtree and MD5, or nil if it is absent."
-  (when-let* ((marker (org-id-find uid t)))
-    (with-current-buffer (marker-buffer marker)
-      (save-excursion
-        (goto-char marker)
-        (org-back-to-heading t)
-        (let* ((begin (org-entry-beginning-position))
-               (end (org-entry-end-position))
-               (text (buffer-substring-no-properties begin end)))
-          (list :text text :md5 (md5 text)))))))
+(defun +notes/caldav--assert-clean-git-worktree (context)
+  "Require a clean, merge-free worktree for foreign CONTEXT."
+  (when (git-foreign-rev-parse-noerror context "MERGE_HEAD")
+    (user-error "Complete or abort the current Git merge before CalDAV sync"))
+  (let ((status (+notes/caldav--git-worktree-status context)))
+    (unless (string-empty-p status)
+      (user-error
+       "Commit or discard Git changes before CalDAV sync:\n%s"
+       status))))
 
-(defun +notes/caldav--format-conflict (local remote)
-  "Return a Git-style conflict containing LOCAL and REMOTE subtrees."
-  (concat "<<<<<<< LOCAL\n"
-          (or local "")
-          (unless (or (null local) (string-suffix-p "\n" local)) "\n")
-          "=======\n"
-          (or remote "")
-          (unless (or (null remote) (string-suffix-p "\n" remote)) "\n")
-          ">>>>>>> CALDAV\n"))
+(defun +notes/caldav--ensure-git-state
+    (context &optional allow-without-sync-state)
+  "Register and initialize CalDAV refs for foreign CONTEXT.
+When ALLOW-WITHOUT-SYNC-STATE is non-nil, permit an explicit forced operation
+to establish the first baseline."
+  (git-foreign-register-remote context +notes/caldav-git-remote-name)
+  (unless (git-foreign-rev-parse-noerror
+           context (git-foreign-base-ref context))
+    (let ((state-file
+           (org-caldav-sync-state-filename org-caldav-calendar-id)))
+      (unless (or allow-without-sync-state (file-exists-p state-file))
+        (user-error
+         "Run a forced CalDAV pull or push before initializing Git state")))
+    (let ((head (git-foreign-rev-parse context "HEAD")))
+      (git-foreign-set-base-ref context head)
+      (git-foreign-set-remote-ref context head)))
+  context)
 
-(defun +notes/caldav--replace-entry-with-conflict (uid local remote)
-  "Replace UID's entry with a conflict between LOCAL and REMOTE."
-  (let ((marker (org-id-find uid t)))
-    (unless marker
-      (error "Could not find CalDAV conflict entry %s" uid))
-    (with-current-buffer (marker-buffer marker)
-      (save-excursion
-        (goto-char marker)
-        (org-back-to-heading t)
-        (delete-region (org-entry-beginning-position)
-                       (org-entry-end-position))
-        (insert (+notes/caldav--format-conflict local remote))
-        (save-buffer)))))
+(defun +notes/caldav--repo-file-buffers ()
+  "Return live file buffers below the Org Git repository."
+  (let ((root (file-name-as-directory
+               (file-truename +emacs/org-root-dir))))
+    (seq-filter
+     (lambda (buffer)
+       (and (buffer-live-p buffer)
+            (with-current-buffer buffer
+              (and buffer-file-name
+                   (file-in-directory-p
+                    (expand-file-name buffer-file-name)
+                    root)))))
+     (buffer-list))))
 
-(defun +notes/caldav--collect-pull-conflicts ()
-  "Collect every external remote change as a manual conflict.
+(defun +notes/caldav--revert-repo-buffers (buffers)
+  "Revert unmodified repository BUFFERS after an external Git change."
+  (dolist (buffer buffers)
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (when (buffer-modified-p)
+          (error "Repository buffer became modified during CalDAV sync: %s"
+                 (buffer-name buffer)))
+        (if (and buffer-file-name (file-exists-p buffer-file-name))
+            (revert-buffer t t t)
+          (kill-buffer buffer))))))
 
-This runs after org-caldav has compared remote ETags but before it changes Org
-files.  Cases which org-caldav cannot represent directly are converted into an
-update which can subsequently be wrapped in conflict markers."
-  (let (conflicts remove-events)
-    (dolist (event org-caldav-event-list)
-      (let* ((uid (car event))
-             (status (org-caldav-event-status event))
-             (snapshot (+notes/caldav--entry-snapshot uid))
-             (local (plist-get snapshot :text)))
-        (pcase status
-          ('changed-in-cal
-           ;; If the entry was deleted locally, import the remote version so
-           ;; the conflict can have an empty LOCAL side.
-           (unless snapshot
-             (org-caldav-event-set-status event 'new-in-cal))
-           (push (list :event event :uid uid :local local :deleted nil)
-                 conflicts))
-          ('new-in-cal
-           ;; A remote UID collision must update the existing local entry
-           ;; temporarily; otherwise org-caldav would create a duplicate ID.
-           (when snapshot
-             (org-caldav-event-set-status event 'changed-in-cal))
-           (push (list :event event :uid uid :local local :deleted nil)
-                 conflicts))
-          ('deleted-in-cal
-           (if snapshot
-               (progn
-                 ;; Keep the local side instead of letting org-caldav delete it.
-                 (org-caldav-event-set-status event 'ignored)
-                 (push (list :event event :uid uid :local local :deleted t)
-                       conflicts))
-             ;; Both sides already lack the entry, so no choice remains for the
-             ;; user to resolve and the stale state can simply disappear.
-             (push event remove-events))))))
-    (dolist (event remove-events)
-      (setq org-caldav-event-list (delq event org-caldav-event-list)))
-    (nreverse conflicts)))
+(defun +notes/caldav--restore-repo-buffers (original-buffers)
+  "Restore ORIGINAL-BUFFERS and close temporary repository buffers."
+  (let ((current (+notes/caldav--repo-file-buffers)))
+    (+notes/caldav--revert-repo-buffers original-buffers)
+    (dolist (buffer current)
+      (unless (or (memq buffer original-buffers)
+                  (not (buffer-live-p buffer)))
+        (with-current-buffer buffer
+          (when (buffer-modified-p)
+            (error "Temporary CalDAV buffer is unexpectedly modified: %s"
+                   (buffer-name buffer)))
+          (kill-buffer buffer))))))
+
+(defun +notes/caldav--sync-state-backup ()
+  "Return a recoverable backup of the current org-caldav state."
+  (let* ((state-file
+          (org-caldav-sync-state-filename org-caldav-calendar-id))
+         (exists (file-exists-p state-file))
+         (backup (and exists (make-temp-file "caldav-state."))))
+    (when backup
+      (copy-file state-file backup t))
+    (list :state-file state-file :existed exists :backup backup)))
+
+(defun +notes/caldav--restore-sync-state (backup)
+  "Restore org-caldav state from BACKUP."
+  (let ((state-file (plist-get backup :state-file))
+        (existed (plist-get backup :existed))
+        (backup-file (plist-get backup :backup)))
+    (if existed
+        (copy-file backup-file state-file t)
+      (when (file-exists-p state-file)
+        (delete-file state-file)))))
+
+(defun +notes/caldav--delete-state-backup (backup)
+  "Delete the temporary state BACKUP, reporting cleanup failures."
+  (when-let* ((file (plist-get backup :backup)))
+    (condition-case err
+        (when (file-exists-p file)
+          (delete-file file))
+      (file-error
+       (display-warning
+        'org-caldav
+        (format "Could not remove CalDAV state backup %s: %s"
+                file (error-message-string err)))))))
+
+(defun +notes/caldav--restore-worktree
+    (context revision original-buffers)
+  "Restore foreign CONTEXT to REVISION and ORIGINAL-BUFFERS."
+  (git-foreign-output
+   context "restore" "--source" revision "--worktree" "--" ".")
+  ;; The transaction begins from a worktree with no untracked files, so every
+  ;; non-ignored untracked path here was created by the remote projection.
+  (git-foreign-output context "clean" "-fd")
+  (+notes/caldav--restore-repo-buffers original-buffers))
+
+(defun +notes/caldav--run-complete-remote-pull ()
+  "Replace the projected worktree with a complete remote snapshot."
+  (+notes/caldav--prepare-project-files)
+  (let ((local-uids (+notes/caldav--local-event-uids)))
+    (+notes/caldav--prepare-project-files)
+    (let ((+notes/caldav--pulling t)
+          (+notes/caldav--force-pulling t)
+          (+notes/caldav--force-local-uids local-uids)
+          (+notes/caldav--remote-etags :not-fetched)
+          (org-caldav-sync-direction 'cal->org)
+          (org-caldav-delete-org-entries 'always)
+          (org-caldav-resume-aborted 'never))
+      (org-caldav-sync)
+      (when (+notes/caldav--sync-errors)
+        (org-caldav-display-sync-results)
+        (user-error "CalDAV pull finished with errors; inspect the results"))
+      (when-let* ((drift (+notes/caldav--saved-state-drift)))
+        (user-error
+         "CalDAV changed during pull (%s); retry the pull"
+         (mapconcat #'identity drift ", "))))))
+
+(defun +notes/caldav--capture-remote-snapshot (context)
+  "Capture a complete remote CalDAV commit for foreign CONTEXT.
+The local branch, index, and clean worktree are restored before the new
+snapshot ref becomes visible."
+  (let* ((base (git-foreign-rev-parse
+                context (git-foreign-base-ref context)))
+         (parent (or (git-foreign-rev-parse-noerror
+                      context (git-foreign-remote-ref context))
+                     base))
+         (head (git-foreign-rev-parse context "HEAD"))
+         (original-buffers (+notes/caldav--repo-file-buffers))
+         (state-backup (+notes/caldav--sync-state-backup))
+         remote-commit
+         primary-error)
+    (condition-case err
+        (progn
+          (git-foreign-output
+           context "restore" "--source" base "--worktree" "--" ".")
+          (+notes/caldav--revert-repo-buffers original-buffers)
+          (let ((+notes/caldav--snapshotting t))
+            (+notes/caldav--run-complete-remote-pull))
+          (setq remote-commit
+                (git-foreign-commit-directory
+                 context
+                 (git-foreign-context-repo context)
+                 parent
+                 (format "caldav: remote snapshot %s"
+                         (format-time-string "%Y-%m-%d %H:%M:%S")))))
+      (error (setq primary-error err)))
+    (condition-case err
+        (+notes/caldav--restore-worktree
+         context head original-buffers)
+      (error
+       (if primary-error
+           (display-warning
+            'org-caldav
+            (format "CalDAV worktree rollback failed: %s"
+                    (error-message-string err)))
+         (setq primary-error err))))
+    (when primary-error
+      (condition-case err
+          (+notes/caldav--restore-sync-state state-backup)
+        (file-error
+         (display-warning
+          'org-caldav
+          (format "CalDAV state rollback failed: %s"
+                  (error-message-string err)))))
+      (+notes/caldav--delete-state-backup state-backup)
+      (signal (car primary-error) (cdr primary-error)))
+    (+notes/caldav--delete-state-backup state-backup)
+    (git-foreign-set-remote-ref context remote-commit)
+    remote-commit))
+
+(defun +notes/caldav--mark-head-synchronized (context)
+  "Mark HEAD as the synchronized state for foreign CONTEXT."
+  (git-foreign-set-base-ref context "HEAD")
+  (git-foreign-set-remote-ref context "HEAD"))
+
+(defun +notes/caldav--remote-integrated-p (context)
+  "Return non-nil when foreign CONTEXT is safe for a normal push."
+  (let* ((state (git-foreign-read-state context))
+         (status (plist-get state :status))
+         (remote (plist-get state :remote-commit)))
+    (or (memq status '(in-sync head-matches-remote remote-matches-base))
+        (git-foreign-output-noerror
+         context "merge-base" "--is-ancestor" remote "HEAD"))))
+
+(defun +notes/caldav--git-status-data ()
+  "Return non-mutating Git status data for the CalDAV adapter."
+  (let* ((context (+notes/caldav--git-context))
+         (base (git-foreign-rev-parse-noerror
+                context (git-foreign-base-ref context)))
+         (remote (git-foreign-rev-parse-noerror
+                  context (git-foreign-remote-ref context)))
+         (state (and base remote (git-foreign-read-state context))))
+    (list :remote-name (git-foreign-remote-name context)
+          :clean (string-empty-p
+                  (+notes/caldav--git-worktree-status context))
+          :state state
+          :push-ready (and state
+                           (+notes/caldav--remote-integrated-p context)))))
+
+(defun +notes/caldav--managed-merge-p (context)
+  "Return non-nil when CONTEXT is merging its CalDAV snapshot."
+  (when-let* ((merge-head
+               (git-foreign-rev-parse-noerror context "MERGE_HEAD"))
+              (remote
+               (git-foreign-rev-parse-noerror
+                context (git-foreign-remote-ref context))))
+    (equal merge-head remote)))
+
+(defun +notes/caldav--abort-managed-merge (context)
+  "Abort an active CalDAV merge for foreign CONTEXT."
+  (when (git-foreign-rev-parse-noerror context "MERGE_HEAD")
+    (unless (+notes/caldav--managed-merge-p context)
+      (user-error "The active Git merge does not belong to CalDAV"))
+    (git-foreign-output context "merge" "--abort")
+    (+notes/caldav--revert-repo-buffers
+     (+notes/caldav--repo-file-buffers))))
+
+(defun +notes/caldav--commit-forced-pull (context)
+  "Commit forced-pull changes and synchronize foreign CONTEXT."
+  (unless (string-empty-p (+notes/caldav--git-worktree-status context))
+    (git-foreign-output context "add" "--all")
+    (git-foreign-output
+     context "commit" "-m" "caldav: force pull remote snapshot"))
+  (+notes/caldav--mark-head-synchronized context))
 
 (defun +notes/caldav--ics-uids (buffer)
   "Return all event UIDs contained in iCalendar BUFFER."
@@ -347,7 +521,7 @@ update which can subsequently be wrapped in conflict markers."
    (org-caldav-get-event-etag-list)))
 
 (defun +notes/caldav--capture-remote-etags-a (fn &rest args)
-  "Record the ETag list returned by FN during an explicit pull."
+  "Record the ETag list returned by FN with ARGS during an explicit pull."
   (let ((result (apply fn args)))
     (when +notes/caldav--pulling
       (setq +notes/caldav--remote-etags
@@ -355,7 +529,7 @@ update which can subsequently be wrapped in conflict markers."
     result))
 
 (defun +notes/caldav--reconcile-pull-state-a (fn &rest args)
-  "Make FN classify pull changes against the saved remote baseline.
+  "Make FN with ARGS classify pull changes against the saved remote baseline.
 
 Pure `cal->org' mode does not scan Org first, so org-caldav cannot otherwise
 distinguish an unchanged event from a local deletion or detect a remote
@@ -413,30 +587,6 @@ deletion."
                 (org-caldav-event-set-status event 'deleted-in-cal))
                (t
                 (org-caldav-event-set-status event 'synced))))))))))
-
-(defun +notes/caldav--update-events-in-org-a (fn &rest args)
-  "Around advice for FN which preserves all remote changes as conflicts."
-  (if (or (not +notes/caldav--pulling)
-          +notes/caldav--force-pulling)
-      (apply fn args)
-    (let ((conflicts (+notes/caldav--collect-pull-conflicts)))
-      (prog1 (apply fn args)
-        (dolist (conflict conflicts)
-          (let* ((event (plist-get conflict :event))
-                 (uid (plist-get conflict :uid))
-                 (local (plist-get conflict :local))
-                 (deleted (plist-get conflict :deleted))
-                 (remote (unless deleted
-                           (plist-get (+notes/caldav--entry-snapshot uid)
-                                      :text))))
-            (+notes/caldav--replace-entry-with-conflict uid local remote)
-            (when deleted
-              ;; Nil is now the remote baseline.  Choosing LOCAL will make a
-              ;; later push recreate the entry; choosing CALDAV removes it.
-              (org-caldav-event-set-md5 event nil)
-              (org-caldav-event-set-etag event nil)
-              (org-caldav-event-set-status event 'synced))
-            (push uid +notes/caldav--pull-conflicts)))))))
 
 (defun +notes/caldav--remote-drift (state remote)
   "Return UIDs whose REMOTE ETags differ from saved STATE."
@@ -504,7 +654,9 @@ deletion."
 
 (defun +notes/caldav--conditional-request-a
     (fn url &optional request-method request-data extra-headers)
-  "Add CalDAV precondition headers to writes made by FN."
+  "Add CalDAV preconditions to FN's URL request.
+REQUEST-METHOD, REQUEST-DATA, and EXTRA-HEADERS are the corresponding
+`org-caldav-url-retrieve-synchronously' arguments."
   (if (not (and +notes/caldav--pushing
                 (member request-method '("PUT" "DELETE"))))
       (funcall fn url request-method request-data extra-headers)
@@ -548,7 +700,7 @@ deletion."
         response))))
 
 (defun +notes/caldav--verify-written-etags-a (fn &rest args)
-  "Around advice for FN which detects remote writes racing with a push."
+  "Call FN with ARGS and detect remote writes racing with a push."
   (prog1 (apply fn args)
     (when +notes/caldav--pushing
       (dolist (written +notes/caldav--write-etags)
@@ -595,7 +747,7 @@ deletion."
                'deleted-in-org)))))))))
 
 (defun +notes/caldav--delete-event-a (fn uid)
-  "Make a failed deletion by FN abort the current push."
+  "Make a failed deletion of UID by FN abort the current push."
   (let ((deleted (funcall fn uid)))
     (when (and +notes/caldav--pushing (not deleted))
       (error "CalDAV deletion failed for %s; pull and retry" uid))
@@ -610,58 +762,78 @@ deletion."
    org-caldav-sync-result))
 
 (defun +notes/caldav-pull ()
-  "Pull CalDAV into Org, representing every remote change as a conflict."
+  "Pull CalDAV through a complete snapshot and a real Git merge."
   (interactive)
   (require 'org-caldav)
   (+notes/caldav-configure)
   (+notes/caldav--assert-org-buffers-saved)
   (+notes/caldav--assert-no-conflicts)
-  (let ((+notes/caldav--pulling t)
-        (+notes/caldav--pull-conflicts nil)
-        (+notes/caldav--remote-etags :not-fetched)
-        (org-caldav-sync-direction 'cal->org)
-        (org-caldav-delete-org-entries 'never)
-        (org-caldav-resume-aborted 'never))
-    (org-caldav-sync)
-    (when (+notes/caldav--sync-errors)
-      (org-caldav-display-sync-results)
-      (user-error "CalDAV pull finished with errors; inspect the results"))
-    (if +notes/caldav--pull-conflicts
-        (message
-         "CalDAV pull created %d conflict(s); resolve markers before push"
-         (length +notes/caldav--pull-conflicts))
-      (message "CalDAV pull complete; no remote changes"))))
+  (let ((context (+notes/caldav--git-context)))
+    (+notes/caldav--assert-clean-git-worktree context)
+    (+notes/caldav--ensure-git-state context)
+    (let* ((remote-commit
+            (+notes/caldav--capture-remote-snapshot context))
+           (state (git-foreign-read-state context remote-commit))
+           (result (git-foreign-apply-pull context state)))
+      (+notes/caldav--revert-repo-buffers
+       (+notes/caldav--repo-file-buffers))
+      (pcase result
+        ('in-sync
+         (message "CalDAV is already in sync"))
+        ('matching
+         (+notes/caldav--mark-head-synchronized context)
+         (message "Local and CalDAV content already match"))
+        ('no-remote-changes
+         (message "No remote CalDAV changes to pull"))
+        ('fast-forward
+         (message "Pulled CalDAV changes with a Git fast-forward"))
+        ('merged
+         (message "Pulled CalDAV changes with a Git merge"))
+        ('conflict
+         (message
+          "CalDAV created a Git merge conflict; resolve it in Magit and commit")))
+      result)))
 
 (defun +notes/caldav-push ()
   "Push Org to CalDAV only if the remote still matches the last pull."
   (interactive)
   (require 'org-caldav)
   (+notes/caldav-configure)
-  (+notes/caldav--assert-org-buffers-saved)
   (+notes/caldav--assert-no-conflicts)
-  (+notes/caldav--prepare-project-files)
-  (+notes/caldav--assert-remote-current)
-  (let ((+notes/caldav--pushing t)
-        (+notes/caldav--write-etags nil)
-        (+notes/caldav--push-races nil)
-        (org-caldav-sync-direction 'org->cal)
-        (org-caldav-resume-aborted 'never))
-    (org-caldav-sync)
-    (when (+notes/caldav--sync-errors)
-      (org-caldav-display-sync-results)
-      (user-error "CalDAV push finished with errors; pull before retrying"))
-    (when +notes/caldav--push-races
-      (user-error
-       "CalDAV changed during push (%s); pull and resolve before pushing again"
-       (mapconcat #'identity +notes/caldav--push-races ", ")))
-    (message "CalDAV push complete")))
+  (let ((+notes/caldav--snapshotting t))
+    (+notes/caldav--prepare-project-files)
+    (+notes/caldav--local-event-uids)
+    (+notes/caldav--prepare-project-files)
+    (+notes/caldav--assert-org-buffers-saved)
+    (let ((context (+notes/caldav--git-context)))
+      (+notes/caldav--assert-clean-git-worktree context)
+      (+notes/caldav--ensure-git-state context)
+      (unless (+notes/caldav--remote-integrated-p context)
+        (user-error
+         "The latest CalDAV snapshot is not integrated; pull before pushing"))
+      (+notes/caldav--assert-remote-current)
+      (let ((+notes/caldav--pushing t)
+            (+notes/caldav--write-etags nil)
+            (+notes/caldav--push-races nil)
+            (org-caldav-sync-direction 'org->cal)
+            (org-caldav-resume-aborted 'never))
+        (org-caldav-sync)
+        (when (+notes/caldav--sync-errors)
+          (org-caldav-display-sync-results)
+          (user-error "CalDAV push finished with errors; pull before retrying"))
+        (when +notes/caldav--push-races
+          (user-error
+           "CalDAV changed during push (%s); pull and resolve before pushing again"
+           (mapconcat #'identity +notes/caldav--push-races ", ")))
+        (+notes/caldav--mark-head-synchronized context)
+        (message "CalDAV push complete")))))
 
 (defun +notes/caldav-force-pull ()
   "Replace every local CalDAV-managed task with the remote snapshot.
 
 This is destructive: remote entries win, remote deletions delete their local
-counterparts, and local-only CalDAV tasks are deleted.  Existing conflict
-markers are resolved by choosing their CALDAV side."
+counterparts, and local-only CalDAV tasks are deleted.  The resulting clean
+snapshot is committed to the current Git branch."
   (interactive)
   (require 'org-caldav)
   (+notes/caldav-configure)
@@ -669,36 +841,20 @@ markers are resolved by choosing their CALDAV side."
   (unless (yes-or-no-p
            "FORCE PULL: replace/delete local CalDAV tasks to match remote? ")
     (user-error "Forced CalDAV pull cancelled"))
-  (+notes/caldav--resolve-conflicts 'remote)
-  (+notes/caldav--prepare-project-files)
-  (let ((local-uids (+notes/caldav--local-event-uids)))
-    ;; UID creation during the snapshot export may have changed ID locations.
-    (+notes/caldav--prepare-project-files)
-    (let ((+notes/caldav--pulling t)
-          (+notes/caldav--force-pulling t)
-          (+notes/caldav--force-local-uids local-uids)
-          (+notes/caldav--pull-conflicts nil)
-          (+notes/caldav--remote-etags :not-fetched)
-          (org-caldav-sync-direction 'cal->org)
-          (org-caldav-delete-org-entries 'always)
-          (org-caldav-resume-aborted 'never))
-      (org-caldav-sync)
-      (when (+notes/caldav--sync-errors)
-        (org-caldav-display-sync-results)
-        (user-error
-         "Forced CalDAV pull finished with errors; inspect the results"))
-      (let ((drift (+notes/caldav--saved-state-drift)))
-        (when drift
-          (user-error
-           "CalDAV changed during forced pull (%s); retry the forced pull"
-           (mapconcat #'identity drift ", "))))
-      (message "Forced CalDAV pull complete; local snapshot matches remote"))))
+  (let ((context (+notes/caldav--git-context)))
+    (+notes/caldav--abort-managed-merge context)
+    (+notes/caldav--assert-clean-git-worktree context)
+    (+notes/caldav--ensure-git-state context t)
+    (let ((+notes/caldav--snapshotting t))
+      (+notes/caldav--run-complete-remote-pull))
+    (+notes/caldav--commit-forced-pull context)
+    (message "Forced CalDAV pull committed the complete remote snapshot")))
 
 (defun +notes/caldav-force-push ()
   "Replace the remote CalDAV collection with the local task snapshot.
 
 This is destructive: local entries win and remote-only entries are deleted.
-Existing conflict markers are resolved by choosing their LOCAL side."
+An active CalDAV merge is aborted before the local committed snapshot wins."
   (interactive)
   (require 'org-caldav)
   (+notes/caldav-configure)
@@ -706,27 +862,36 @@ Existing conflict markers are resolved by choosing their LOCAL side."
   (unless (yes-or-no-p
            "FORCE PUSH: replace/delete remote CalDAV entries to match local? ")
     (user-error "Forced CalDAV push cancelled"))
-  (+notes/caldav--resolve-conflicts 'local)
-  (+notes/caldav--prepare-project-files)
-  (let ((remote-etags (+notes/caldav--fetch-remote-etags)))
-    (let ((+notes/caldav--pushing t)
-          (+notes/caldav--force-pushing t)
-          (+notes/caldav--force-remote-etags remote-etags)
-          (+notes/caldav--write-etags nil)
-          (+notes/caldav--push-races nil)
-          (org-caldav-sync-direction 'org->cal)
-          (org-caldav-delete-calendar-entries 'always)
-          (org-caldav-resume-aborted 'never))
-      (org-caldav-sync)
-      (when (+notes/caldav--sync-errors)
-        (org-caldav-display-sync-results)
-        (user-error
-         "Forced CalDAV push finished with errors; pull before retrying"))
-      (when +notes/caldav--push-races
-        (user-error
-         "CalDAV changed during forced push (%s); retry after inspecting it"
-         (mapconcat #'identity +notes/caldav--push-races ", ")))
-      (message "Forced CalDAV push complete; remote snapshot matches local"))))
+  (let ((context (+notes/caldav--git-context)))
+    (+notes/caldav--abort-managed-merge context)
+    (let ((+notes/caldav--snapshotting t))
+      (+notes/caldav--prepare-project-files)
+      (+notes/caldav--local-event-uids)
+      (+notes/caldav--prepare-project-files)
+      (+notes/caldav--assert-org-buffers-saved)
+      (+notes/caldav--assert-clean-git-worktree context)
+      (+notes/caldav--ensure-git-state context t)
+      (let ((remote-etags (+notes/caldav--fetch-remote-etags)))
+        (let ((+notes/caldav--pushing t)
+              (+notes/caldav--force-pushing t)
+              (+notes/caldav--force-remote-etags remote-etags)
+              (+notes/caldav--write-etags nil)
+              (+notes/caldav--push-races nil)
+              (org-caldav-sync-direction 'org->cal)
+              (org-caldav-delete-calendar-entries 'always)
+              (org-caldav-resume-aborted 'never))
+          (org-caldav-sync)
+          (when (+notes/caldav--sync-errors)
+            (org-caldav-display-sync-results)
+            (user-error
+             "Forced CalDAV push finished with errors; pull before retrying"))
+          (when +notes/caldav--push-races
+            (user-error
+             "CalDAV changed during forced push (%s); retry after inspecting it"
+             (mapconcat #'identity +notes/caldav--push-races ", ")))
+          (+notes/caldav--mark-head-synchronized context)
+          (message
+           "Forced CalDAV push complete; remote snapshot matches HEAD"))))))
 
 (defun +notes/caldav--leaf-action-item-p ()
   "Return non-nil when point is shown by `org-project-todo-list'."
@@ -803,6 +968,10 @@ FILE and BELL are the arguments accepted by `org-caldav-create-uid'."
   ;; Do not rely on deferred `:custom' initialization for connection values.
   (+notes/caldav-configure)
   :config
+  ;; Reloading this module in a long-lived Emacs must also remove the retired
+  ;; advice which used to manufacture textual LOCAL/CALDAV conflict blocks.
+  (advice-remove 'org-caldav-update-events-in-org
+                 (intern "+notes/caldav--update-events-in-org-a"))
   (add-hook 'org-export-before-parsing-functions
             #'+notes/caldav--filter-export-buffer)
   (unless (advice-member-p #'+notes/caldav--create-leaf-uids-a
@@ -815,11 +984,6 @@ FILE and BELL are the arguments accepted by `org-caldav-create-uid'."
     (advice-add 'org-caldav-sync
                 :around
                 #'+notes/caldav--sync-project-todos-a))
-  (unless (advice-member-p #'+notes/caldav--update-events-in-org-a
-                           'org-caldav-update-events-in-org)
-    (advice-add 'org-caldav-update-events-in-org
-                :around
-                #'+notes/caldav--update-events-in-org-a))
   (unless (advice-member-p #'+notes/caldav--capture-remote-etags-a
                            'org-caldav-get-event-etag-list)
     (advice-add 'org-caldav-get-event-etag-list

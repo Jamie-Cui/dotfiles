@@ -18,6 +18,7 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'git-foreign-magit)
 (require 'init-caldav)
 (require 'org)
 (require 'seq)
@@ -112,7 +113,8 @@ CURRENT-VALUE contain the corresponding MD5 or ETag."
 
 BASE is an org-caldav event, LOCAL is a status item plist, and REMOTE is
 an (UID . ETAG) pair.  REMOTE-KNOWN distinguishes an empty collection
-from one which has not been checked."
+from one which has not been checked.  CONFLICT-UIDS names entries inside
+unresolved Git conflict markers."
   (let* ((base-md5 (and base (org-caldav-event-md5 base)))
          (base-etag (and base (org-caldav-event-etag base)))
          (local-md5 (and local (plist-get local :md5)))
@@ -153,7 +155,8 @@ from one which has not been checked."
   "Return status entries from BASE-EVENTS, LOCAL-ITEMS, and REMOTE-ETAGS.
 
 LOCAL-ITEMS is an alist from UID to local item plists.  REMOTE-KNOWN is
-non-nil after a successful read-only refresh."
+non-nil after a successful read-only refresh.  CONFLICT-UIDS lists entries
+inside unresolved Git conflict markers."
   (let ((uids (delete-dups
                (append (mapcar #'car base-events)
                        (mapcar #'car local-items)
@@ -192,9 +195,9 @@ non-nil after a successful read-only refresh."
           (save-restriction
             (widen)
             (goto-char (point-min))
-            (while (re-search-forward "^<<<<<<< LOCAL$" nil t)
+            (while (re-search-forward "^<<<<<<< " nil t)
               (let ((begin (point))
-                    (end (and (re-search-forward "^>>>>>>> CALDAV$" nil t)
+                    (end (and (re-search-forward "^>>>>>>> " nil t)
                               (line-beginning-position))))
                 (when end
                   (save-restriction
@@ -258,6 +261,7 @@ non-nil after a successful read-only refresh."
   "Collect the local, baseline, and cached remote status data."
   (let* ((baseline (+notes/caldav-status--saved-state))
          (local (+notes/caldav-status--scan-local))
+         (git (+notes/caldav--git-status-data))
          (conflict-files (+notes/caldav--conflict-files))
          (conflict-uids
           (delete-dups
@@ -273,6 +277,7 @@ non-nil after a successful read-only refresh."
            remote-known
            conflict-uids)))
     (list :baseline-exists (plist-get baseline :exists)
+          :git git
           :entries entries
           :untracked (plist-get local :untracked)
           :duplicates (plist-get local :duplicates)
@@ -289,13 +294,20 @@ non-nil after a successful read-only refresh."
 
 (defun +notes/caldav-status--push-gate (data)
   "Return (LABEL FACE) describing whether normal push is safe for DATA."
-  (let ((entries (plist-get data :entries)))
+  (let ((entries (plist-get data :entries))
+        (git (plist-get data :git)))
     (cond
      ((+notes/caldav--modified-org-buffers)
       '("BLOCKED — save modified Org buffers" error))
      ((or (plist-get data :conflict-files)
           (plist-get data :duplicates))
       '("BLOCKED — resolve local conflicts" error))
+     ((and (plist-member data :git)
+           (not (plist-get git :clean)))
+      '("BLOCKED — commit Git changes first" error))
+     ((and (plist-get git :state)
+           (not (plist-get git :push-ready)))
+      '("BLOCKED — integrate the CalDAV Git snapshot" error))
      ((plist-get data :scan-errors)
       '("BLOCKED — local status scan failed" error))
      ((not (plist-get data :baseline-exists))
@@ -433,12 +445,23 @@ When HIDDEN is non-nil, initially collapse the section."
 
 (defun +notes/caldav-magit--insert-data (data)
   "Insert CalDAV status DATA below the current section heading."
-  (let ((gate (+notes/caldav-status--push-gate data))
-        (entries (plist-get data :entries)))
+  (let* ((gate (+notes/caldav-status--push-gate data))
+         (entries (plist-get data :entries))
+         (git (plist-get data :git))
+         (git-state (plist-get (plist-get git :state) :status))
+         (presentation
+          (git-foreign-magit-state-presentation git-state)))
     (insert "  Remote: "
             (format "%s/%s\n"
                     (or org-caldav-url "(not configured)")
                     (or org-caldav-calendar-id "(not configured)")))
+    (insert "  Git remote: "
+            (or (plist-get git :remote-name) "unregistered")
+            " — "
+            (+notes/caldav-magit--face-string
+             (or (nth 1 presentation) "not initialized")
+             (or (nth 2 presentation) 'warning))
+            "\n")
     (insert "  Push: "
             (+notes/caldav-magit--face-string (car gate) (cadr gate))
             "\n\n")

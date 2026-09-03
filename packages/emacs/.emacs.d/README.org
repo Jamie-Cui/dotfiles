@@ -55,11 +55,13 @@ order are the contract.
 | ~completion~             | vertico/corfu/consult/orderless/marginalia, embark        |
 | ~files~                  | dired, tramp, eshell, eat, backups, auto-save, proced     |
 | ~project~                | projectile, envrc                                         |
-| ~vc~                     | magit, diff-hl                                            |
+| ~vc~                     | magit, diff-hl, git-foreign-magit                         |
 | ~prog~                   | eglot, flycheck, citre, compilation, treesit              |
 | ~lang/*~                 | per-language config (cmake, bazel, markdown, lean, ...)   |
 | ~org~                    | Org core, babel, export, plantuml                         |
 | ~notes~                  | org-project, journal, roam, denote, agenda hygiene        |
+| ~caldav~                 | ETag-safe CalDAV adapter and Git snapshot synchronization |
+| ~caldav-magit~           | CalDAV status and pull/push actions inside Magit          |
 | ~bibliography~           | citar, ebib, bibtex                                       |
 | ~latex~                  | auctex, pdf-tools, xenops, git-overleaf (GUI)             |
 | ~reading~                | elfeed                                                    |
