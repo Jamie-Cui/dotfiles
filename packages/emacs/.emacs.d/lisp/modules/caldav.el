@@ -432,6 +432,35 @@ When FORCE is non-nil, make the remote collection the complete snapshot."
                     snapshot)))))
            files))))
 
+(defun +notes/caldav--rebase-files (files source destination)
+  "Rebase FILES below SOURCE onto DESTINATION.
+Files outside SOURCE are preserved so org-caldav can still detect a genuinely
+removed sync source."
+  (let ((source (file-name-as-directory (expand-file-name source))))
+    (mapcar
+     (lambda (file)
+       (if (and (stringp file)
+                (file-in-directory-p (expand-file-name file) source))
+           (expand-file-name (file-relative-name file source) destination)
+         file))
+     files)))
+
+(defun +notes/caldav--load-snapshot-sync-state
+    (function repository snapshot)
+  "Call FUNCTION and rebase its saved file list from REPOSITORY to SNAPSHOT."
+  (funcall function)
+  (setq org-caldav-previous-files
+        (+notes/caldav--rebase-files
+         org-caldav-previous-files repository snapshot)))
+
+(defun +notes/caldav--save-snapshot-sync-state
+    (function snapshot repository)
+  "Call FUNCTION while rebasing SNAPSHOT file paths onto REPOSITORY."
+  (let ((org-caldav-files
+         (+notes/caldav--rebase-files
+          org-caldav-files snapshot repository)))
+    (funcall function)))
+
 (defun +notes/caldav--capture-remote-snapshot (context)
   "Capture a complete remote CalDAV commit for foreign CONTEXT.
 The projection runs in a temporary directory materialized from the previous
@@ -478,13 +507,25 @@ changed."
             ;; buffer.  Hide the real worktree here so duplicate IDs across
             ;; the real and materialized trees cannot leak into resolution.
             (let ((org-buffer-list-function
-                   (symbol-function 'org-buffer-list)))
+                   (symbol-function 'org-buffer-list))
+                  (load-sync-state-function
+                   (symbol-function 'org-caldav-load-sync-state))
+                  (save-sync-state-function
+                   (symbol-function 'org-caldav-save-sync-state)))
               (cl-letf (((symbol-function 'org-buffer-list)
                          (lambda (&rest arguments)
                            (apply #'+notes/caldav--org-buffers-below
                                   org-buffer-list-function
                                   snapshot
-                                  arguments))))
+                                  arguments)))
+                        ((symbol-function 'org-caldav-load-sync-state)
+                         (lambda ()
+                           (+notes/caldav--load-snapshot-sync-state
+                            load-sync-state-function repository snapshot)))
+                        ((symbol-function 'org-caldav-save-sync-state)
+                         (lambda ()
+                           (+notes/caldav--save-snapshot-sync-state
+                            save-sync-state-function snapshot repository))))
                 (+notes/caldav--run-remote-pull))))
           (setq remote-commit
                 (git-foreign-commit-directory

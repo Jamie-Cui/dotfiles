@@ -233,6 +233,48 @@
         (delete-file state-file))
       (delete-directory repo t))))
 
+(ert-deftest caldav-git-snapshot-rebases-sync-state-file-paths ()
+  (let* ((repo (caldav-test--git-repo))
+         (state-file (make-temp-file "caldav-path-state."))
+         (tasks-file (expand-file-name "tasks.org" repo))
+         (+emacs/org-root-dir repo)
+         missing-files)
+    (unwind-protect
+        (progn
+          (caldav-test--write repo "tasks.org" "* TODO Existing\n")
+          (let* ((base (caldav-test--commit repo "base"))
+                 (context (+notes/caldav--git-context)))
+            (git-foreign-set-base-ref context base)
+            (git-foreign-set-remote-ref context base)
+            (write-region
+             (format (concat "(setq org-caldav-event-list nil)\n"
+                             "(setq org-caldav-previous-files '%S)\n")
+                     (list tasks-file))
+             nil state-file nil 'silent)
+            (cl-letf
+                (((symbol-function 'org-caldav-sync-state-filename)
+                  (lambda (_id) state-file))
+                 ((symbol-function '+notes/caldav--run-remote-pull)
+                  (lambda ()
+                    (setq org-caldav-files
+                          (list (expand-file-name
+                                 "tasks.org" +emacs/org-root-dir)))
+                    (org-caldav-load-sync-state)
+                    (setq missing-files
+                          (cl-set-difference
+                           org-caldav-previous-files org-caldav-files
+                           :test #'string=))
+                    (org-caldav-save-sync-state))))
+              (+notes/caldav--capture-remote-snapshot context)
+              (should-not missing-files)
+              (let (org-caldav-event-list org-caldav-previous-files)
+                (org-caldav-load-sync-state)
+                (should (equal org-caldav-previous-files
+                               (list tasks-file)))))))
+      (when (file-exists-p state-file)
+        (delete-file state-file))
+      (delete-directory repo t))))
+
 (ert-deftest caldav-fetch-preserves-local-state-and-ff-only-refuses-divergence ()
   (let* ((repo (caldav-test--git-repo))
          (remote-tree (make-temp-file "caldav-remote-tree." t))
