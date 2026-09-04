@@ -72,6 +72,9 @@ git config --global --unset https.proxy
     - [[#aerospace-aerospace][AeroSpace]]
 
 ** Quick setup
+:PROPERTIES:
+:CUSTOM_ID: quick-setup
+:END:
 
 =scripts/setup.sh= installs selected applications and deploys the complete
 platform profile.  It has three explicit commands: =plan= is read-only,
@@ -159,8 +162,14 @@ bash "$tmp" interactive
 #+end_src
 
 ** Prerequisites
+:PROPERTIES:
+:CUSTOM_ID: prerequisites
+:END:
 
 *** macOS
+:PROPERTIES:
+:CUSTOM_ID: macos
+:END:
 
 #+begin_src bash
 xcode-select --install
@@ -169,12 +178,18 @@ brew install stow
 #+end_src
 
 *** Fedora
+:PROPERTIES:
+:CUSTOM_ID: fedora
+:END:
 
 #+begin_src bash
 sudo dnf install curl git make stow
 #+end_src
 
 *** Deploy
+:PROPERTIES:
+:CUSTOM_ID: deploy
+:END:
 
 #+begin_src bash
 mkdir -p ~/opt
@@ -185,6 +200,9 @@ make bootstrap
 #+end_src
 
 *** Encrypted secrets
+:PROPERTIES:
+:CUSTOM_ID: encrypted-secrets
+:END:
 
 Only GPG ciphertext is managed by Git.  The private key, its revocation
 certificate, and plaintext credentials must remain outside this repository.
@@ -240,10 +258,16 @@ private-key export.  GnuPG keeps the imported key in its own home directory
 into this repository.
 
 ** Cross-platform apps
+:PROPERTIES:
+:CUSTOM_ID: cross-platform-apps
+:END:
 
 Run =make bootstrap= once after installing the apps below.
 
 *** [[https://ohmyz.sh/][Oh My Zsh]]
+:PROPERTIES:
+:CUSTOM_ID: oh-my-zsh
+:END:
 
 **** macOS
 
@@ -262,6 +286,9 @@ RUNZSH=no CHSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/
 Log out and back in after changing the login shell.
 
 *** [[https://font.subf.dev/][Maple Mono NL NF CN]]
+:PROPERTIES:
+:CUSTOM_ID: maple-mono-nl-nf-cn
+:END:
 
 **** macOS
 
@@ -280,6 +307,9 @@ fc-cache -fv
 #+end_src
 
 *** [[https://www.vim.org/][Vim]] (=vim=)
+:PROPERTIES:
+:CUSTOM_ID: vim-vim
+:END:
 
 #+begin_src bash
 brew install vim                 # macOS
@@ -287,6 +317,9 @@ sudo dnf install vim-enhanced    # Fedora
 #+end_src
 
 *** [[https://neovim.io/][Neovim]] (=nvim=)
+:PROPERTIES:
+:CUSTOM_ID: neovim-nvim
+:END:
 
 #+begin_src bash
 brew install neovim              # macOS
@@ -294,6 +327,9 @@ sudo dnf install neovim          # Fedora
 #+end_src
 
 *** [[https://www.gnu.org/software/emacs/][Emacs]] (=emacs=)
+:PROPERTIES:
+:CUSTOM_ID: emacs-emacs
+:END:
 
 The setup script's =emacs= component installs the dependencies, shallow-clones
 the =emacs-31= source with depth 1 or safely fast-forwards an existing checkout,
@@ -347,6 +383,9 @@ Edit the managed =~/.emacs.d/init.el= and =~/.emacs.d/early-init.el= sources for
 Emacs settings.
 
 *** [[https://github.com/universal-ctags/ctags][Universal Ctags]] (=ctags=)
+:PROPERTIES:
+:CUSTOM_ID: universal-ctags-ctags
+:END:
 
 The =ctags= component shallow-clones the source with depth 1 into
 =~/opt/ctags=.  It does not configure, build, or install Universal Ctags.
@@ -356,6 +395,9 @@ scripts/setup.sh apply --profile minimal --with ctags --yes
 #+end_src
 
 *** org-root (=org-root=)
+:PROPERTIES:
+:CUSTOM_ID: org-root-org-root
+:END:
 
 The =org-root= component clones the private repository
 =ssh://git@git.gw-api.xyz:2222/jamie/org-root.git= with its full history over
@@ -368,6 +410,9 @@ scripts/setup.sh apply --profile minimal --with org-root --yes
 #+end_src
 
 *** [[https://github.com/Jamie-Cui/git-overleaf][git-overleaf]] (=git-overleaf=)
+:PROPERTIES:
+:CUSTOM_ID: git-overleaf-git-overleaf
+:END:
 
 The =git-overleaf= component clones the repository with its full history over
 SSH into =~/opt/git-overleaf=.  GitHub SSH access must already be configured.
@@ -377,6 +422,9 @@ scripts/setup.sh apply --profile minimal --with git-overleaf --yes
 #+end_src
 
 *** [[https://github.com/tdlib/td][TDLib]] (=tdlib=)
+:PROPERTIES:
+:CUSTOM_ID: tdlib-tdlib
+:END:
 
 The =tdlib= component shallow-clones the source with depth 1 into
 =~/opt/tdlib=.  It does not run CMake, build, or install TDLib.
@@ -390,6 +438,9 @@ as-is; setup does not fetch, pull, or validate its origin.  An existing non-Git
 path is reported as a component failure.
 
 *** [[https://sw.kovidgoyal.net/kitty/][Kitty]] (=kitty=)
+:PROPERTIES:
+:CUSTOM_ID: kitty-kitty
+:END:
 
 #+begin_src bash
 brew install --cask kitty        # macOS
@@ -397,6 +448,9 @@ sudo dnf install kitty           # Fedora
 #+end_src
 
 *** [[https://flameshot.org/][Flameshot]] (=flameshot=)
+:PROPERTIES:
+:CUSTOM_ID: flameshot-flameshot
+:END:
 
 **** macOS
 
@@ -418,6 +472,9 @@ The tracked configuration is deployed only by the Linux profile.  It leaves the
 save directory to Flameshot instead of pinning a machine-specific path.
 
 *** [[https://tailscale.com/][Tailscale]] (=tailscale=)
+:PROPERTIES:
+:CUSTOM_ID: tailscale-tailscale
+:END:
 
 The recommended setup profile installs Tailscale on both platforms.  Sign-in
 remains an explicit post-install step.
@@ -444,6 +501,9 @@ The setup script also supports the legacy DNF 4 =config-manager --add-repo=
 syntax when needed.
 
 *** [[https://rime.im/][Rime]] (=rime=)
+:PROPERTIES:
+:CUSTOM_ID: rime-rime
+:END:
 
 **** macOS
 
@@ -465,6 +525,9 @@ im-chooser
 Select Fcitx 5 in =im-chooser=, then log out and back in.
 
 *** [[https://github.com/Jamie-Cui/dotfiles/blob/master/packages/bin/.local/bin/proxyctl][proxyctl]] (=bin=)
+:PROPERTIES:
+:CUSTOM_ID: proxyctl-bin
+:END:
 
 #+begin_src bash
 proxyctl init
@@ -472,39 +535,60 @@ source ~/.zshrc
 #+end_src
 
 *** [[https://github.com/Jamie-Cui/dotfiles/tree/master/packages/skills/.agents/skills][Codex skills]] (=skills=)
+:PROPERTIES:
+:CUSTOM_ID: codex-skills-skills
+:END:
 
 No setup beyond =make bootstrap=.
 
 ** GNU/Linux (Fedora) apps
+:PROPERTIES:
+:CUSTOM_ID: gnulinux-fedora-apps
+:END:
 
 Run =make bootstrap= once after installing the apps needed by the chosen X11 or
 Wayland session.
 
 *** [[https://www.x.org/][X11]] (=x11=)
+:PROPERTIES:
+:CUSTOM_ID: x11-x11
+:END:
 
 #+begin_src bash
 sudo dnf install xorg-x11-server-Xorg xorg-x11-xinit xorg-x11-xauth
 #+end_src
 
 *** [[https://i3wm.org/][i3]] (=i3=)
+:PROPERTIES:
+:CUSTOM_ID: i3-i3
+:END:
 
 #+begin_src bash
 sudo dnf install i3 i3lock picom feh xclip dex-autostart network-manager-applet pulseaudio-utils ibus jq xss-lock setxkbmap
 #+end_src
 
 *** [[https://vivien.github.io/i3blocks/][i3blocks]] (=i3blocks=)
+:PROPERTIES:
+:CUSTOM_ID: i3blocks-i3blocks
+:END:
 
 #+begin_src bash
 sudo dnf install i3blocks alsa-utils sysstat perl
 #+end_src
 
 *** [[https://davatorium.github.io/rofi/][Rofi]] (=rofi=)
+:PROPERTIES:
+:CUSTOM_ID: rofi-rofi
+:END:
 
 #+begin_src bash
 sudo dnf install rofi firefox
 #+end_src
 
 *** [[https://hypr.land/][Hyprland]] (=hypr=)
+:PROPERTIES:
+:CUSTOM_ID: hyprland-hypr
+:END:
 
 #+begin_src bash
 sudo dnf install hyprland hyprlock hyprpaper xdg-desktop-portal-hyprland brightnessctl playerctl wireplumber xclip
@@ -515,48 +599,72 @@ The main configuration uses Hyprland's native Lua API and requires Hyprland
 configuration files.
 
 *** [[https://github.com/Alexays/Waybar][Waybar]] (=waybar=)
+:PROPERTIES:
+:CUSTOM_ID: waybar-waybar
+:END:
 
 #+begin_src bash
 sudo dnf install waybar jq playerctl blueman network-manager-applet NetworkManager-tui pavucontrol htop baobab
 #+end_src
 
 *** [[https://dunst-project.org/][Dunst]] (=dunst=)
+:PROPERTIES:
+:CUSTOM_ID: dunst-dunst
+:END:
 
 #+begin_src bash
 sudo dnf install dunst
 #+end_src
 
 *** [[https://fcitx-im.org/][Fcitx5]] (=fcitx5=)
+:PROPERTIES:
+:CUSTOM_ID: fcitx5-fcitx5
+:END:
 
 #+begin_src bash
 sudo dnf install fcitx5 fcitx5-rime fcitx5-gtk fcitx5-qt
 #+end_src
 
 *** [[https://www.gtk.org/][GTK 2]] (=gtk-2.0=)
+:PROPERTIES:
+:CUSTOM_ID: gtk-2-gtk-20
+:END:
 
 #+begin_src bash
 sudo dnf install gtk2
 #+end_src
 
 *** [[https://www.gtk.org/][GTK 3]] (=gtk-3.0=)
+:PROPERTIES:
+:CUSTOM_ID: gtk-3-gtk-30
+:END:
 
 #+begin_src bash
 sudo dnf install gtk3
 #+end_src
 
 *** [[https://www.gtk.org/][GTK 4]] (=gtk-4.0=)
+:PROPERTIES:
+:CUSTOM_ID: gtk-4-gtk-40
+:END:
 
 #+begin_src bash
 sudo dnf install gtk4
 #+end_src
 
 *** [[https://gitlab.com/tagoh/imsettings][imsettings]] (=imsettings=)
+:PROPERTIES:
+:CUSTOM_ID: imsettings-imsettings
+:END:
 
 #+begin_src bash
 sudo dnf install imsettings
 #+end_src
 
 *** [[https://davmail.sourceforge.net/][DavMail]] (=davmail=)
+:PROPERTIES:
+:CUSTOM_ID: davmail-davmail
+:END:
 
 #+begin_src bash
 sudo dnf copr enable mguessan/davmail
@@ -570,6 +678,9 @@ Keep the log open during the first =mbsync= run and complete the Microsoft
 device-code prompt it prints.
 
 *** [[https://isync.sourceforge.io/][isync]] (=isync=)
+:PROPERTIES:
+:CUSTOM_ID: isync-isync
+:END:
 
 #+begin_src bash
 sudo dnf install isync maildir-utils gnupg2
@@ -591,10 +702,16 @@ machine 127.0.0.1 login you@outlook.com password LOCAL_KEY port 1025
 #+end_example
 
 ** MacOS apps
+:PROPERTIES:
+:CUSTOM_ID: macos-apps
+:END:
 
 Run =make bootstrap= after installing the apps.
 
 *** [[https://bitwarden.com/help/cli/][Bitwarden CLI]] (=bitwarden-cli=)
+:PROPERTIES:
+:CUSTOM_ID: bitwarden-cli-bitwarden-cli
+:END:
 
 The recommended setup profile installs the Bitwarden command-line client with
 Homebrew:
@@ -604,6 +721,9 @@ brew install bitwarden-cli
 #+end_src
 
 *** [[https://www.alfredapp.com/][Alfred]] (=alfred=)
+:PROPERTIES:
+:CUSTOM_ID: alfred-alfred
+:END:
 
 The recommended setup profile installs Alfred with Homebrew:
 
@@ -612,6 +732,9 @@ brew install --cask alfred
 #+end_src
 
 *** [[https://github.com/exelban/stats][Stats]] (=stats=)
+:PROPERTIES:
+:CUSTOM_ID: stats-stats
+:END:
 
 The recommended setup profile installs Stats with Homebrew:
 
@@ -620,6 +743,9 @@ brew install --cask stats
 #+end_src
 
 *** Caffeine (=caffeine=)
+:PROPERTIES:
+:CUSTOM_ID: caffeine-caffeine
+:END:
 
 The recommended setup profile installs Caffeine with Homebrew:
 
@@ -636,6 +762,9 @@ brew install --cask jordanbaird-ice
 #+end_src
 
 *** [[https://github.com/Jamie-Cui/AeroSpace][AeroSpace fork]] (=aerospace=)
+:PROPERTIES:
+:CUSTOM_ID: aerospace-aerospace
+:END:
 
 #+begin_src bash
 # The setup script installs build dependencies and clones the fork here.
