@@ -16,10 +16,10 @@
 ;; magit-gptel
 ;; -----------------------------------------------------------
 
-(use-package agent-switch
-  :vc (:url "https://github.com/Jamie-Cui/agent-switch.el" :rev "main")
-  :ensure t
-  :commands agent-switch)
+;; (use-package agent-switch
+;;   :vc (:url "https://github.com/Jamie-Cui/agent-switch.el" :rev "main")
+;;   :ensure t
+;;   :commands agent-switch)
 
 (defun +agent-shell/focus-input (shell-buffer)
   "Move point in visible SHELL-BUFFER to the current input's beginning."
@@ -299,8 +299,8 @@ functionality, allowing you to diff/ediff/merge the changes."
 
 (use-package magent
   :vc (:url "https://github.com/Jamie-Cui/magent"
-       :rev "master"
-       :lisp-dir "lisp")
+            :rev "master"
+            :lisp-dir "lisp")
   :ensure t
   :after (agent-shell gptel)
   :demand t
