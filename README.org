@@ -350,7 +350,7 @@ cd ~/opt/emacs-src
 export PATH="$(brew --prefix texinfo)/bin:$PATH"
 export PKG_CONFIG_PATH="$(brew --prefix tree-sitter@0.25)/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
 ./autogen.sh
-./configure --with-ns --with-native-compilation --with-tree-sitter --with-sqlite3 --with-rsvg --without-pop --without-mailutils
+./configure --with-ns --without-native-compilation --with-tree-sitter --with-sqlite3 --with-rsvg --without-pop --without-mailutils
 make -j"$(sysctl -n hw.logicalcpu)"
 make install
 cp -R nextstep/Emacs.app /Applications/

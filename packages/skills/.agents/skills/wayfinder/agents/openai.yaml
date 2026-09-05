@@ -1,0 +1,7 @@
+interface:
+  display_name: "Wayfinder"
+  short_description: "Map long efforts as decision tickets"
+  default_prompt: "Use $wayfinder to chart this large effort as a map of decision tickets."
+
+policy:
+  allow_implicit_invocation: false

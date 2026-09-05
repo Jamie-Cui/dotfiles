@@ -307,6 +307,7 @@ functionality, allowing you to diff/ediff/merge the changes."
   :custom
   ;; (magent-bypass-permission t)
   (magent-default-effort 'xhigh)
+  (magent-include-reasoning 'ignore)
   :config
   (add-to-list 'magent-skill-directories
                (expand-file-name "~/.agents/skills") t)
