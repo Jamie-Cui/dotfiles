@@ -761,26 +761,16 @@ The recommended setup profile installs Ice with Homebrew:
 brew install --cask jordanbaird-ice
 #+end_src
 
-*** [[https://github.com/Jamie-Cui/AeroSpace][AeroSpace fork]] (=aerospace=)
+*** [[https://github.com/nikitabobko/AeroSpace][AeroSpace]] (=aerospace=)
 :PROPERTIES:
 :CUSTOM_ID: aerospace-aerospace
 :END:
 
+The recommended setup profile installs the official AeroSpace release with
+Homebrew:
+
 #+begin_src bash
-# The setup script installs build dependencies and clones the fork here.
-cd ~/opt/aerospace-src
-
-# Create the self-signed code-signing certificate described in
-# dev-docs/development.md before building.  Homebrew's Bash must take
-# precedence over the older macOS system version.
-export PATH="$(brew --prefix)/bin:$PATH"
-./build-release.sh --minimal
-
-# Remove a previous official cask once, then install the locally built app and CLI.
-brew uninstall --cask aerospace 2>/dev/null || true
-sudo ditto .release/AeroSpace.app /Applications/AeroSpace.app
-sudo mkdir -p /usr/local/bin
-sudo install -m 0755 .release/aerospace /usr/local/bin/aerospace
+brew install --cask aerospace
 open /Applications/AeroSpace.app
 
 # Mission Control and Dock settings required by this layout.
@@ -798,12 +788,9 @@ brew tap FelixKratz/formulae
 brew install borders
 #+end_src
 
-The setup script clones or safely fast-forwards =Jamie-Cui/AeroSpace= in
-=~/opt/aerospace-src= and installs Bash 5, the only Homebrew dependency needed
-by the minimal release build.  It deliberately leaves the signed release build
-and installation manual because the signing certificate is machine-local.  It
-does not install borders or change Dock/Mission Control defaults, and reports
-the commands above as pending work when the current values differ.
+The setup script does not install borders or change Dock/Mission Control
+defaults, and reports the commands above as pending work when the current
+values differ.
 
 If macOS blocks the first launch:
 

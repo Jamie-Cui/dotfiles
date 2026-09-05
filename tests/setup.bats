@@ -116,7 +116,7 @@ prepare_mock_environment() {
 	[[ "$output" == *"stats: Stats system monitor"* ]]
 	[[ "$output" == *"caffeine: Caffeine"* ]]
 	[[ "$output" == *"ice: Ice menu bar manager"* ]]
-	[[ "$output" == *"aerospace: AeroSpace source"* ]]
+	[[ "$output" == *"aerospace: AeroSpace window manager"* ]]
 	[[ "$output" == *"tailscale: Tailscale mesh VPN"* ]]
 	[[ "$output" != *"hyprland:"* ]]
 }
@@ -328,15 +328,13 @@ prepare_mock_environment() {
 	[ "$status" -eq 0 ]
 }
 
-@test "AeroSpace apply is portable under a mocked macOS preflight" {
+@test "AeroSpace apply installs the official Homebrew cask" {
 	prepare_mock_environment
 	run env SETUP_TEST_PLATFORM=macos \
 		"$setup_script" apply --profile minimal --with aerospace \
 		--yes --repo-dir "$mock_repo"
 	[ "$status" -eq 0 ]
-	run grep -F 'brew install bash' "$SETUP_TEST_LOG"
-	[ "$status" -eq 0 ]
-	run grep -F "git clone --branch main --single-branch --depth 1 https://github.com/Jamie-Cui/AeroSpace.git $HOME/opt/aerospace-src" "$SETUP_TEST_LOG"
+	run grep -F 'brew install --cask aerospace' "$SETUP_TEST_LOG"
 	[ "$status" -eq 0 ]
 }
 

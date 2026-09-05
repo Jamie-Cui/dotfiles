@@ -67,7 +67,9 @@ setup_component_present() {
 		stats) [ -d /Applications/Stats.app ] ;;
 		caffeine) [ -d /Applications/Caffeine.app ] ;;
 		ice) [ -d /Applications/Ice.app ] ;;
-		aerospace) [ -d "$setup_aerospace_dir/.git" ] ;;
+		aerospace)
+			command -v aerospace >/dev/null 2>&1 || [ -d /Applications/AeroSpace.app ]
+			;;
 		borders) command -v borders >/dev/null 2>&1 ;;
 		*) return 2 ;;
 	esac
@@ -166,31 +168,6 @@ setup_sync_emacs_repo() {
 	if [ "$head" != "$upstream" ]; then
 		git -C "$setup_emacs_dir" merge-base --is-ancestor HEAD origin/emacs-31 || return 1
 		git -C "$setup_emacs_dir" merge --ff-only origin/emacs-31 || return 1
-	fi
-}
-
-setup_sync_aerospace_repo() {
-	local remote head upstream
-	if [ ! -e "$setup_aerospace_dir" ]; then
-		mkdir -p "$(dirname "$setup_aerospace_dir")" || return 1
-		git clone --branch "$setup_aerospace_branch" --single-branch --depth 1 \
-			"$setup_aerospace_repo" "$setup_aerospace_dir"
-		return $?
-	fi
-	[ -d "$setup_aerospace_dir/.git" ] || { setup_warn "$setup_aerospace_dir exists but is not a Git repository"; return 1; }
-	[ -z "$(git -C "$setup_aerospace_dir" status --porcelain)" ] || \
-		{ setup_warn "$setup_aerospace_dir has local changes"; return 1; }
-	remote=$(git -C "$setup_aerospace_dir" remote get-url origin 2>/dev/null) || return 1
-	case $remote in
-		https://github.com/Jamie-Cui/AeroSpace.git|https://github.com/Jamie-Cui/AeroSpace|git@github.com:Jamie-Cui/AeroSpace.git|git@github.com:Jamie-Cui/AeroSpace) ;;
-		*) setup_warn "$setup_aerospace_dir origin is not Jamie-Cui/AeroSpace"; return 1 ;;
-	esac
-	git -C "$setup_aerospace_dir" fetch origin "$setup_aerospace_branch" || return 1
-	head=$(git -C "$setup_aerospace_dir" rev-parse HEAD) || return 1
-	upstream=$(git -C "$setup_aerospace_dir" rev-parse "origin/$setup_aerospace_branch") || return 1
-	if [ "$head" != "$upstream" ]; then
-		git -C "$setup_aerospace_dir" merge-base --is-ancestor HEAD "origin/$setup_aerospace_branch" || return 1
-		git -C "$setup_aerospace_dir" merge --ff-only "origin/$setup_aerospace_branch" || return 1
 	fi
 }
 
@@ -371,9 +348,7 @@ setup_install_mail() {
 
 setup_install_aerospace() {
 	local needs_defaults=0
-	setup_brew_formula bash || return 1
-	setup_sync_aerospace_repo || return 1
-	setup_pending_add "Build, sign, and install the minimal AeroSpace release from $setup_aerospace_dir as documented in README.org."
+	setup_brew_cask aerospace aerospace || return 1
 	[ "$(defaults read com.apple.dock expose-group-apps 2>/dev/null)" = 1 ] || needs_defaults=1
 	[ "$(defaults read com.apple.dock autohide 2>/dev/null)" = 1 ] || needs_defaults=1
 	[ "$(defaults read com.apple.dock pinning 2>/dev/null)" = start ] || needs_defaults=1
