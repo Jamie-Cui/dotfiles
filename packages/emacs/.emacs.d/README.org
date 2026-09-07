@@ -63,7 +63,7 @@ order are the contract.
 | ~bibliography~           | citar, ebib, bibtex                                       |
 | ~latex~                  | auctex, pdf-tools, xenops, git-overleaf (GUI)             |
 | ~reading~                | elfeed                                                    |
-| ~llm~                    | gptel, agent-shell, magent, magent-magit                  |
+| ~llm~                    | gptel, agent-shell, magent, Action status, magent-magit   |
 | ~llm-config~             | GPTel backends, model discovery/cache, defaults           |
 | ~input~                  | PDF/text zoom, pinch and mouse-wheel handlers             |
 | ~keys~                   | which-key, general.el, the SPC leader map (loaded last)   |

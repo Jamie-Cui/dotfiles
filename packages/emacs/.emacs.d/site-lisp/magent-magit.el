@@ -359,7 +359,8 @@ REPO-ROOT is included in any fallback preview."
                (magent-magit--apply-commit-response
                 target invocation repo-root baseline response))
     (error
-     (funcall done 'failed err))))
+     (funcall done 'failed err)))
+  nil)
 
 (defun magent-magit--commit-payload (repo-root branch summary patch)
   "Build an agent payload from REPO-ROOT, BRANCH, SUMMARY, and PATCH."
@@ -380,12 +381,8 @@ REPO-ROOT is included in any fallback preview."
 (magent-define-workflow magent-magit--commit-message-workflow (invocation)
   "Generate and safely insert a commit message for INVOCATION."
   (let* ((target (magent-action-invocation-origin-buffer invocation))
-         (origin
-          (file-name-as-directory
-           (expand-file-name
-            (or (magent-action-invocation-origin-directory invocation)
-                default-directory))))
          (environment '(("GIT_TERMINAL_PROMPT" . "0")))
+         origin
          baseline
          repo-root
          branch
@@ -395,8 +392,11 @@ REPO-ROOT is included in any fallback preview."
     (unless (buffer-live-p target)
       (user-error "The commit buffer is no longer live"))
     (with-current-buffer target
-      (unless (derived-mode-p 'git-commit-mode)
+      (unless (bound-and-true-p git-commit-mode)
         (user-error "Run this Action from a Git commit buffer"))
+      (setq origin
+            (file-name-as-directory
+             (file-truename (magent-magit--repo-root target))))
       (when (and (magent-action-invocation-p
                   magent-magit--active-invocation)
                  (eq (magent-action-invocation-status
@@ -549,7 +549,8 @@ REPO-ROOT is included in any fallback preview."
       (funcall done 'completed
                (magent-magit--show-diff-explanation snapshot response))
     (error
-     (funcall done 'failed err))))
+     (funcall done 'failed err)))
+  nil)
 
 (magent-define-workflow magent-magit--diff-explain-workflow (invocation)
   "Explain the Magit diff captured for INVOCATION."
@@ -637,7 +638,7 @@ REPO-ROOT is included in any fallback preview."
   (cl-find-if
    (lambda (buffer)
      (with-current-buffer buffer
-       (and (derived-mode-p 'git-commit-mode)
+       (and (bound-and-true-p git-commit-mode)
             (when-let* ((top-level (magit-toplevel)))
               (equal (file-truename top-level)
                      (file-truename repo-root))))))

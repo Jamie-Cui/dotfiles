@@ -467,4 +467,193 @@ read-only and runs in the buffer shown in the selected window."
               (and (boundp 'general-override-mode-map)
                    (lookup-key general-override-mode-map sequence))))))
 
+(cl-defun agent-skills/migrate-org-project-data
+    (legacy-root target-root duplicate-ids old-project-root)
+  "Migrate legacy Org project data into TARGET-ROOT.
+
+Copy the `projects' and `journal' directories below LEGACY-ROOT, remove from
+the live CalDAV inbox the task subtrees named by DUPLICATE-IDS, rewrite
+references below OLD-PROJECT-ROOT to the new projects directory, refresh Org
+ID locations, and validate the resulting active-task inventory.  Refuse to
+run while CalDAV synchronization is active or while the inbox has unsaved
+changes."
+  (require 'org)
+  (require 'org-id)
+  (require 'org-project-caldav)
+  (dolist (directory (list legacy-root target-root old-project-root))
+    (unless (and (stringp directory)
+                 (file-name-absolute-p directory)
+                 (not (file-remote-p directory)))
+      (error "Expected an absolute local directory, got: %S" directory)))
+  (unless (and (listp duplicate-ids)
+               duplicate-ids
+               (cl-every
+                (lambda (id)
+                  (and (stringp id)
+                       (string-match-p
+                        "\\`[[:xdigit:]]\\{8\\}\\(?:-[[:xdigit:]]+\\)\\{4\\}\\'"
+                        id)))
+                duplicate-ids))
+    (error "Invalid duplicate Org ID list: %S" duplicate-ids))
+  (let* ((legacy-projects (expand-file-name "projects" legacy-root))
+         (legacy-journal (expand-file-name "journal" legacy-root))
+         (target-projects (expand-file-name "projects" target-root))
+         (target-journal (expand-file-name "journal" target-root))
+         (inbox (expand-file-name "inbox.org" target-root))
+         (source-project-files
+          (and (file-directory-p legacy-projects)
+               (directory-files legacy-projects t "\\.org\\'")))
+         (source-journal-files
+          (and (file-directory-p legacy-journal)
+               (directory-files legacy-journal t "\\.org\\'")))
+         (inbox-buffer (find-buffer-visiting inbox))
+         (mode-was-enabled (bound-and-true-p org-project-caldav-mode))
+         created-files
+         inbox-original
+         inbox-point
+         removed-count
+         active-count)
+    (unless (and (file-directory-p legacy-projects)
+                 (file-directory-p legacy-journal)
+                 (= (length source-project-files) 9)
+                 (= (length source-journal-files) 6))
+      (error "Unexpected legacy layout: projects=%d journal=%d"
+             (length source-project-files) (length source-journal-files)))
+    (unless (and (file-directory-p target-root)
+                 (file-equal-p target-root +org-project-root-dir)
+                 (file-equal-p target-projects +org-projects-dir)
+                 (file-readable-p inbox))
+      (error "Target does not match the live org-project configuration"))
+    (when (or (and (processp org-project-caldav--process)
+                   (process-live-p org-project-caldav--process))
+              org-project-caldav--running)
+      (error "CalDAV synchronization is currently active"))
+    (dolist (directory (list target-projects target-journal))
+      (when (directory-files directory nil "\\.org\\'")
+        (error "Target directory is not empty: %s" directory)))
+    (unless (buffer-live-p inbox-buffer)
+      (setq inbox-buffer (find-file-noselect inbox t)))
+    (with-current-buffer inbox-buffer
+      (when (buffer-modified-p)
+        (error "Refusing to migrate with an unsaved inbox buffer"))
+      (setq inbox-original (buffer-substring-no-properties
+                            (point-min) (point-max))
+            inbox-point (point)))
+    (cl-labels
+        ((scan-current-org-buffer
+          (function)
+          (save-excursion
+            (save-restriction
+              (widen)
+              (goto-char (point-min))
+              (while (re-search-forward org-outline-regexp-bol nil t)
+                (goto-char (match-beginning 0))
+                (funcall function)
+                (forward-line 1)))))
+         (id-count-in-files
+          (id files)
+          (let ((count 0))
+            (dolist (file files count)
+              (with-temp-buffer
+                (insert-file-contents file)
+                (let ((delay-mode-hooks t))
+                  (org-mode))
+                (scan-current-org-buffer
+                 (lambda ()
+                   (when (equal (org-entry-get nil "ID") id)
+                     (setq count (1+ count))))))))
+         (rewrite-project-paths
+          (file)
+          (let ((old-absolute (directory-file-name old-project-root))
+                (old-abbreviated
+                 (directory-file-name
+                  (abbreviate-file-name old-project-root)))
+                (new-absolute (directory-file-name target-projects)))
+            (with-temp-buffer
+              (insert-file-contents file)
+              (dolist (old (delete-dups
+                            (list old-absolute old-abbreviated)))
+                (goto-char (point-min))
+                (while (search-forward old nil t)
+                  (replace-match new-absolute t t)))
+              (write-region (point-min) (point-max) file nil 'silent)))))
+      (dolist (id duplicate-ids)
+        (unless (= (id-count-in-files id source-project-files) 1)
+          (error "Expected duplicate ID once in legacy projects: %s" id)))
+      (with-current-buffer inbox-buffer
+        (let ((inbox-id-counts (make-hash-table :test #'equal)))
+          (scan-current-org-buffer
+           (lambda ()
+             (when-let* ((id (org-entry-get nil "ID"))
+                         ((member id duplicate-ids)))
+               (puthash id (1+ (gethash id inbox-id-counts 0))
+                        inbox-id-counts))))
+          (dolist (id duplicate-ids)
+            (unless (= (gethash id inbox-id-counts 0) 1)
+              (error "Expected duplicate ID once in current inbox: %s" id)))))
+      (when mode-was-enabled
+        (org-project-caldav-mode -1))
+      (unwind-protect
+          (condition-case err
+              (progn
+                (dolist (pair `((,source-project-files . ,target-projects)
+                                (,source-journal-files . ,target-journal)))
+                  (dolist (source (car pair))
+                    (let ((target (expand-file-name
+                                   (file-name-nondirectory source)
+                                   (cdr pair))))
+                      (copy-file source target nil t nil t)
+                      (push target created-files)
+                      (rewrite-project-paths target))))
+                (with-current-buffer inbox-buffer
+                  (let (positions)
+                    (scan-current-org-buffer
+                     (lambda ()
+                       (when (member (org-entry-get nil "ID") duplicate-ids)
+                         (push (point) positions))))
+                    (dolist (position (sort positions #'>))
+                      (goto-char position)
+                      (let ((begin (line-beginning-position))
+                            (end (save-excursion
+                                   (org-end-of-subtree t t))))
+                        (delete-region begin end)
+                        (setq removed-count (1+ (or removed-count 0)))))
+                    (goto-char (min inbox-point (point-max)))
+                    (save-buffer)))
+                (let ((org-caldav-save-buffers t)
+                      (source-files (org-project-caldav--source-files)))
+                  (dolist (file source-files)
+                    (org-project-caldav--create-leaf-uids file))
+                  (setq active-count
+                        (length
+                         (org-project-caldav--active-task-index source-files)))
+                  (org-id-update-id-locations source-files))
+                (when (and (boundp 'dashboard-buffer-name)
+                           (get-buffer dashboard-buffer-name)
+                           (fboundp 'dashboard-insert-startupify-lists))
+                  (with-current-buffer (get-buffer dashboard-buffer-name)
+                    (let ((origin (point)))
+                      (dashboard-insert-startupify-lists t)
+                      (goto-char (min origin (point-max))))))
+                (format
+                 (concat "Migrated projects=%d journal=%d; "
+                         "moved-from-inbox=%d; active-tasks=%d")
+                 (length source-project-files)
+                 (length source-journal-files)
+                 removed-count
+                 active-count))
+            (error
+             (with-current-buffer inbox-buffer
+               (let ((inhibit-read-only t))
+                 (erase-buffer)
+                 (insert inbox-original)
+                 (goto-char (min inbox-point (point-max)))
+                 (save-buffer)))
+             (dolist (file created-files)
+               (when (file-exists-p file)
+                 (delete-file file)))
+             (signal (car err) (cdr err))))
+        (when mode-was-enabled
+          (org-project-caldav-mode 1))))))
+
 (provide 'agent-skills/emacs)

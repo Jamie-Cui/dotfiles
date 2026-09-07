@@ -128,21 +128,43 @@
     (should (eq (magent-agent-info-effort agent) 'auto))
     (should (magent-agent-info-hidden agent))))
 
+(ert-deftest magent-magit-callback-starters-return-no-cancel-function ()
+  (let (commit-outcome diff-outcome)
+    (cl-letf (((symbol-function 'magent-magit--apply-commit-response)
+               (lambda (&rest _args) "commit applied"))
+              ((symbol-function 'magent-magit--show-diff-explanation)
+               (lambda (&rest _args) "diff displayed")))
+      (should-not
+       (magent-magit--apply-commit-step
+        (lambda (status value)
+          (setq commit-outcome (cons status value)))
+        nil nil nil nil nil))
+      (should-not
+       (magent-magit--show-diff-step
+        (lambda (status value)
+          (setq diff-outcome (cons status value)))
+        nil nil)))
+    (should (equal commit-outcome '(completed . "commit applied")))
+    (should (equal diff-outcome '(completed . "diff displayed")))))
+
 (ert-deftest magent-magit-commit-workflow-uses-process-agent-callback-steps ()
   (with-temp-buffer
-    (setq-local major-mode 'git-commit-mode)
+    (setq-local git-commit-mode t)
     (let* ((root (file-name-as-directory
-                  (file-truename default-directory)))
+                  (file-truename (magit-toplevel))))
+           (git-dir (expand-file-name ".git/" root))
            (invocation
             (magent-action-invocation-create
              :id "test-action"
              :origin-buffer (current-buffer)
-             :origin-directory root))
+             :origin-directory git-dir))
            (iterator (magent-magit--commit-message-workflow invocation))
            step)
       (setq step (iter-next iterator))
       (should (eq (magent-action-step-type step) 'process))
       (should (equal (magent-action-step-name step) "Resolve repository"))
+      (should (equal (plist-get (magent-action-step-options step) :directory)
+                     root))
       (setq step (magent-magit-test--complete iterator (concat root "\n")))
       (should (equal (magent-action-step-name step) "Read current branch"))
       (setq step (magent-magit-test--complete iterator "main\n"))
@@ -163,6 +185,30 @@
             (magent-magit-test--complete iterator "fix: Preserve behavior"))
       (should (eq (magent-action-step-type step) 'callback))
       (should (equal (magent-action-step-name step) "Insert commit message")))))
+
+(ert-deftest magent-magit-find-commit-buffer-recognizes-minor-mode ()
+  (let ((commit-buffer (generate-new-buffer " *magent-magit-test-commit*"))
+        (ordinary-buffer (generate-new-buffer " *magent-magit-test-ordinary*"))
+        (repo-root (file-name-as-directory
+                    (file-truename default-directory))))
+    (unwind-protect
+        (progn
+          (with-current-buffer commit-buffer
+            (fundamental-mode)
+            (setq-local git-commit-mode t))
+          (with-current-buffer ordinary-buffer
+            (setq-local major-mode 'git-commit-mode))
+          (cl-letf (((symbol-function 'buffer-list)
+                     (lambda (&optional _frame)
+                       (list ordinary-buffer commit-buffer)))
+                    ((symbol-function 'magit-toplevel)
+                     (lambda () repo-root)))
+            (should (eq (magent-magit--find-commit-buffer repo-root)
+                        commit-buffer))))
+      (when (buffer-live-p commit-buffer)
+        (kill-buffer commit-buffer))
+      (when (buffer-live-p ordinary-buffer)
+        (kill-buffer ordinary-buffer)))))
 
 (ert-deftest magent-magit-diff-workflow-uses-agent-and-callback-steps ()
   (let* ((snapshot '(:repo-root "/repo/"

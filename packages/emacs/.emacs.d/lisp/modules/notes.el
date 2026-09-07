@@ -13,10 +13,12 @@
         +org-projects-dir
         (expand-file-name "projects" +emacs/caldav-tasks-dir)))
 
+(use-package org-caldav
+  :ensure t)
+
 (use-package org-project-caldav
   :load-path (lambda () +emacs/site-lisp-directory)
   :after org-project
-  :ensure t
   :demand t
   :custom
   (org-project-caldav-pair-name "org_project_caldav")
