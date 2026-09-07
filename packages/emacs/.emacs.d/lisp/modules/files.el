@@ -196,10 +196,12 @@ pre-date the external-operation helper API."
             (setq-local truncate-lines t)))
 
 (require 'init-config-tramp)
-(require 'consult-tramp)
 
-;; consult-tramp only use thses methods
-(setopt consult-tramp-methods '(sshx docker sudo))
+(use-package consult-tramp
+  :load-path (lambda () +emacs/site-lisp-directory)
+  :demand t
+  :custom
+  (consult-tramp-methods '(sshx docker sudo)))
 
 (require 'init-config-eshell)
 

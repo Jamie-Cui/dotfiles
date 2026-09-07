@@ -50,7 +50,7 @@ Conventional Commit style with scope: `feat(magit): ...`, `fix(org): ...`, `refa
 
 ## Gotchas
 
-- `site-lisp/` contains local custom/forked packages (e.g., `org-project.el`, `magit-gptel.el`, `dashboard-elfeed.el`), not third-party ELPA packages.
+- `site-lisp/` contains local custom/forked packages (e.g., `org-project.el`, `magent-magit.el`, `dashboard-elfeed.el`), not third-party ELPA packages.
 - Personal settings such as `+emacs/proxy`, `+emacs/org-root-dir`,
   `package-archives`, and `+emacs/theme` live in the tracked `init.el`.
 - Enable or disable a module by editing its entry in the `init.el` manifest;

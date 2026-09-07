@@ -32,8 +32,19 @@
         (set-buffer-modified-p nil)
         (kill-buffer buffer)))))
 
-(ert-deftest org-project-caldav-is-required-by-org-project ()
-  (should (featurep 'org-project-caldav)))
+(ert-deftest org-project-load-does-not-load-org-project-caldav ()
+  "Keep CalDAV synchronization an optional org-project integration."
+  (let ((isolated-features
+         (delq 'org-project-caldav
+               (delq 'org-project (copy-sequence features)))))
+    (cl-progv '(features) (list isolated-features)
+      (should-not (featurep 'org-project-caldav))
+      (load (expand-file-name
+             "org-project.el"
+             (file-name-directory (locate-library "org-project")))
+            nil t)
+      (should (featurep 'org-project))
+      (should-not (featurep 'org-project-caldav)))))
 
 (ert-deftest org-project-caldav-indexes-vtodo-by-logical-uid ()
   (let ((directory (make-temp-file "org-project-caldav-vdir-" t)))

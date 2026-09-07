@@ -1,7 +1,6 @@
 ;;; llm.el --- LLM and agent integrations -*- lexical-binding: t -*-
 ;;; Commentary:
-;; LLM and agent integrations: agent-switch, gptel, agent-shell, magent and
-;; magit-gptel.
+;; LLM and agent integrations: agent-switch, gptel, agent-shell and Magent.
 ;;; Code:
 
 (require 'cl-lib)
@@ -13,50 +12,13 @@
 ;; agent-switch
 ;; agent-shell
 ;; gptel
-;; magit-gptel
+;; magent-magit
 ;; -----------------------------------------------------------
 
 ;; (use-package agent-switch
 ;;   :vc (:url "https://github.com/Jamie-Cui/agent-switch.el" :rev "main")
 ;;   :ensure t
 ;;   :commands agent-switch)
-
-(defun +agent-shell/focus-input (shell-buffer)
-  "Move point in visible SHELL-BUFFER to the current input's beginning."
-  (when-let* ((window (get-buffer-window shell-buffer t)))
-    (set-window-point
-     window
-     (with-current-buffer shell-buffer
-       (let ((prompt-end
-              (and (boundp 'comint-last-prompt)
-                   (cdr-safe (symbol-value 'comint-last-prompt)))))
-         (if (and (markerp prompt-end)
-                  (marker-position prompt-end))
-             (marker-position prompt-end)
-           (point-max)))))))
-
-(defun +agent-shell/focus-input-after-display-a (shell-buffer)
-  "Move point to the input after displaying SHELL-BUFFER."
-  (+agent-shell/focus-input shell-buffer))
-
-(defun +agent-shell/focus-input-after-insert-a (&rest args)
-  "Move point after a focused insertion described by ARGS."
-  (unless (plist-get args :no-focus)
-    (when (derived-mode-p 'agent-shell-mode)
-      (+agent-shell/focus-input (current-buffer)))))
-
-(defun +agent-shell/focus-input-when-initialized-h ()
-  "Move point after this agent shell finishes initializing."
-  (let ((shell-buffer (current-buffer))
-        subscription)
-    (setq subscription
-          (agent-shell-subscribe-to
-           :shell-buffer shell-buffer
-           :event 'init-finished
-           :on-event
-           (lambda (_event)
-             (+agent-shell/focus-input shell-buffer)
-             (agent-shell-unsubscribe :subscription subscription))))))
 
 (use-package agent-shell
   :ensure t
@@ -92,12 +54,42 @@
         (define-key map (kbd "<return>") action)))
     map)
 
-  (defun +agent-shell/display-transient-below-window (buffer alist)
-    "Display transient BUFFER below the selected window using ALIST."
-    (let ((window (selected-window)))
-      (display-buffer-in-direction
-       buffer
-       (append `((direction . below) (window . ,window)) alist))))
+  (defun +agent-shell/focus-input (shell-buffer)
+    "Move point in visible SHELL-BUFFER to the current input's beginning."
+    (when-let* ((window (get-buffer-window shell-buffer t)))
+      (set-window-point
+       window
+       (with-current-buffer shell-buffer
+         (let ((prompt-end
+                (and (boundp 'comint-last-prompt)
+                     (cdr-safe (symbol-value 'comint-last-prompt)))))
+           (if (and (markerp prompt-end)
+                    (marker-position prompt-end))
+               (marker-position prompt-end)
+             (point-max)))))))
+
+  (defun +agent-shell/focus-input-after-display-a (shell-buffer)
+    "Move point to the input after displaying SHELL-BUFFER."
+    (+agent-shell/focus-input shell-buffer))
+
+  (defun +agent-shell/focus-input-after-insert-a (&rest args)
+    "Move point after a focused insertion described by ARGS."
+    (unless (plist-get args :no-focus)
+      (when (derived-mode-p 'agent-shell-mode)
+        (+agent-shell/focus-input (current-buffer)))))
+
+  (defun +agent-shell/focus-input-when-initialized-h ()
+    "Move point after this agent shell finishes initializing."
+    (let ((shell-buffer (current-buffer))
+          subscription)
+      (setq subscription
+            (agent-shell-subscribe-to
+             :shell-buffer shell-buffer
+             :event 'init-finished
+             :on-event
+             (lambda (_event)
+               (+agent-shell/focus-input shell-buffer)
+               (agent-shell-unsubscribe :subscription subscription))))))
 
   (advice-remove 'agent-shell--display-buffer
                  #'+agent-shell/focus-input-after-display-a)
@@ -145,59 +137,12 @@
   :bind (:map agent-shell-mode-map
               ("C-c C-p" . agent-shell-permission-transient-menu))
   :config
-  (defun +agent-shell/permissions-pending-p ()
-    "Return non-nil when agent-shell has a pending permission request."
-    (> (agent-shell-permission-transient-pending-count) 0))
-
-  (defun +agent-shell/configure-help-menu ()
-    "Add common agent-shell actions to `agent-shell-help-menu'."
-    (when-let* ((prefix (get 'agent-shell-help-menu 'transient--prefix)))
-      (oset prefix display-action
-            '(+agent-shell/display-transient-below-window
-              (dedicated . t)
-              (inhibit-same-window . t))))
-    (dolist (command '(agent-shell-ui-toggle-fragment
-                       agent-shell-ui-toggle-all-fragments
-                       agent-shell-restart
-                       agent-shell-reload
-                       agent-shell-fork
-                       agent-shell-permission-transient-menu
-                       agent-shell-switch-buffer
-                       agent-shell-other-buffer))
-      (transient-remove-suffix 'agent-shell-help-menu command))
-    (transient-append-suffix
-      'agent-shell-help-menu 'agent-shell-previous-item
-      '("z" "Toggle item" agent-shell-ui-toggle-fragment :transient t))
-    (transient-append-suffix
-      'agent-shell-help-menu 'agent-shell-ui-toggle-fragment
-      '("Z" "Toggle all" agent-shell-ui-toggle-all-fragments :transient t))
-    (transient-append-suffix
-      'agent-shell-help-menu 'agent-shell-interrupt
-      '("r" "Restart" agent-shell-restart))
-    (transient-append-suffix
-      'agent-shell-help-menu 'agent-shell-restart
-      '("R" "Reload" agent-shell-reload))
-    (transient-append-suffix
-      'agent-shell-help-menu 'agent-shell-reload
-      '("f" "Fork" agent-shell-fork))
-    (transient-append-suffix
-      'agent-shell-help-menu 'agent-shell-fork
-      '("P" "Permissions" agent-shell-permission-transient-menu
-        :if +agent-shell/permissions-pending-p))
-    (transient-append-suffix
-      'agent-shell-help-menu 'agent-shell-new-shell
-      '("s" "Switch shell" agent-shell-switch-buffer))
-    (transient-append-suffix
-      'agent-shell-help-menu 'agent-shell-switch-buffer
-      '("O" "Shell/viewport" agent-shell-other-buffer)))
-
-  (+agent-shell/configure-help-menu)
-
-  (with-eval-after-load 'evil
-    (evil-define-key* 'normal agent-shell-mode-map (kbd "?")
-      #'agent-shell-help-menu))
-
   (agent-shell-permission-transient-mode +1))
+
+(use-package agent-shell-help-menu
+  :load-path (lambda () +emacs/site-lisp-directory)
+  :after (agent-shell agent-shell-permission-transient)
+  :demand t)
 
 (use-package gptel
   :ensure t
@@ -227,74 +172,60 @@
   (add-hook 'gptel-mode-hook
             (lambda () (insert "* Default Context\n=@Jamie=")))
 
-  (defun +llm/remove-headings (beg end)
-    (when (derived-mode-p 'org-mode)
-      (save-excursion
-        (goto-char beg)
-        (while (re-search-forward org-heading-regexp end t)
-          (forward-line 0)
-          (delete-char (1+ (length (match-string 1))))
-          (insert-and-inherit "*")
-          (end-of-line)
-          (skip-chars-backward " \t\r")
-          (insert-and-inherit "*")))))
+  ;; (defun +llm/remove-headings (beg end)
+  ;;   (when (derived-mode-p 'org-mode)
+  ;;     (save-excursion
+  ;;       (goto-char beg)
+  ;;       (while (re-search-forward org-heading-regexp end t)
+  ;;         (forward-line 0)
+  ;;         (delete-char (1+ (length (match-string 1))))
+  ;;         (insert-and-inherit "*")
+  ;;         (end-of-line)
+  ;;         (skip-chars-backward " \t\r")
+  ;;         (insert-and-inherit "*")))))
 
-  (add-hook 'gptel-post-response-functions #'+llm/remove-headings)
-
-  (use-package magit-gptel
-    :load-path (lambda () (concat +emacs/repo-directory "/site-lisp/"))
-    :after (gptel magit)
-    :demand t
-    :custom
-    (magit-gptel-model 'deepseek-v4-flash)
-    (magit-gptel-request-params '(:thinking (:type "disabled")
-                                            :temperature 0.1))
-    :config
-    ;; Reset from the fixed package default so reloading this module never
-    ;; appends another copy of the commit-message requirements.
-    (setopt magit-gptel-commit-prompt
-            magit-gptel--default-commit-prompt))
+  ;; (add-hook 'gptel-post-response-functions #'+llm/remove-headings)
 
   ;; -----------------------------------------------------------
   ;; PlantUML Beautification (using gptel-rewrite)
   ;; -----------------------------------------------------------
 
-  (defvar +llm/beautify-plantuml-directive
-    "You are a PlantUML expert. Beautify and improve the PlantUML diagram while preserving its semantic meaning. Improve layout, add appropriate styling/colors, organize elements logically, add skinparams for professional appearance. Return ONLY the improved PlantUML code without any explanations or markdown formatting."
-    "Rewrite directive for PlantUML beautification.")
+  ;;   (defvar +llm/beautify-plantuml-directive
+  ;;     "You are a PlantUML expert. Beautify and improve the PlantUML diagram while preserving its semantic meaning. Improve layout, add appropriate styling/colors, organize elements logically, add skinparams for professional appearance. Return ONLY the improved PlantUML code without any explanations or markdown formatting."
+  ;;     "Rewrite directive for PlantUML beautification.")
 
-  (defun +llm/beautify-plantuml ()
-    "Beautify PlantUML source block at point using gptel-rewrite.
-This selects the PlantUML code region and invokes gptel's rewrite
-functionality, allowing you to diff/ediff/merge the changes."
-    (interactive)
-    (require 'gptel-rewrite)
-    ;; 1. Validate we're in org-mode
-    (unless (derived-mode-p 'org-mode)
-      (user-error "Not in org-mode"))
+  ;;   (defun +llm/beautify-plantuml ()
+  ;;     "Beautify PlantUML source block at point using gptel-rewrite.
+  ;; This selects the PlantUML code region and invokes gptel's rewrite
+  ;; functionality, allowing you to diff/ediff/merge the changes."
+  ;;     (interactive)
+  ;;     (require 'gptel-rewrite)
+  ;;     ;; 1. Validate we're in org-mode
+  ;;     (unless (derived-mode-p 'org-mode)
+  ;;       (user-error "Not in org-mode"))
 
-    ;; 2. Validate we're in a PlantUML source block
-    (let* ((info (org-babel-get-src-block-info))
-           (lang (car info)))
-      (unless info
-        (user-error "Not in a source block"))
-      (unless (string= lang "plantuml")
-        (user-error "Not in a PlantUML block (current: %s)" lang))
+  ;;     ;; 2. Validate we're in a PlantUML source block
+  ;;     (let* ((info (org-babel-get-src-block-info))
+  ;;            (lang (car info)))
+  ;;       (unless info
+  ;;         (user-error "Not in a source block"))
+  ;;       (unless (string= lang "plantuml")
+  ;;         (user-error "Not in a PlantUML block (current: %s)" lang))
 
-      ;; 3. Select the code region
-      (let ((code-start (save-excursion
-                          (org-babel-goto-src-block-head)
-                          (forward-line 1)
-                          (point)))
-            (code-end (save-excursion
-                        (org-babel-goto-src-block-head)
-                        (re-search-forward "^[ \t]*#\\+end_src")
-                        (match-beginning 0))))
-        ;; 4. Set region and invoke gptel-rewrite
-        (goto-char code-start)
-        (push-mark code-end t t)
-        (let ((gptel--rewrite-directive +llm/beautify-plantuml-directive))
-          (gptel--suffix-rewrite)))))
+  ;;       ;; 3. Select the code region
+  ;;       (let ((code-start (save-excursion
+  ;;                           (org-babel-goto-src-block-head)
+  ;;                           (forward-line 1)
+  ;;                           (point)))
+  ;;             (code-end (save-excursion
+  ;;                         (org-babel-goto-src-block-head)
+  ;;                         (re-search-forward "^[ \t]*#\\+end_src")
+  ;;                         (match-beginning 0))))
+  ;;         ;; 4. Set region and invoke gptel-rewrite
+  ;;         (goto-char code-start)
+  ;;         (push-mark code-end t t)
+  ;;         (let ((gptel--rewrite-directive +llm/beautify-plantuml-directive))
+  ;;           (gptel--suffix-rewrite)))))
   )
 
 (use-package magent
@@ -312,6 +243,14 @@ functionality, allowing you to diff/ediff/merge the changes."
   (add-to-list 'magent-skill-directories
                (expand-file-name "~/.agents/skills") t)
   (magent-agent-shell-ensure-config))
+
+(use-package magent-magit
+  :load-path (lambda () (concat +emacs/repo-directory "/site-lisp/"))
+  :after magent
+  :demand t
+  :config
+  (magent-magit-register)
+  (magent-magit-install))
 
 (use-package magent-profile-memory
   :load-path (lambda () (concat +emacs/repo-directory "/site-lisp/"))

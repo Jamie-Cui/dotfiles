@@ -12,8 +12,8 @@
 ;; and org-journal without exporting terminal-state history or ordinary Org
 ;; prose.  org-caldav performs only local Org/iCalendar conversion;
 ;; vdirsyncer owns all network access and runs asynchronously.  This package
-;; is loaded and configured by org-project after org-project has defined its
-;; task model.
+;; depends on org-project's task model, but leaves loading and setup to the
+;; caller so org-project remains usable without CalDAV synchronization.
 
 ;;; Code:
 

@@ -5,13 +5,43 @@
 ;;; Code:
 
 
-(add-to-list 'load-path (expand-file-name "site-lisp" +emacs/repo-directory))
-(setq +org-project-root-dir +emacs/caldav-tasks-dir
-      +org-projects-dir
-      (expand-file-name "projects" +emacs/caldav-tasks-dir))
-(require 'org-project)
-(require 'dashboard-org-project)
-(dashboard-org-project-setup)
+(use-package org-project
+  :load-path (lambda () +emacs/site-lisp-directory)
+  :demand t
+  :init
+  (setq +org-project-root-dir +emacs/caldav-tasks-dir
+        +org-projects-dir
+        (expand-file-name "projects" +emacs/caldav-tasks-dir)))
+
+(use-package org-project-caldav
+  :load-path (lambda () +emacs/site-lisp-directory)
+  :after org-project
+  :ensure t
+  :demand t
+  :custom
+  (org-project-caldav-pair-name "org_project_caldav")
+  (org-project-caldav-config-file
+   (expand-file-name "vdirsyncer/config"
+                     (or (getenv "XDG_CONFIG_HOME") "~/.config")))
+  (org-project-caldav-vdir-directory
+   (expand-file-name "org-project-caldav/org-tasks"
+                     (or (getenv "XDG_DATA_HOME") "~/.local/share")))
+  (org-project-caldav-auth-host "caldav.gw-api.xyz")
+  (org-project-caldav-calendar-id "caldav-tasks")
+  (org-project-caldav-sync-interval 300)
+  (org-project-caldav-initial-delay 20)
+  (org-project-caldav-after-save-delay 8)
+  (org-project-caldav-auto-sync t)
+  (org-project-caldav-conflict-policy 'org-wins)
+  :config
+  (org-project-caldav-setup))
+
+(use-package dashboard-org-project
+  :load-path (lambda () +emacs/site-lisp-directory)
+  :after (dashboard org-project)
+  :demand t
+  :config
+  (dashboard-org-project-setup))
 
 ;; -----------------------------------------------------------
 ;; DONE hack: filter out sync-conflict and *-beorg
