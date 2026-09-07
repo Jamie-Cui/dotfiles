@@ -119,6 +119,27 @@
       (delete-directory root t)
       (delete-directory emacs-directory t))))
 
+(ert-deftest org-project-caldav-layout-does-not-create-a-journal-directory ()
+  (let* ((root (make-temp-file "org-project-caldav-layout-" t))
+         (projects (expand-file-name "projects" root))
+         (vdir (expand-file-name "vdir" root))
+         (emacs-directory (file-name-as-directory
+                           (make-temp-file
+                            "org-project-caldav-emacs-" t)))
+         (+org-project-root-dir root)
+         (+org-projects-dir projects)
+         (org-project-caldav-vdir-directory vdir)
+         (user-emacs-directory emacs-directory))
+    (unwind-protect
+        (progn
+          (org-project-caldav--ensure-layout)
+          (should (file-directory-p projects))
+          (should (file-exists-p (expand-file-name "inbox.org" root)))
+          (should-not (file-exists-p (expand-file-name "journal" root))))
+      (org-project-caldav-test--kill-buffers-below root)
+      (delete-directory root t)
+      (delete-directory emacs-directory t))))
+
 (ert-deftest org-project-caldav-indexes-only-active-leaf-tasks ()
   (let* ((root (make-temp-file "org-project-caldav-scope-" t))
          (projects (expand-file-name "projects" root))

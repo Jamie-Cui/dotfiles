@@ -71,11 +71,17 @@ order are the contract.
 Local and forked packages live in ~site-lisp/~ and keep their own ~init-config-*~
 helper files in ~lisp/~.
 
-~org-project~ requires ~org-project-caldav~.  Project files, journal files, and
-the CalDAV inbox live below =~/.emacs.d/caldav-tasks/=, separately from the
-knowledge base in =~/opt/org-root/=.  Every Org file below the task root is
-checked, but only active leaf tasks are represented as CalDAV ~VTODO~ items;
-terminal-state history and ordinary journal prose stay local to the Org files.
+~org-project~ requires ~org-project-caldav~.  Project files and the CalDAV inbox
+live below =~/.emacs.d/caldav-tasks/=, separately from the knowledge base in
+=~/opt/org-root/=.  A =projects/default.org= project is created during setup so
+manual captures always have a CalDAV-backed fallback.  Every Org file below the
+task root is checked, but only active leaf tasks are represented as CalDAV
+~VTODO~ items.
+
+Org journal files live below =~/opt/org-root/journal/= and are deliberately
+excluded from ~org-agenda-files~, so TODO-like journal text is local history
+rather than a CalDAV task.  Project capture and task-state events may still be
+appended there as immutable records.
 Synchronization runs every five minutes and shortly after an Org save.  Network
 work runs in a background ~vdirsyncer~ process; credentials come from Emacs
 ~auth-source~ and are passed only in that process's environment.  A coverage

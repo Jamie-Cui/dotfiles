@@ -11,11 +11,14 @@
   :init
   (setq +org-project-root-dir +emacs/caldav-tasks-dir
         +org-projects-dir
-        (expand-file-name "projects" +emacs/caldav-tasks-dir)))
+        (expand-file-name "projects" +emacs/caldav-tasks-dir))
+  :config
+  (+org-project-setup))
 
 (use-package org-caldav
   :ensure t)
 
+;; You need to install vdirsyncer first (system-wide)
 (use-package org-project-caldav
   :load-path (lambda () +emacs/site-lisp-directory)
   :after org-project
@@ -63,11 +66,21 @@
 (defun +org-agenda-ignored-file-p (file)
   "Return non-nil when FILE should be excluded from `org-agenda-files'."
   (when (stringp file)
-    (let ((path (expand-file-name file))
+    (let* ((path (expand-file-name file))
+           (journal-dir
+            (and (boundp 'org-journal-dir)
+                 (stringp org-journal-dir)
+                 (file-name-as-directory
+                  (expand-file-name org-journal-dir))))
           ignored)
-      (dolist (regexp +org-agenda-ignored-file-regexps ignored)
-        (when (string-match-p regexp path)
-          (setq ignored t))))))
+      (or (and journal-dir
+               (or (string= (directory-file-name path)
+                            (directory-file-name journal-dir))
+                   (string-prefix-p journal-dir path)))
+          (progn
+            (dolist (regexp +org-agenda-ignored-file-regexps ignored)
+              (when (string-match-p regexp path)
+                (setq ignored t))))))))
 
 (defun +org-agenda-prune-files (&optional files)
   "Remove ignored entries from FILES or `org-agenda-files'."
@@ -89,26 +102,18 @@
       (setq org-agenda-files filtered))
     filtered))
 
-(defun +org-agenda--prune-after-journal-update (&rest _)
-  "Keep generated journal side files out of `org-agenda-files'."
-  (+org-agenda-prune-files))
-
 (use-package org-journal
   :ensure t
   :custom
-  (org-journal-dir (expand-file-name "journal" +emacs/caldav-tasks-dir))
+  (org-journal-dir (expand-file-name "journal" +emacs/org-root-dir))
   (org-journal-find-file-fn 'find-file)
   (org-journal-file-format "%Y%m%d.org")
   (org-journal-file-type 'monthly)
   (org-journal-carryover-items "TODO=\"TODO\"|TODO=\"WAIT\"|TODO=\"PROJ\"")
-  (org-journal-enable-agenda-integration t)
+  (org-journal-enable-agenda-integration nil)
   :config
-  (add-to-list 'org-agenda-files org-journal-dir)
   (+org-project-sync-agenda-files)
-  (+org-agenda-prune-files)
-  (advice-add 'org-journal--update-org-agenda-files
-              :after
-              #'+org-agenda--prune-after-journal-update))
+  (+org-agenda-prune-files))
 
 (defvar-local +notes/denote--syncing-file-name nil
   "Non-nil while synchronizing a Denote file name after saving.")

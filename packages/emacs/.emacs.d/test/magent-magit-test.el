@@ -125,7 +125,7 @@
     (should (equal (magent-agent-info-name agent) "magent-magit"))
     (should (eq (magent-agent-info-model agent) 'deepseek-v4-flash))
     (should (= (magent-agent-info-temperature agent) 0.1))
-    (should (eq (magent-agent-info-effort agent) 'auto))
+    (should-not (magent-agent-info-effort agent))
     (should (magent-agent-info-hidden agent))))
 
 (ert-deftest magent-magit-callback-starters-return-no-cancel-function ()
@@ -176,6 +176,10 @@
       (should (equal (magent-action-step-name step) "Write commit message"))
       (should (equal (plist-get (magent-action-step-options step) :agent)
                      "magent-magit"))
+      (should (eq (plist-get (magent-action-step-options step) :effort)
+                  'auto))
+      (should (eq (plist-get (magent-action-step-options step) :thinking)
+                  'disabled))
       (should-not (plist-get (magent-action-step-options step) :tools))
       (should
        (string-match-p
@@ -231,6 +235,10 @@
       (should (equal (magent-action-step-name step) "Explain diff"))
       (should (equal (plist-get (magent-action-step-options step) :agent)
                      "magent-magit"))
+      (should (eq (plist-get (magent-action-step-options step) :effort)
+                  'auto))
+      (should (eq (plist-get (magent-action-step-options step) :thinking)
+                  'disabled))
       (should-not (plist-get (magent-action-step-options step) :tools))
       (setq step (magent-magit-test--complete iterator "The diff changes A."))
       (should (eq (magent-action-step-type step) 'callback))

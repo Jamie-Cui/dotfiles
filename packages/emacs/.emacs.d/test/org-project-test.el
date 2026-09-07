@@ -17,6 +17,37 @@
 
 (require 'org-project)
 
+(ert-deftest org-project-setup-ensures-default-project ()
+  (let* ((root (make-temp-file "org-project-default-" t))
+         (+org-project-root-dir root)
+         (+org-projects-dir (expand-file-name "projects" root))
+         (org-agenda-files nil)
+         (org-mode-hook nil)
+         default-file
+         buffer)
+    (unwind-protect
+        (progn
+          (setq default-file (+org-project-setup)
+                buffer (find-buffer-visiting default-file))
+          (should (file-exists-p default-file))
+          (should (equal (file-name-nondirectory default-file) "default.org"))
+          (should (member (expand-file-name +org-projects-dir)
+                          org-agenda-files))
+          (with-temp-buffer
+            (insert-file-contents default-file)
+            (dolist (text '("#+title: Default"
+                            "#+category: default"
+                            "* Inbox"
+                            "* Note"
+                            "* Log"
+                            "* Archive"))
+              (should (search-forward text nil t)))))
+      (when (buffer-live-p buffer)
+        (with-current-buffer buffer
+          (set-buffer-modified-p nil))
+        (kill-buffer buffer))
+      (delete-directory root t))))
+
 (ert-deftest org-project-journal-state-event-classifies-transitions ()
   (let ((org-done-keywords '("DONE" "KILL"))
         (org-not-done-keywords '("TODO" "WAIT")))

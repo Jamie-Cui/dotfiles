@@ -8,9 +8,9 @@
 ;;; Commentary:
 
 ;; Synchronize active leaf tasks from every Org file below the shared
-;; caldav-tasks directory through a local vdir.  This covers both org-project
-;; and org-journal without exporting terminal-state history or ordinary Org
-;; prose.  org-caldav performs only local Org/iCalendar conversion;
+;; caldav-tasks directory through a local vdir.  The configured layout keeps
+;; project files and the CalDAV inbox there, while org-journal remains outside
+;; this task root.  org-caldav performs only local Org/iCalendar conversion;
 ;; vdirsyncer owns all network access and runs asynchronously.  This package
 ;; depends on org-project's task model, but leaves loading and setup to the
 ;; caller so org-project remains usable without CalDAV synchronization.
@@ -185,7 +185,6 @@ local-vdir-wins policy."
   (make-directory (org-project-caldav--state-directory) t)
   (make-directory +org-project-root-dir t)
   (make-directory +org-projects-dir t)
-  (make-directory (expand-file-name "journal" +org-project-root-dir) t)
   (let ((inbox (org-project-caldav--inbox-file)))
     (unless (file-exists-p inbox)
       (write-region "" nil inbox nil 'silent))))

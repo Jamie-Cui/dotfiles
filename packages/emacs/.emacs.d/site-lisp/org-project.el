@@ -97,6 +97,12 @@
   :type 'directory
   :group '+org-project)
 
+(defconst +org-project-default-slug "default"
+  "Stable slug of the default project.")
+
+(defconst +org-project-default-title "Default"
+  "Display title of the default project.")
+
 (defcustom +org-project-registry nil
   "Alist mapping absolute project roots to stable project slugs."
   :type '(alist :key-type string :value-type string)
@@ -364,6 +370,7 @@ Org automatically include every `*.org' file under
 PROMPT overrides the minibuffer prompt.
 When REQUIRE-MATCH is non-nil, restrict selection to known project slugs.
 INITIAL seeds the default slug."
+  (+org-project-ensure-default)
   (let* ((current-root (+org-project-current-root))
          (current-slug (and current-root
                             (+org-project-slug-for-root current-root)))
@@ -463,6 +470,16 @@ TITLE, ROOT and SLUG seed the initial metadata."
       (+org-project--ensure-project-buffer expanded resolved-title root resolved-slug))
     (+org-project-sync-agenda-files)
     expanded))
+
+(defun +org-project-ensure-default ()
+  "Ensure the default project exists and return its file name."
+  (+org-project-ensure-file
+   (+org-project-file-for-slug +org-project-default-slug)
+   +org-project-default-title nil +org-project-default-slug))
+
+(defun +org-project-setup ()
+  "Initialize the central project workflow."
+  (+org-project-ensure-default))
 
 (defun +org-project-file-dwim ()
   "Return an ensured central project file for the current or selected project."

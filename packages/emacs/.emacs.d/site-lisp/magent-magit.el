@@ -107,11 +107,18 @@ Nil inherits Magent's default model."
   :group 'magent-magit)
 
 (defcustom magent-magit-effort 'auto
-  "Reasoning effort used by the hidden Magit agent.
+  "Reasoning effort used by Magit Action model Steps.
 The default `auto' leaves reasoning disabled or provider-controlled instead of
 inheriting the global `magent-default-effort'."
   :type '(choice (const auto) (const minimal) (const low) (const medium)
                  (const high) (const xhigh))
+  :group 'magent-magit)
+
+(defcustom magent-magit-thinking 'disabled
+  "Thinking mode used by Magit Action model Steps.
+The default `disabled' requests provider-native thinking disable.  Use `auto'
+to inherit the provider default or `enabled' to require thinking explicitly."
+  :type '(choice (const auto) (const enabled) (const disabled))
   :group 'magent-magit)
 
 (defcustom magent-magit-max-diff-chars 120000
@@ -457,6 +464,8 @@ REPO-ROOT is included in any fallback preview."
               (magent-magit--commit-payload
                repo-root branch summary patch)
             :agent magent-magit--agent-name
+            :effort magent-magit-effort
+            :thinking magent-magit-thinking
             :tools nil))
     (magent-workflow-callback
         "Insert commit message"
@@ -562,6 +571,8 @@ REPO-ROOT is included in any fallback preview."
               "Explain diff"
               (magent-magit--diff-payload snapshot)
             :agent magent-magit--agent-name
+            :effort magent-magit-effort
+            :thinking magent-magit-thinking
             :tools nil)))
     (magent-workflow-callback
         "Display diff explanation"
@@ -579,7 +590,6 @@ REPO-ROOT is included in any fallback preview."
    :mode 'all
    :hidden t
    :temperature magent-magit-temperature
-   :effort magent-magit-effort
    :model magent-magit-model
    :source-layer 'builtin))
 

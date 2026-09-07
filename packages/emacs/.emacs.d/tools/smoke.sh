@@ -40,6 +40,17 @@ smoke_checks=(
                 (error "Rime user data directory does not match deployment")))'
     --eval '(unless (null forge-add-default-bindings)
               (error "Forge default bindings conflict with Evil Collection"))'
+    --eval '(unless (file-exists-p
+                     (+org-project-file-for-slug +org-project-default-slug))
+              (error "Default Org project was not created"))'
+    --eval '(unless (equal (expand-file-name org-journal-dir)
+                           (expand-file-name "journal" +emacs/org-root-dir))
+              (error "Org journal directory is outside org-root"))'
+    --eval '(when (seq-some (lambda (file)
+                              (and (stringp file)
+                                   (+org-agenda-ignored-file-p file)))
+                            org-agenda-files)
+              (error "Ignored Org files remain in the agenda"))'
 )
 
 echo "smoke: [1/2] repo-init chain (emacs -q --load init.el)"
