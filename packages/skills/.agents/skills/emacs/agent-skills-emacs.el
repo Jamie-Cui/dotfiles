@@ -198,6 +198,32 @@ This does not visit PATH, switch windows, or expose buffer text."
                   (agent-skills--symbol-hook-members 'pre-redisplay-functions)
                   (agent-skills--symbol-hook-members 'jit-lock-functions)))))))
 
+(cl-defun agent-skills/revert-unmodified-file-buffer (path)
+  "Revert the live buffer visiting PATH only when it has no unsaved changes.
+
+Preserve the buffer's point as closely as the new file size permits.  Refuse to
+revert modified buffers so external file updates cannot discard user edits."
+  (let ((buffer (agent-skills--buffer-visiting-file path)))
+    (if (not (buffer-live-p buffer))
+        (format "No live buffer is visiting: %s" path)
+      (with-current-buffer buffer
+        (when (buffer-modified-p)
+          (error "Refusing to revert modified buffer: %s" (buffer-name)))
+        (let ((origin-line (line-number-at-pos))
+              (origin-column (current-column)))
+          (revert-buffer t t t)
+          (goto-char (point-min))
+          (forward-line (1- origin-line))
+          (move-to-column origin-column)
+          (format (concat "Buffer: %s\nFile: %s\nReverted: yes\n"
+                          "Point: %d\nLine: %d\nSize: %d\nModified: %S")
+                  (buffer-name)
+                  buffer-file-name
+                  (point)
+                  (line-number-at-pos)
+                  (buffer-size)
+                  (buffer-modified-p)))))))
+
 (cl-defun agent-skills/file-buffer-key-binding-state (path key)
   "Report the effective bindings for KEY in the live buffer visiting PATH."
   (unless (and (stringp key)
