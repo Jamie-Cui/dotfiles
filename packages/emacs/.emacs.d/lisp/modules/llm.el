@@ -239,17 +239,11 @@
   ;; (magent-bypass-permission t)
   (magent-default-effort 'xhigh)
   (magent-include-reasoning 'ignore)
+  (magent-action-mode-line-mode t)
   :config
   (add-to-list 'magent-skill-directories
                (expand-file-name "~/.agents/skills") t)
   (magent-agent-shell-ensure-config))
-
-(use-package magent-action-mode-line
-  :load-path (lambda () (concat +emacs/repo-directory "/site-lisp/"))
-  :after magent
-  :demand t
-  :config
-  (magent-action-mode-line-mode 1))
 
 (use-package magent-magit
   :load-path (lambda () (concat +emacs/repo-directory "/site-lisp/"))
