@@ -6,7 +6,9 @@
 
 
 (add-to-list 'load-path (expand-file-name "site-lisp" +emacs/repo-directory))
-(setq +org-project-root-dir +emacs/org-root-dir)
+(setq +org-project-root-dir +emacs/caldav-tasks-dir
+      +org-projects-dir
+      (expand-file-name "projects" +emacs/caldav-tasks-dir))
 (require 'org-project)
 (require 'dashboard-org-project)
 (dashboard-org-project-setup)
@@ -62,7 +64,7 @@
 (use-package org-journal
   :ensure t
   :custom
-  (org-journal-dir (concat +emacs/org-root-dir "/journal"))
+  (org-journal-dir (expand-file-name "journal" +emacs/caldav-tasks-dir))
   (org-journal-find-file-fn 'find-file)
   (org-journal-file-format "%Y%m%d.org")
   (org-journal-file-type 'monthly)
@@ -202,7 +204,7 @@
   :custom
   (denote-directory
    (list (+emacs/org-subdir "denote")
-         (+emacs/org-subdir "projects")))
+         +org-projects-dir))
   (denote-file-type 'org)
   (denote-prompts '(title keywords))
   (denote-save-buffers nil)
@@ -213,7 +215,7 @@
    "\\(?:\\.sync-conflict-[^/]*\\.org\\'\\|/[^/]+-beorg\\.org\\'\\)")
   (denote-dired-directories
    (list (+emacs/org-subdir "denote")
-         (+emacs/org-subdir "projects")))
+         +org-projects-dir))
   (denote-dired-directories-include-subdirectories t)
   :hook
   (dired-mode . denote-dired-mode-in-directories)

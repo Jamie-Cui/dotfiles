@@ -23,6 +23,8 @@
 
 ;; --- User settings ---------------------------------------------------------
 (setopt +emacs/org-root-dir (expand-file-name "~/opt/org-root")
+        +emacs/caldav-tasks-dir
+        (expand-file-name "caldav-tasks" user-emacs-directory)
         +emacs/proxy "127.0.0.1:10808"
         +emacs/theme 'gruvbox)
 
@@ -79,7 +81,6 @@
    "lang/markdown"
    "org"
    "notes"
-   "caldav"
    "bibliography"
    "latex"
    "reading"

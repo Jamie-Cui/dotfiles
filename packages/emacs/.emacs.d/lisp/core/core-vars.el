@@ -21,6 +21,12 @@ Derived from the Git-managed `init.el' location."
   :type 'directory
   :group '+emacs)
 
+(defcustom +emacs/caldav-tasks-dir
+  (expand-file-name "caldav-tasks" user-emacs-directory)
+  "Path to mutable Org task data synchronized through CalDAV."
+  :type 'directory
+  :group '+emacs)
+
 (defcustom +emacs/proxy "127.0.0.1:10808"
   "HTTP/HTTPS proxy host:port used for URL access."
   :type 'string

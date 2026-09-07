@@ -1856,5 +1856,8 @@ REASON defaults to `manual-cleanup'."
 (with-eval-after-load 'org-agenda
   (+org-project-sync-agenda-files))
 
+(require 'org-project-caldav)
+(org-project-caldav-setup)
+
 (provide 'org-project)
 ;;; org-project.el ends here

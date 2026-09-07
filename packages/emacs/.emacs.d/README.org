@@ -59,9 +59,7 @@ order are the contract.
 | ~prog~                   | eglot, flycheck, citre, compilation, treesit              |
 | ~lang/*~                 | per-language config (cmake, bazel, markdown, lean, ...)   |
 | ~org~                    | Org core, babel, export, plantuml                         |
-| ~notes~                  | org-project, journal, roam, denote, agenda hygiene        |
-| ~caldav~                 | ETag-safe CalDAV adapter and Git snapshot synchronization |
-| ~caldav-magit~           | CalDAV status and pull/push actions inside Magit          |
+| ~notes~                  | org-project, background CalDAV, journal, roam, denote      |
 | ~bibliography~           | citar, ebib, bibtex                                       |
 | ~latex~                  | auctex, pdf-tools, xenops, git-overleaf (GUI)             |
 | ~reading~                | elfeed                                                    |
@@ -72,6 +70,19 @@ order are the contract.
 
 Local and forked packages live in ~site-lisp/~ and keep their own ~init-config-*~
 helper files in ~lisp/~.
+
+~org-project~ requires ~org-project-caldav~.  Project files, journal files, and
+the CalDAV inbox live below =~/.emacs.d/caldav-tasks/=, separately from the
+knowledge base in =~/opt/org-root/=.  Every Org file below the task root is
+checked, but only active leaf tasks are represented as CalDAV ~VTODO~ items;
+terminal-state history and ordinary journal prose stay local to the Org files.
+Synchronization runs every five minutes and shortly after an Org save.  Network
+work runs in a background ~vdirsyncer~ process; credentials come from Emacs
+~auth-source~ and are passed only in that process's environment.  A coverage
+check prevents pushing when active Org task UIDs and local VTODO UIDs differ.
+The only non-Emacs dependency is ~vdirsyncer~.  Use
+~M-x org-project-caldav-sync~ for an immediate run and
+~M-x org-project-caldav-status~ to inspect its state.
 
 * Getting started
 
