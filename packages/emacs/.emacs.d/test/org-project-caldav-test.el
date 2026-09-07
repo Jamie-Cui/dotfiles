@@ -46,6 +46,31 @@
       (should (featurep 'org-project))
       (should-not (featurep 'org-project-caldav)))))
 
+(ert-deftest org-project-caldav-setup-hides-standalone-sync-command ()
+  "Hide a stale standalone sync autoload without loading its package."
+  (let ((saved-plist (copy-sequence (symbol-plist 'org-caldav-sync)))
+        (saved-function (and (fboundp 'org-caldav-sync)
+                             (symbol-function 'org-caldav-sync)))
+        (org-agenda-files nil)
+        (org-project-caldav-auto-sync nil))
+    (unwind-protect
+        (progn
+          (unless (fboundp 'org-caldav-sync)
+            (fset 'org-caldav-sync
+                  (lambda () (interactive))))
+          (cl-letf (((symbol-function '+org-project-sync-agenda-files)
+                     #'ignore))
+            (org-project-caldav-setup)
+            (should (commandp 'org-caldav-sync))
+            (should-not (featurep 'org-caldav))
+            (should-not
+             (command-completion-default-include-p
+              'org-caldav-sync (current-buffer)))))
+      (setplist 'org-caldav-sync saved-plist)
+      (if saved-function
+          (fset 'org-caldav-sync saved-function)
+        (fmakunbound 'org-caldav-sync)))))
+
 (ert-deftest org-project-caldav-indexes-vtodo-by-logical-uid ()
   (let ((directory (make-temp-file "org-project-caldav-vdir-" t)))
     (unwind-protect
@@ -58,6 +83,40 @@
             (should (stringp (nth 1 metadata)))))
       (delete-directory directory t))))
 
+(ert-deftest org-project-caldav-vtodo-codec-unfolds-and-decodes-fields ()
+  "Decode folded CRLF input without relying on org-caldav."
+  (with-temp-buffer
+    (insert "BEGIN:VCALENDAR\r\n"
+            "VERSION:2.0\r\n"
+            "BEGIN:VTODO\r\n"
+            "UID:TODO-codec-1\r\n"
+            "SUMMARY:Codec test\r\n"
+            "DESCRIPTION:Line one\\n\r\n"
+            " line two\r\n"
+            "LOCATION:Office\r\n"
+            "CATEGORIES:work,deep focus\r\n"
+            "PRIORITY:1\r\n"
+            "PERCENT-COMPLETE:25\r\n"
+            "DTSTART;TZID=Asia/Shanghai:20260908T091500\r\n"
+            "DUE;VALUE=DATE:20260909\r\n"
+            "RRULE:FREQ=WEEKLY;INTERVAL=2\r\n"
+            "SEQUENCE:3\r\n"
+            "END:VTODO\r\n"
+            "END:VCALENDAR\r\n")
+    (let ((record (org-project-caldav-vtodo-parse-buffer)))
+      (should (equal (plist-get record :uid) "codec-1"))
+      (should (equal (plist-get record :summary) "Codec test"))
+      (should (equal (plist-get record :description)
+                     "Line one\n line two"))
+      (should (equal (plist-get record :location) "Office"))
+      (should (equal (plist-get record :categories)
+                     '("work" "deep-focus")))
+      (should (equal (plist-get record :priority) "1"))
+      (should (equal (plist-get record :percent) "25"))
+      (should (equal (plist-get record :scheduled-time) "09:15"))
+      (should (equal (plist-get record :due-time) nil))
+      (should (= (plist-get record :sequence) 3)))))
+
 (ert-deftest org-project-caldav-put-updates-existing-vdir-item ()
   (let ((directory (make-temp-file "org-project-caldav-vdir-" t)))
     (unwind-protect
@@ -67,21 +126,138 @@
                     "UID:TODO-task-1\r\n"
                     "SUMMARY:First\r\n"
                     "END:VTODO\r\n")
-            (org-project-caldav--put-event (current-buffer)))
+            (org-project-caldav--put-vtodo "task-1" (buffer-string)))
           (let ((file (org-project-caldav--event-file "task-1")))
             (should file)
+            (with-temp-buffer
+              (insert-file-contents file)
+              (should (search-forward "SEQUENCE:0" nil t)))
             (with-temp-buffer
               (insert "BEGIN:VTODO\r\n"
                       "UID:TODO-task-1\r\n"
                       "SUMMARY:Second\r\n"
                       "END:VTODO\r\n")
-              (org-project-caldav--put-event (current-buffer)))
+              (org-project-caldav--put-vtodo "task-1" (buffer-string)))
             (should (= (length (org-project-caldav--vdir-files)) 1))
             (should (equal (org-project-caldav--event-file "task-1") file))
             (with-temp-buffer
               (insert-file-contents file)
-              (should (search-forward "SUMMARY:Second" nil t)))))
+              (should (search-forward "SUMMARY:Second" nil t))
+              (goto-char (point-min))
+              (should (search-forward "SEQUENCE:1" nil t)))))
       (delete-directory directory t))))
+
+(ert-deftest org-project-caldav-state-reader-does-not-evaluate-input ()
+  "Reject reader evaluation syntax without running its payload."
+  (let* ((emacs-directory (file-name-as-directory
+                           (make-temp-file
+                            "org-project-caldav-emacs-" t)))
+         (user-emacs-directory emacs-directory)
+         (state-directory (org-project-caldav--state-directory))
+         (state-file (org-project-caldav--state-file))
+         (marker (expand-file-name "reader-evaluated" emacs-directory)))
+    (unwind-protect
+        (progn
+          (make-directory state-directory t)
+          (write-region
+           (format "#.(progn (write-region \"unsafe\" nil %S) nil)\n"
+                   marker)
+           nil state-file nil 'silent)
+          (should-error (org-project-caldav--load-state)
+                        :type 'org-project-caldav-state-error)
+          (should-not (file-exists-p marker)))
+      (delete-directory emacs-directory t))))
+
+(ert-deftest org-project-caldav-loads-legacy-state-as-data ()
+  "Migrate the retired org-caldav state shape without loading its package."
+  (let* ((emacs-directory (file-name-as-directory
+                           (make-temp-file
+                            "org-project-caldav-emacs-" t)))
+         (user-emacs-directory emacs-directory)
+         (source-file (expand-file-name "legacy.org" emacs-directory))
+         (legacy-file (org-project-caldav--legacy-state-file)))
+    (unwind-protect
+        (progn
+          (write-region
+           (format
+            (concat ";; retired state\n"
+                    "(setq org-caldav-event-list\n"
+                    "'((\"legacy-1\" \"org-hash\" \"etag\" 4 synced)))\n"
+                    "(setq org-caldav-previous-files '%S)\n")
+            (list source-file))
+           nil legacy-file nil 'silent)
+          (let ((state (org-project-caldav--load-state)))
+            (should (equal (plist-get state :source-files)
+                           (list source-file)))
+            (should (equal (plist-get state :entries)
+                           '(("legacy-1" "org-hash" "etag" 4 nil))))
+            (should-not (featurep 'org-caldav))))
+      (delete-directory emacs-directory t))))
+
+(ert-deftest org-project-caldav-reconcile-rolls-back-org-on-state-failure ()
+  "Keep committed Org, vdir, and state data when state writing fails."
+  (let* ((root (make-temp-file "org-project-caldav-rollback-" t))
+         (projects (expand-file-name "projects" root))
+         (project-file (expand-file-name "demo.org" projects))
+         (vdir (expand-file-name "vdir" root))
+         (emacs-directory (file-name-as-directory
+                           (make-temp-file
+                            "org-project-caldav-emacs-" t)))
+         (+org-project-root-dir root)
+         (+org-projects-dir projects)
+         (org-project-caldav-vdir-directory vdir)
+         (+org-project-state-journal-log-enabled nil)
+         (user-emacs-directory emacs-directory)
+         (org-id-locations-file (expand-file-name ".org-id-locations" root))
+         (org-mode-hook nil))
+    (unwind-protect
+        (progn
+          (make-directory projects t)
+          (write-region
+           (concat "* Project\n"
+                   "** TODO Original title\n"
+                   ":PROPERTIES:\n:ID: rollback-1\n:END:\n")
+           nil project-file nil 'silent)
+          (org-project-caldav--reconcile)
+          (let ((event-file (org-project-caldav--event-file "rollback-1")))
+            (with-temp-buffer
+              (insert-file-contents event-file)
+              (goto-char (point-min))
+              (should (search-forward "SUMMARY:Original title" nil t))
+              (replace-match "SUMMARY:Remote title" t t)
+              (write-region nil nil event-file nil 'silent))
+            (let ((org-before (with-temp-buffer
+                                (insert-file-contents project-file)
+                                (buffer-string)))
+                  (vdir-before (with-temp-buffer
+                                 (insert-file-contents event-file)
+                                 (buffer-string)))
+                  (state-before
+                   (with-temp-buffer
+                     (insert-file-contents
+                      (org-project-caldav--state-file))
+                     (buffer-string))))
+              (cl-letf (((symbol-function
+                          'org-project-caldav--write-state-temp)
+                         (lambda (_state)
+                           (error "Injected state failure"))))
+                (should-error (org-project-caldav--reconcile)))
+              (should (equal org-before
+                             (with-temp-buffer
+                               (insert-file-contents project-file)
+                               (buffer-string))))
+              (should (equal vdir-before
+                             (with-temp-buffer
+                               (insert-file-contents event-file)
+                               (buffer-string))))
+              (should (equal state-before
+                             (with-temp-buffer
+                               (insert-file-contents
+                                (org-project-caldav--state-file))
+                               (buffer-string)))))))
+      (org-project-caldav-test--kill-buffers-below root)
+      (delete-directory root t)
+      (delete-directory emacs-directory t))))
 
 (ert-deftest org-project-caldav-discovers-every-org-file-below-task-root ()
   (let* ((root (make-temp-file "org-project-caldav-sources-" t))
@@ -320,7 +496,11 @@
           (cl-letf (((symbol-function 'org-project-caldav--program)
                      (lambda () "/usr/bin/vdirsyncer")))
             (should
-             (equal (org-project-caldav--command 'pull)
+             (equal (org-project-caldav--command 'pre-sync)
+                    (list "/usr/bin/vdirsyncer" "--config" config
+                          "sync" "test_pair")))
+            (should
+             (equal (org-project-caldav--command 'post-sync)
                     (list "/usr/bin/vdirsyncer" "--config" config
                           "sync" "test_pair")))
             (should

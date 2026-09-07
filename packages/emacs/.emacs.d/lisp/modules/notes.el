@@ -9,14 +9,10 @@
   :load-path (lambda () +emacs/site-lisp-directory)
   :demand t
   :init
-  (setq +org-project-root-dir +emacs/caldav-tasks-dir
-        +org-projects-dir
-        (expand-file-name "projects" +emacs/caldav-tasks-dir))
+  (setq +org-project-root-dir +emacs/caldav-tasks-dir)
+  (setq +org-projects-dir (expand-file-name "projects" +emacs/caldav-tasks-dir))
   :config
   (+org-project-setup))
-
-(use-package org-caldav
-  :ensure t)
 
 ;; You need to install vdirsyncer first (system-wide)
 (use-package org-project-caldav
@@ -72,7 +68,7 @@
                  (stringp org-journal-dir)
                  (file-name-as-directory
                   (expand-file-name org-journal-dir))))
-          ignored)
+           ignored)
       (or (and journal-dir
                (or (string= (directory-file-name path)
                             (directory-file-name journal-dir))
