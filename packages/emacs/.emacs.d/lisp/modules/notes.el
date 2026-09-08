@@ -9,8 +9,9 @@
   :load-path (lambda () +emacs/site-lisp-directory)
   :demand t
   :init
-  (setq +org-project-root-dir +emacs/caldav-tasks-dir)
-  (setq +org-projects-dir (expand-file-name "projects" +emacs/caldav-tasks-dir))
+  (setq +org-project-root-dir +emacs/org-project-caldav-dir)
+  (setq +org-projects-dir
+        (expand-file-name "project-files" +emacs/org-project-caldav-dir))
   :config
   (+org-project-setup))
 

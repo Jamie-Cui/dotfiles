@@ -24,10 +24,11 @@
 ;;; Commentary:
 
 ;; Synchronize active leaf tasks from every Org file below the shared
-;; caldav-tasks directory through a local vdir.  The configured layout keeps
-;; project files and the CalDAV inbox there, while org-journal remains outside
-;; this task root.  This package owns the Org/VTODO projection and its
-;; three-way state; vdirsyncer owns all network access and runs asynchronously.
+;; org-project-caldav directory through a local vdir.  The configured layout
+;; keeps project files, the CalDAV inbox, and synchronization state together,
+;; while org-journal remains outside this task root.  This package owns the
+;; Org/VTODO projection and its three-way state; vdirsyncer owns all network
+;; access and runs asynchronously.
 ;; The VTODO codec adapts conversion behavior from org-caldav under GPLv3+,
 ;; without loading or depending on the org-caldav package.  org-project remains
 ;; usable without CalDAV synchronization because loading and setup stay with
@@ -178,7 +179,7 @@ matching local-vdir-wins policy."
 
 (defun org-project-caldav--state-directory ()
   "Return the directory containing local synchronization state."
-  (expand-file-name "org-project-caldav" user-emacs-directory))
+  +org-project-root-dir)
 
 (defun org-project-caldav--program ()
   "Return an executable vdirsyncer path or signal a user error."
@@ -216,7 +217,6 @@ matching local-vdir-wins policy."
 (defun org-project-caldav--ensure-layout ()
   "Create local directories and the Org inbox required for synchronization."
   (make-directory org-project-caldav-vdir-directory t)
-  (make-directory (org-project-caldav--state-directory) t)
   (make-directory +org-project-root-dir t)
   (make-directory +org-projects-dir t)
   (let ((inbox (org-project-caldav--inbox-file)))

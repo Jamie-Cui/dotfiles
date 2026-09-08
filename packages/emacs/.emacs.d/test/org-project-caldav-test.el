@@ -153,6 +153,7 @@
                            (make-temp-file
                             "org-project-caldav-emacs-" t)))
          (user-emacs-directory emacs-directory)
+         (+org-project-root-dir emacs-directory)
          (state-directory (org-project-caldav--state-directory))
          (state-file (org-project-caldav--state-file))
          (marker (expand-file-name "reader-evaluated" emacs-directory)))
@@ -174,6 +175,7 @@
                            (make-temp-file
                             "org-project-caldav-emacs-" t)))
          (user-emacs-directory emacs-directory)
+         (+org-project-root-dir emacs-directory)
          (source-file (expand-file-name "legacy.org" emacs-directory))
          (legacy-file (org-project-caldav--legacy-state-file)))
     (unwind-protect
@@ -197,7 +199,7 @@
 (ert-deftest org-project-caldav-reconcile-rolls-back-org-on-state-failure ()
   "Keep committed Org, vdir, and state data when state writing fails."
   (let* ((root (make-temp-file "org-project-caldav-rollback-" t))
-         (projects (expand-file-name "projects" root))
+         (projects (expand-file-name "project-files" root))
          (project-file (expand-file-name "demo.org" projects))
          (vdir (expand-file-name "vdir" root))
          (emacs-directory (file-name-as-directory
@@ -261,7 +263,7 @@
 
 (ert-deftest org-project-caldav-discovers-every-org-file-below-task-root ()
   (let* ((root (make-temp-file "org-project-caldav-sources-" t))
-         (projects (expand-file-name "projects" root))
+         (projects (expand-file-name "project-files" root))
          (journal (expand-file-name "journal" root))
          (nested (expand-file-name "nested" journal))
          (vdir (expand-file-name "vdir" root))
@@ -290,14 +292,14 @@
             '("inbox.org"
               "journal/20260901.org"
               "journal/nested/extra.org"
-              "projects/demo.org"))))
+              "project-files/demo.org"))))
       (org-project-caldav-test--kill-buffers-below root)
       (delete-directory root t)
       (delete-directory emacs-directory t))))
 
 (ert-deftest org-project-caldav-layout-does-not-create-a-journal-directory ()
   (let* ((root (make-temp-file "org-project-caldav-layout-" t))
-         (projects (expand-file-name "projects" root))
+         (projects (expand-file-name "project-files" root))
          (vdir (expand-file-name "vdir" root))
          (emacs-directory (file-name-as-directory
                            (make-temp-file
@@ -309,6 +311,7 @@
     (unwind-protect
         (progn
           (org-project-caldav--ensure-layout)
+          (should (file-equal-p (org-project-caldav--state-directory) root))
           (should (file-directory-p projects))
           (should (file-exists-p (expand-file-name "inbox.org" root)))
           (should-not (file-exists-p (expand-file-name "journal" root))))
@@ -318,7 +321,7 @@
 
 (ert-deftest org-project-caldav-indexes-only-active-leaf-tasks ()
   (let* ((root (make-temp-file "org-project-caldav-scope-" t))
-         (projects (expand-file-name "projects" root))
+         (projects (expand-file-name "project-files" root))
          (journal (expand-file-name "journal" root))
          (project-file (expand-file-name "demo.org" projects))
          (journal-file (expand-file-name "20260901.org" journal))
@@ -358,7 +361,7 @@
 
 (ert-deftest org-project-caldav-coverage-fails-closed-on-missing-vtodo ()
   (let* ((root (make-temp-file "org-project-caldav-coverage-" t))
-         (projects (expand-file-name "projects" root))
+         (projects (expand-file-name "project-files" root))
          (project-file (expand-file-name "demo.org" projects))
          (vdir (expand-file-name "vdir" root))
          (+org-project-root-dir root)
@@ -389,7 +392,7 @@
 
 (ert-deftest org-project-caldav-local-reconcile-round-trip ()
   (let* ((root (make-temp-file "org-project-caldav-org-" t))
-         (projects (expand-file-name "projects" root))
+         (projects (expand-file-name "project-files" root))
          (project-file (expand-file-name "demo.org" projects))
          (journal (expand-file-name "journal" root))
          (journal-file (expand-file-name "20260901.org" journal))

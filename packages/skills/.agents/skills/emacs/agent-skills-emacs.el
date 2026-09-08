@@ -497,7 +497,7 @@ changes."
     (error "Invalid duplicate Org ID list: %S" duplicate-ids))
   (let* ((legacy-projects (expand-file-name "projects" legacy-root))
          (legacy-journal (expand-file-name "journal" legacy-root))
-         (target-projects (expand-file-name "projects" target-root))
+         (target-projects +org-projects-dir)
          (target-journal (expand-file-name "journal" target-root))
          (inbox (expand-file-name "inbox.org" target-root))
          (source-project-files
@@ -561,7 +561,7 @@ changes."
                 (scan-current-org-buffer
                  (lambda ()
                    (when (equal (org-entry-get nil "ID") id)
-                     (setq count (1+ count))))))))
+                     (setq count (1+ count)))))))))
          (rewrite-project-paths
           (file)
           (let ((old-absolute (directory-file-name old-project-root))

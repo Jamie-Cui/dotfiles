@@ -72,12 +72,12 @@ Local and forked packages live in ~site-lisp/~ and keep their own ~init-config-*
 helper files in ~lisp/~.
 
 ~org-project-caldav~ extends ~org-project~ without depending on the standalone
-~org-caldav~ package.  Project files and the CalDAV inbox live below
-=~/.emacs.d/caldav-tasks/=, separately from the knowledge base in
-=~/opt/org-root/=.  A =projects/default.org= project is created during setup so
-manual captures always have a CalDAV-backed fallback.  Every Org file below the
-task root is checked, but only active leaf tasks are represented as CalDAV
-~VTODO~ items.
+~org-caldav~ package.  Project files, the CalDAV inbox, and synchronization
+state live below =~/.emacs.d/org-project-caldav/=, separately from the knowledge
+base in =~/opt/org-root/=.  A =project-files/default.org= project is created
+during setup so manual captures always have a CalDAV-backed fallback.  Every
+Org file below the task root is checked, but only active leaf tasks are
+represented as CalDAV ~VTODO~ items.
 
 Org journal files live below =~/opt/org-root/journal/= and are deliberately
 excluded from ~org-agenda-files~, so TODO-like journal text is local history

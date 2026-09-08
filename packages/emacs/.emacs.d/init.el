@@ -23,8 +23,8 @@
 
 ;; --- User settings ---------------------------------------------------------
 (setopt +emacs/org-root-dir (expand-file-name "~/opt/org-root")
-        +emacs/caldav-tasks-dir
-        (expand-file-name "caldav-tasks" user-emacs-directory)
+        +emacs/org-project-caldav-dir
+        (expand-file-name "org-project-caldav" user-emacs-directory)
         +emacs/proxy "127.0.0.1:10808"
         +emacs/theme 'gruvbox)
 

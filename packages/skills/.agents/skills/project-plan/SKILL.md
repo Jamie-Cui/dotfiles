@@ -12,7 +12,7 @@ Treat the project's helper-resolved, CalDAV-backed central Org file as the sourc
 1. Run this workflow only after the user explicitly invokes `$project-plan`. Do not infer invocation from planning language or project context.
 2. Resolve the active project root first. Prefer the live Emacs project context over guessing from filesystem paths.
 3. Resolve the central project Org file through `(+org-project-current-file)` or `(+org-project-file-dwim)`. Require at least one of these helpers: try `(+org-project-current-file)` first when it exists, then use `(+org-project-file-dwim)` when needed and available. Do not guess a file from the filesystem.
-4. Before reading or writing, require the resolved file to be below the live value of `+org-projects-dir`. The current configuration places it at `~/.emacs.d/caldav-tasks/projects/<slug>.org`. Reject legacy results below `~/opt/org-root/projects/` and files such as `<project-root>/project.org`.
+4. Before reading or writing, require the resolved file to be below the live value of `+org-projects-dir`. The current configuration places it at `~/.emacs.d/org-project-caldav/project-files/<slug>.org`. Reject legacy results below `~/opt/org-root/projects/` and files such as `<project-root>/project.org`.
 5. If neither resolver exists, `+org-projects-dir` is unavailable, or the resolved file falls outside it, stop and report that the Emacs project-note integration is unavailable or stale. Do not create a fallback project file.
 6. Read before writing. For planning or review work, inspect the active task headings plus `* Note` and any active project subtree. For note-only requests, read `* Note` first and ignore task sections unless they are directly relevant.
 7. Treat an explicit `$project-plan` invocation with no follow-up prompt as a request to enter plan mode. Enumerate the active `PROJ`, `TODO`, `WAIT`, and imminent deadline items from the project Org file, then ask the user which item to execute, continue, or review.
@@ -46,7 +46,7 @@ create or guess a fallback file.
 
 Treat the live value of `+org-projects-dir` as the ownership boundary for every
 resolved file. Its configured location is
-`~/.emacs.d/caldav-tasks/projects/`. If the variable is unavailable or the
+`~/.emacs.d/org-project-caldav/project-files/`. If the variable is unavailable or the
 resolver returns a path outside that directory, stop without writing and report
 the stale or incomplete Emacs integration. Never generate project TODOs below
 `~/opt/org-root/projects/` or inside the active source repository.
