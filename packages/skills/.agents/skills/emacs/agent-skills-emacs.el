@@ -906,5 +906,62 @@ Refuse unsaved edits and preserve point, narrowing, and window selection."
               (list :block name :file (expand-file-name file)
                     :bytes (file-attribute-size (file-attributes file))))))))))
 
+(defun agent-skills/org-image-preview-state (path image-path)
+  "Inspect preview overlays for IMAGE-PATH in the live Org buffer at PATH.
+Return bounded display metadata without image data or document contents."
+  (let ((buffer (agent-skills--buffer-visiting-file path)))
+    (unless (buffer-live-p buffer)
+      (user-error "No live buffer is visiting: %s" path))
+    (with-current-buffer buffer
+      (save-excursion
+        (save-restriction
+          (widen)
+          (goto-char (point-min))
+          (unless (search-forward (concat "[[file:" image-path "]]" ) nil t)
+            (user-error "The image link was not found"))
+          (let ((beg (match-beginning 0)) (end (match-end 0)))
+            (list
+             :point (point) :link-bounds (cons beg end)
+             :colors (list :background (face-background 'default nil t)
+                           :highlight (face-background 'highlight nil t)
+                           :mouse-face (get-char-property (+ beg 2) 'mouse-face))
+             :settings
+             (mapcar (lambda (name)
+                       (cons name (if (boundp name) (symbol-value name) :unbound)))
+                     '(org-appear-autolinks org-link-descriptive
+                       org-fold-core-style org-fold-core--isearch-reveal-p
+                       buffer-invisibility-spec cursor-sensor-mode))
+             :text-properties
+             (mapcar
+              (lambda (pos)
+                (list :pos pos :invisible (invisible-p pos)
+                      :properties
+                      (cl-loop for (key value) on (text-properties-at pos) by #'cddr
+                               when (or (memq key '(invisible display cursor-sensor-functions))
+                                        (string-match-p "fold" (symbol-name key)))
+                               collect (cons key
+                                             (if (and (eq key 'display)
+                                                      (eq (car-safe value) 'image))
+                                                 :image value)))))
+              (list beg (+ beg 2) (1- end)))
+             :overlays
+             (mapcar
+              (lambda (ov)
+                (let ((display (overlay-get ov 'display)))
+                  (list :bounds (cons (overlay-start ov) (overlay-end ov))
+                        :image (and (eq (car-safe display) 'image)
+                                    (list :type (plist-get (cdr display) :type)
+                                          :file (plist-get (cdr display) :file)
+                                          :width (plist-get (cdr display) :width)))
+                        :display-kind (car-safe display)
+                        :org-image (overlay-get ov 'org-image-overlay)
+                        :xenops (overlay-get ov 'xenops-overlay-type)
+                        :priority (overlay-get ov 'priority)
+                        :invisible (overlay-get ov 'invisible)
+                        :face (overlay-get ov 'face)
+                        :window (and (overlay-get ov 'window) t)
+                        :cursor-sensor (overlay-get ov 'cursor-sensor-functions))))
+              (overlays-in beg end)))))))))
+
 (provide 'agent-skills/emacs)
 ;;; agent-skills-emacs.el ends here

@@ -217,6 +217,19 @@ following, and export continue to use their configured processors."
 
 (with-eval-after-load 'ob-latex
   (setopt org-babel-latex-preamble #'+org/babel-latex-preamble
+          ;; Paint a real rectangle: PDF page color is lost in SVG conversion.
+          org-babel-latex-begin-env
+          (lambda (_params)
+            "\\begin{document}
+\\setlength{\\fboxsep}{0pt}
+\\colorbox{white}{\\begin{minipage}{\\linewidth}
+\\color{black}
+")
+          org-babel-latex-end-env
+          (lambda (_params)
+            "\\end{minipage}}
+\\end{document}
+")
           org-babel-latex-pdf-svg-process "pdftocairo -svg %f %O"))
 
 (add-hook 'org-babel-after-execute-hook
