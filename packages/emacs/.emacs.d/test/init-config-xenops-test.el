@@ -121,5 +121,62 @@
    (advice-member-p #'fn/xenops-math-latex-create-image-a
                     'xenops-math-latex-create-image)))
 
+(ert-deftest init-config-xenops-inline-parser-keeps-unexpected-errors-visible ()
+  (with-temp-buffer
+    (setq-local xenops-mode t)
+    (insert "Text $x$ text")
+    (goto-char (point-min))
+    (should-not (fn/xenops-math-inline-editing-element))
+    (search-forward "$x")
+    (should (fn/xenops-math-inline-editing-element))
+    (cl-letf (((symbol-function 'xenops-math-parse-inline-element-at-point)
+               (lambda () (error "Unexpected parser failure"))))
+      (should-error (fn/xenops-math-inline-editing-element)))))
+
+(ert-deftest init-config-xenops-disable-cleans-up-outside-narrowing ()
+  (with-temp-buffer
+    (insert "math\ntext\n")
+    (let ((math (make-overlay 1 5))
+          (other (make-overlay 6 10))
+          (timer (run-at-time 60 nil #'ignore))
+          (generation (fn/xenops-math-buffer-generation))
+          restored)
+      (unwind-protect
+          (progn
+            (overlay-put math 'xenops-overlay-type 'xenops-math-waiting)
+            (narrow-to-region 6 10)
+            (should (fn/xenops-math-buffer-has-overlays-p))
+            (should (fn/xenops-math-buffer-has-overlays-p 'xenops-math-waiting))
+            (should-not (fn/xenops-math-buffer-has-overlays-p 'xenops-overlay))
+            (setq-local xenops-mode nil
+                        fn/xenops-math-refresh-pending t
+                        fn/xenops-math-refresh-timer timer
+                        fn/xenops-math-smartparens-suspended t)
+            (cl-letf (((symbol-function 'smartparens-mode)
+                       (lambda (arg) (setq restored arg))))
+              (fn/xenops-math-mode-state-h))
+            (should (= restored 1))
+            (should-not fn/xenops-math-smartparens-suspended)
+            (should-not fn/xenops-math-refresh-pending)
+            (should-not fn/xenops-math-refresh-timer)
+            (should-not (memq timer timer-list))
+            (should (> (fn/xenops-math-buffer-generation) generation))
+            (should-not (overlay-buffer math))
+            (should (overlay-buffer other))
+            (should (= (point-min) 6)))
+        (cancel-timer timer)))))
+
+(ert-deftest init-config-xenops-svg-baseline-tolerates-missing-metadata ()
+  (skip-unless (fboundp 'libxml-parse-xml-region))
+  (let ((file (make-temp-file "xenops-baseline-" nil ".svg")))
+    (unwind-protect
+        (dolist (case '(("<g id='page1' transform='matrix(1 0 0 2 0 0)'><desc id='xenops-baseline' data-x='0' data-y='7.5'/></g>" . 75)
+                        ("<desc id='xenops-baseline' data-x='0'/>" . nil)
+                        ("" . nil)))
+          (with-temp-file file
+            (insert "<svg viewBox='0 0 10 20'>" (car case) "</svg>"))
+          (should (equal (fn/xenops-math-svg-baseline-ascent file) (cdr case))))
+      (delete-file file))))
+
 (provide 'init-config-xenops-test)
 ;;; init-config-xenops-test.el ends here

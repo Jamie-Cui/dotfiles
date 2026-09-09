@@ -1,5 +1,8 @@
 ;;; init-config-xenops.el --- Xenops configuration -*- lexical-binding: t -*-
 ;;; Commentary:
+;; Integrate Xenops with Org, Smartparens, and cnfonts.  The async override
+;; keeps rendering tied to its original buffer generation and semaphore;
+;; SVG previews also carry a TeX baseline for inline alignment.
 ;;; Code:
 
 (require 'cl-lib)
@@ -13,47 +16,32 @@
   :demand t)
 (require 'aio)
 
-(declare-function f-read-bytes "f")
-(declare-function f-write-bytes "f")
-(declare-function fn/xenops-math-advance-buffer-generation "init-config-xenops")
-(declare-function fn/xenops-math-buffer-generation "init-config-xenops")
-(declare-function fn/xenops-math-buffer-has-overlays-p "init-config-xenops")
-(declare-function fn/xenops-math-buffer-has-waiting-overlays-p
-                  "init-config-xenops")
-(declare-function fn/xenops-math-cancel-refresh-timer "init-config-xenops")
-(declare-function fn/xenops-math-cleanup-buffer-h "init-config-xenops")
-(declare-function fn/xenops-math-current-generation-p "init-config-xenops")
-(declare-function fn/xenops-math-finish-scheduled-refresh
-                  "init-config-xenops")
-(declare-function fn/xenops-math-latex-add-svg-baseline
-                  "init-config-xenops")
-(declare-function fn/xenops-math-latex-create-image-a "init-config-xenops")
-(declare-function fn/xenops-math-mode-state-h "init-config-xenops")
-(declare-function fn/xenops-math-normalize-idle-semaphore
-                  "init-config-xenops")
-(declare-function fn/xenops-math-recover-stale-rendered-buffers
-                  "init-config-xenops")
-(declare-function fn/xenops-math-render-current-scale "init-config-xenops")
-(declare-function fn/xenops-math-render-queue-idle-p "init-config-xenops")
-(declare-function fn/xenops-math-schedule-current-scale-refresh
-                  "init-config-xenops")
-(declare-function fn/xenops-math-svg-baseline-ascent
-                  "init-config-xenops")
-(declare-function fn/xenops-math-svg-numbers "init-config-xenops")
-(declare-function smartparens-mode "smartparens")
-(declare-function xenops-aio-subprocess "xenops-aio")
-(declare-function xenops-aio-with-async-with-buffer "xenops-aio")
-(declare-function xenops-math-deactivate-marker-on-element "xenops-math")
-(declare-function xenops-math-display-error-badge "xenops-math")
-(declare-function xenops-math-latex-make-commands "xenops-math-latex")
-(declare-function xenops-math-latex-make-latex-document "xenops-math-latex")
-(declare-function xenops-math-latex-process-get "xenops-math-latex")
-(declare-function xenops-math-parse-element-at "xenops-math")
-(declare-function xenops-math-parse-inline-element-at-point "xenops-math")
-(declare-function xenops-math-set-marker-on-element "xenops-math")
-(declare-function xenops-overlay-delete-overlays-in "xenops-overlay")
-(declare-function xenops-png-set-phys-chunk "xenops-png")
-(declare-function xenops-render "xenops")
+(declare-function fn/xenops-math-latex-create-image-a "init-config-xenops"
+                  (element latex colors cache-file display-image) t) ; aio-defun
+(declare-function fn/xenops-src-parse-at-point "init-config-xenops" ())
+(declare-function smartparens-mode "smartparens" (&optional arg))
+(declare-function f-read-bytes "f" (path &optional beg end))
+(declare-function f-write-bytes "f" (data path))
+(declare-function xenops-aio-subprocess "xenops-aio" (command &optional _ __))
+(declare-function xenops-math-deactivate-marker-on-element "xenops-math" (element))
+(declare-function xenops-math-display-error-badge "xenops-math"
+                  (element error display-error-p))
+(declare-function xenops-math-latex-make-commands "xenops-math-latex"
+                  (element dir tex-file image-input-file image-output-file))
+(declare-function xenops-math-latex-make-latex-document "xenops-math-latex"
+                  (latex colors))
+(declare-function xenops-math-latex-process-get "xenops-math-latex" (key))
+(declare-function xenops-math-latex-waiting-tasks-count "xenops-math-latex" ())
+(declare-function xenops-math-parse-element-at "xenops-math" (pos))
+(declare-function xenops-math-set-marker-on-element "xenops-math" (element))
+(declare-function xenops-overlay-delete-overlays-in "xenops-overlay"
+                  (&optional beg end))
+(declare-function xenops-png-set-phys-chunk "xenops-png" (png-string ppi))
+(declare-function xenops-cancel-waiting-tasks "xenops-math-latex" ())
+(declare-function xenops-render "xenops" () t) ; Generated apply command.
+(declare-function xenops-parse-element-at-point "xenops-parse"
+                  (type &optional lim-up lim-down delimiters))
+(declare-function xenops-util-plist-update "xenops-util" (plist &rest args))
 
 (defvar xenops-apply-user-point)
 (defvar xenops-math-latex-max-tasks-in-flight)
@@ -89,7 +77,7 @@
   "Beginning of the Xenops inline math element currently being edited.")
 
 (defun fn/xenops-src-skip-delimiter-newline-a (args)
-  "Keep source fontification off the newline after a block delimiter.
+  "Adjust fontification ARGS to skip the newline after a block delimiter.
 Xenops includes that newline in its source-content range.  Applying a
 source mode's syntax table there can make Org parse the language and
 the first source word as one token."
@@ -100,26 +88,19 @@ the first source word as one token."
             start)
           end)))
 
-(unless (advice-member-p #'fn/xenops-src-skip-delimiter-newline-a
-                         'org-src-font-lock-fontify-block)
-  (advice-add 'org-src-font-lock-fontify-block
-              :filter-args #'fn/xenops-src-skip-delimiter-newline-a))
+(advice-add 'org-src-font-lock-fontify-block
+            :filter-args #'fn/xenops-src-skip-delimiter-newline-a)
 
 (defun fn/xenops-math-inline-editing-element ()
   "Return the Xenops inline math element being edited at point."
   (and (bound-and-true-p xenops-mode)
        (fboundp 'xenops-math-parse-inline-element-at-point)
-       (ignore-errors
-         (when-let* ((element (xenops-math-parse-inline-element-at-point))
-                     (begin-content (plist-get element :begin-content))
-                     (end-content (plist-get element :end-content)))
-           (when (and (eq (plist-get element :type) 'inline-math)
-                      (<= begin-content (point) end-content))
-             element)))))
-
-(defun fn/xenops-math-inline-editing-p ()
-  "Return non-nil when point is inside a Xenops inline math element."
-  (not (null (fn/xenops-math-inline-editing-element))))
+       (when-let* ((element (xenops-math-parse-inline-element-at-point))
+                   (begin-content (plist-get element :begin-content))
+                   (end-content (plist-get element :end-content)))
+         (when (and (eq (plist-get element :type) 'inline-math)
+                    (<= begin-content (point) end-content))
+           element))))
 
 (defun fn/xenops-math-sync-smartparens-h ()
   "Suspend Smartparens while editing Xenops inline math."
@@ -132,9 +113,7 @@ the first source word as one token."
             (setq fn/xenops-math-smartparens-suspended t)
             (smartparens-mode -1)))
       (setq fn/xenops-math-inline-editing-begin nil)
-      (when fn/xenops-math-smartparens-suspended
-        (setq fn/xenops-math-smartparens-suspended nil)
-        (smartparens-mode 1)))))
+      (fn/xenops-math-restore-smartparens-h))))
 
 (defun fn/xenops-math-restore-smartparens-h ()
   "Restore Smartparens if inline math editing suspended it."
@@ -144,7 +123,8 @@ the first source word as one token."
     (smartparens-mode 1)))
 
 (defun fn/xenops-math-ignore-repeated-reveal-a (orig-fn window oldpos event-type)
-  "Avoid repeated Xenops reveal while editing the same inline math element."
+  "Skip ORIG-FN for repeated entry into the inline math being edited.
+Otherwise pass WINDOW, OLDPOS, and EVENT-TYPE to ORIG-FN."
   (if (and (eq event-type 'entered)
            fn/xenops-math-inline-editing-begin
            (when-let* ((element (fn/xenops-math-inline-editing-element)))
@@ -164,29 +144,27 @@ the first source word as one token."
 
 (use-package xenops
   :ensure t
-  :if (and window-system (not (eq system-type 'windows-nt))) ;; do not load xenops on terminal emacs or windows nt
-  :config
-  (setq xenops-font-family "Maple Mono NL NF CN")
-  (setq xenops-reveal-on-entry t)
-  (setq xenops-math-latex-process-alist org-preview-latex-process-alist)
-  (add-hook 'org-mode-hook #'xenops-mode)
-  (setq xenops-math-latex-process 'xdvisvgm) ; HACK or, ximagemagick
+  :if (and window-system (not (eq system-type 'windows-nt)))
+  :preface
   (defun fn/xenops-math-buffer-generation (&optional buffer)
     "Return the Xenops async generation for BUFFER or the current buffer."
     (gethash (or buffer (current-buffer))
              fn/xenops-math-buffer-generations
              0))
+
   (defun fn/xenops-math-advance-buffer-generation (&optional buffer)
     "Invalidate outstanding Xenops async work for BUFFER or the current buffer."
     (let* ((buffer (or buffer (current-buffer)))
            (generation (1+ (fn/xenops-math-buffer-generation buffer))))
       (puthash buffer generation fn/xenops-math-buffer-generations)
       generation))
+
   (defun fn/xenops-math-current-generation-p (buffer generation)
     "Return non-nil when BUFFER is live and still at GENERATION."
     (and (buffer-live-p buffer)
          (= generation (fn/xenops-math-buffer-generation buffer))
          (buffer-local-value 'xenops-mode buffer)))
+
   (defun fn/xenops-math-latex-add-svg-baseline (element latex)
     "Add a dvisvgm baseline marker to inline ELEMENT's LATEX."
     (if (and (eq (plist-get element :type) 'inline-math)
@@ -197,6 +175,222 @@ the first source word as one token."
          "<desc id='xenops-baseline' data-x='{?x}' data-y='{?y}'/>}"
          latex)
       latex))
+
+  (defun fn/xenops-math-current-cap-height ()
+    "Return the live Maple bold capital height for the current buffer."
+    (when-let* ((window (get-buffer-window (current-buffer) t))
+                (string (propertize "U" 'face 'bold))
+                (font (font-at 0 window string))
+                (glyph (aref (font-get-glyphs font 0 1 string) 0)))
+      (+ (aref glyph 7) (aref glyph 8))))
+
+  (defun fn/xenops-math-sync-image-scale (&rest _)
+    "Sync `xenops-math-image-scale-factor' with the live Maple cap height.
+Return non-nil when the scale changed."
+    (when-let* ((cap-height (fn/xenops-math-current-cap-height))
+                (scale (* fn/xenops-math-image-reference-scale-factor
+                          (/ cap-height
+                             fn/xenops-math-image-reference-cap-height))))
+      (unless (equal xenops-math-image-scale-factor scale)
+        (setq-local xenops-math-image-scale-factor scale)
+        t)))
+
+  (defun fn/xenops-math-buffer-has-overlays-p (&optional type)
+    "Return non-nil when this buffer has Xenops overlays of TYPE.
+When TYPE is nil, match any Xenops overlay."
+    (save-restriction
+      (widen)
+      (cl-some (lambda (overlay)
+                 (let ((overlay-type (overlay-get overlay 'xenops-overlay-type)))
+                   (and overlay-type (or (null type) (eq overlay-type type)))))
+               (overlays-in (point-min) (point-max)))))
+
+  (defun fn/xenops-math-render-queue-idle-p ()
+    "Return non-nil when the current Xenops render queue is idle.
+A semaphore value above the configured maximum is treated as an
+idle but corrupted semaphore left by older Xenops code."
+    (let ((semaphore xenops-math-latex-tasks-semaphore))
+      (or (null semaphore)
+          (and (>= (aio-sem-value semaphore)
+                   xenops-math-latex-max-tasks-in-flight)
+               (null (car (aio-sem-queue semaphore)))))))
+
+  (defun fn/xenops-math-normalize-idle-semaphore ()
+    "Restore the current idle Xenops semaphore to its configured maximum."
+    (when (and (fn/xenops-math-render-queue-idle-p)
+               (or (null xenops-math-latex-tasks-semaphore)
+                   (/= (aio-sem-value xenops-math-latex-tasks-semaphore)
+                       xenops-math-latex-max-tasks-in-flight)))
+      (setq xenops-math-latex-tasks-semaphore
+            (aio-sem xenops-math-latex-max-tasks-in-flight))))
+
+  (defun fn/xenops-math-cancel-refresh-timer ()
+    "Cancel the pending scale refresh timer in the current buffer."
+    (when (timerp fn/xenops-math-refresh-timer)
+      (cancel-timer fn/xenops-math-refresh-timer))
+    (setq fn/xenops-math-refresh-timer nil
+          fn/xenops-math-refresh-pending nil))
+
+  (defun fn/xenops-math-cleanup-buffer-h ()
+    "Invalidate Xenops work and clean up the current buffer."
+    (fn/xenops-math-advance-buffer-generation)
+    (fn/xenops-math-cancel-refresh-timer)
+    (fn/xenops-math-restore-smartparens-h)
+    (save-restriction
+      (widen)
+      (when (bound-and-true-p xenops-mode)
+        (xenops-cancel-waiting-tasks))
+      (xenops-overlay-delete-overlays-in (point-min) (point-max))))
+
+  (defun fn/xenops-math-mode-state-h ()
+    "Invalidate outstanding work after Xenops is disabled manually."
+    (unless (bound-and-true-p xenops-mode)
+      (fn/xenops-math-cleanup-buffer-h)))
+
+  (defun fn/xenops-math-render-current-scale ()
+    "Replace all Xenops overlays and render using the current image scale."
+    (fn/xenops-math-normalize-idle-semaphore)
+    (setq fn/xenops-math-refresh-pending nil
+          fn/xenops-math-refresh-timer nil)
+    (save-excursion
+      (save-restriction
+        (widen)
+        (xenops-overlay-delete-overlays-in (point-min) (point-max))
+        (goto-char (point-min))
+        (xenops-render))))
+
+  (defun fn/xenops-math-finish-scheduled-refresh (buffer generation)
+    "Refresh BUFFER at the current scale once GENERATION becomes idle."
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (setq fn/xenops-math-refresh-timer nil)
+        (cond
+         ((or (not fn/xenops-math-refresh-pending)
+              (not (bound-and-true-p xenops-mode))
+              (/= generation (fn/xenops-math-buffer-generation)))
+          (setq fn/xenops-math-refresh-pending nil))
+         ((fn/xenops-math-render-queue-idle-p)
+          (fn/xenops-math-render-current-scale))
+         (t
+          (setq fn/xenops-math-refresh-timer
+                (run-at-time
+                 fn/xenops-math-refresh-retry-delay nil
+                 #'fn/xenops-math-finish-scheduled-refresh
+                 buffer generation)))))))
+
+  (defun fn/xenops-math-schedule-current-scale-refresh ()
+    "Schedule a current-scale refresh for the current Xenops buffer."
+    (setq fn/xenops-math-refresh-pending t)
+    (unless (timerp fn/xenops-math-refresh-timer)
+      (setq fn/xenops-math-refresh-timer
+            (run-at-time
+             0 nil #'fn/xenops-math-finish-scheduled-refresh
+             (current-buffer)
+             (fn/xenops-math-buffer-generation)))))
+
+  (defun fn/xenops-refresh-rendered-buffers (&optional _fontsizes-list)
+    "Schedule rendered Xenops buffers to refresh after a scale change.
+An active render queue is allowed to finish first.  This prevents
+hundreds of old promises and waiting overlays from being orphaned
+when a large document is refreshed."
+    (when (featurep 'xenops)
+      (dolist (buffer (buffer-list))
+        (with-current-buffer buffer
+          (when (and (bound-and-true-p xenops-mode)
+                     (fn/xenops-math-buffer-has-overlays-p))
+            (fn/xenops-math-schedule-current-scale-refresh))))))
+
+  (defun fn/xenops-math-recover-stale-rendered-buffers ()
+    "Recover idle Xenops buffers that still contain waiting overlays."
+    (when (featurep 'xenops)
+      (dolist (buffer (buffer-list))
+        (with-current-buffer buffer
+          (when (and (bound-and-true-p xenops-mode)
+                     (fn/xenops-math-buffer-has-overlays-p 'xenops-math-waiting)
+                     (fn/xenops-math-render-queue-idle-p))
+            (fn/xenops-math-schedule-current-scale-refresh))))))
+
+  (defun fn/xenops-math-cache-key-include-scale (orig-fn &rest args)
+    "Add scale and SVG baseline version to Xenops math cache keys."
+    (append (apply orig-fn args)
+            (list (list 'xenops-math-image-scale-factor
+                        xenops-math-image-scale-factor)
+                  (list 'fn/xenops-math-svg-baseline-cache-version
+                        fn/xenops-math-svg-baseline-cache-version))))
+
+  (defun fn/xenops-math-svg-numbers (value)
+    "Return the numeric components in SVG attribute VALUE."
+    (when (stringp value)
+      (mapcar #'string-to-number (split-string value "[, ]+" t))))
+
+  (defun fn/xenops-math-svg-baseline-ascent (file)
+    "Return FILE's TeX baseline as an Emacs image ascent percentage."
+    (when (and (stringp file)
+               (file-readable-p file)
+               (fboundp 'libxml-parse-xml-region))
+      (condition-case nil
+          (with-temp-buffer
+            (insert-file-contents-literally file)
+            (let* ((document
+                    (libxml-parse-xml-region (point-min) (point-max)))
+                   (svg (car (dom-by-tag document 'svg)))
+                   (page (dom-by-id document "page1"))
+                   (marker (dom-by-id document "xenops-baseline"))
+                   (view-box
+                    (fn/xenops-math-svg-numbers
+                     (dom-attr svg 'viewBox)))
+                   (transform (and page (dom-attr page 'transform)))
+                   (matrix
+                    (if (and transform
+                             (string-match "\\`matrix(\\(.*\\))\\'" transform))
+                        (fn/xenops-math-svg-numbers
+                         (match-string 1 transform))
+                      '(1.0 0.0 0.0 1.0 0.0 0.0)))
+                   (x (when-let* ((value (dom-attr marker 'data-x)))
+                        (string-to-number value)))
+                   (y (when-let* ((value (dom-attr marker 'data-y)))
+                        (string-to-number value))))
+              (when (and (= (length view-box) 4)
+                         (= (length matrix) 6)
+                         x y
+                         (> (nth 3 view-box) 0))
+                (let* ((top (nth 1 view-box))
+                       (height (nth 3 view-box))
+                       (baseline-y (+ (* (nth 1 matrix) x)
+                                      (* (nth 3 matrix) y)
+                                      (nth 5 matrix)))
+                       (ascent
+                        (round (* 100.0 (/ (- baseline-y top) height)))))
+                  (max 0 (min 100 ascent))))))
+        (file-error nil))))
+
+  (defun fn/xenops-math-display-image-set-svg-foreground (element &rest _)
+    "Set SVG foreground and align inline math to its TeX baseline."
+    (let ((beg (plist-get element :begin))
+          (end (plist-get element :end)))
+      (when (and beg end)
+        (dolist (ov (overlays-in beg end))
+          (let ((display (overlay-get ov 'display)))
+            (when (and (eq (overlay-get ov 'xenops-overlay-type) 'xenops-overlay)
+                       (consp display)
+                       (eq (car display) 'image)
+                       (eq (plist-get (cdr display) :type) 'svg))
+              (let* ((properties (copy-sequence (cdr display)))
+                     (file (plist-get properties :file))
+                     (ascent
+                      (and (eq (plist-get element :type) 'inline-math)
+                           (fn/xenops-math-svg-baseline-ascent file))))
+                (setq properties
+                      (plist-put properties :foreground "black"))
+                (when ascent
+                  (setq properties (plist-put properties :ascent ascent)))
+                (overlay-put ov 'display (cons 'image properties)))))))))
+  :config
+  (setq xenops-font-family "Maple Mono NL NF CN"
+        xenops-reveal-on-entry t
+        xenops-math-latex-process-alist org-preview-latex-process-alist
+        xenops-math-latex-process 'xdvisvgm)
+  (add-hook 'org-mode-hook #'xenops-mode)
   (aio-defun fn/xenops-math-latex-create-image-a
     (element latex colors cache-file display-image)
     "Create a Xenops math image without leaking work across buffer generations.
@@ -295,252 +489,29 @@ mode restart has installed a new buffer-local semaphore."
       ;; Never post to a newer buffer-local semaphore.  Doing so was the
       ;; source of the observed impossible 64/32 semaphore state.
       (aio-sem-post semaphore)))
-  (when (advice-member-p #'fn/xenops-math-latex-create-image-a
-                         'xenops-math-latex-create-image)
-    (advice-remove 'xenops-math-latex-create-image
-                   #'fn/xenops-math-latex-create-image-a))
   (advice-add 'xenops-math-latex-create-image
               :override #'fn/xenops-math-latex-create-image-a)
-  (defun fn/xenops-math-current-cap-height ()
-    "Return the live Maple bold capital height for the current buffer."
-    (when-let* ((window (get-buffer-window (current-buffer) t))
-                (string (propertize "U" 'face 'bold))
-                (font (font-at 0 window string))
-                (glyph (aref (font-get-glyphs font 0 1 string) 0)))
-      (+ (aref glyph 7) (aref glyph 8))))
-  (defun fn/xenops-math-sync-image-scale (&optional _fontsizes-list)
-    "Sync `xenops-math-image-scale-factor' with the live Maple cap height.
-Return non-nil when the scale changed."
-    (when-let* ((cap-height (fn/xenops-math-current-cap-height))
-                (scale (* fn/xenops-math-image-reference-scale-factor
-                          (/ cap-height
-                             fn/xenops-math-image-reference-cap-height))))
-      (unless (equal xenops-math-image-scale-factor scale)
-        (setq-local xenops-math-image-scale-factor scale)
-        t)))
-  (defun fn/xenops-math-buffer-has-overlays-p ()
-    "Return non-nil when the current buffer has Xenops overlays."
-    (save-restriction
-      (widen)
-      (catch 'found-xenops-overlay
-        (dolist (overlay (overlays-in (point-min) (point-max)))
-          (when (overlay-get overlay 'xenops-overlay-type)
-            (throw 'found-xenops-overlay t))))))
-  (defun fn/xenops-math-buffer-has-waiting-overlays-p ()
-    "Return non-nil when the current buffer has waiting Xenops overlays."
-    (save-restriction
-      (widen)
-      (catch 'found-xenops-waiting-overlay
-        (dolist (overlay (overlays-in (point-min) (point-max)))
-          (when (eq (overlay-get overlay 'xenops-overlay-type)
-                    'xenops-math-waiting)
-            (throw 'found-xenops-waiting-overlay t))))))
-  (defun fn/xenops-math-render-queue-idle-p ()
-    "Return non-nil when the current Xenops render queue is idle.
-A semaphore value above the configured maximum is treated as an
-idle but corrupted semaphore left by older Xenops code."
-    (let ((semaphore xenops-math-latex-tasks-semaphore))
-      (or (null semaphore)
-          (and (>= (aio-sem-value semaphore)
-                   xenops-math-latex-max-tasks-in-flight)
-               (null (car (aio-sem-queue semaphore)))))))
-  (defun fn/xenops-math-normalize-idle-semaphore ()
-    "Restore the current idle Xenops semaphore to its configured maximum."
-    (when (and (fn/xenops-math-render-queue-idle-p)
-               (or (null xenops-math-latex-tasks-semaphore)
-                   (/= (aio-sem-value xenops-math-latex-tasks-semaphore)
-                       xenops-math-latex-max-tasks-in-flight)))
-      (setq xenops-math-latex-tasks-semaphore
-            (aio-sem xenops-math-latex-max-tasks-in-flight))))
-  (defun fn/xenops-math-cancel-refresh-timer ()
-    "Cancel the pending scale refresh timer in the current buffer."
-    (when (timerp fn/xenops-math-refresh-timer)
-      (cancel-timer fn/xenops-math-refresh-timer))
-    (setq fn/xenops-math-refresh-timer nil
-          fn/xenops-math-refresh-pending nil))
-  (defun fn/xenops-math-cleanup-buffer-h ()
-    "Invalidate Xenops work before killing or changing the current buffer."
-    (fn/xenops-math-advance-buffer-generation)
-    (fn/xenops-math-cancel-refresh-timer)
-    (fn/xenops-math-restore-smartparens-h)
-    (when (bound-and-true-p xenops-mode)
-      (save-restriction
-        (widen)
-        (xenops-cancel-waiting-tasks)
-        (xenops-overlay-delete-overlays-in (point-min) (point-max)))))
-  (defun fn/xenops-math-mode-state-h ()
-    "Invalidate outstanding work after Xenops is disabled manually."
-    (unless (bound-and-true-p xenops-mode)
-      (fn/xenops-math-advance-buffer-generation)
-      (fn/xenops-math-cancel-refresh-timer)
-      (fn/xenops-math-restore-smartparens-h)
-      (save-restriction
-        (widen)
-        (xenops-overlay-delete-overlays-in (point-min) (point-max)))))
-  (defun fn/xenops-math-render-current-scale ()
-    "Replace all Xenops overlays and render using the current image scale."
-    (fn/xenops-math-normalize-idle-semaphore)
-    (setq fn/xenops-math-refresh-pending nil
-          fn/xenops-math-refresh-timer nil)
-    (save-excursion
-      (save-restriction
-        (widen)
-        (xenops-overlay-delete-overlays-in (point-min) (point-max))
-        (goto-char (point-min))
-        (xenops-render))))
-  (defun fn/xenops-math-finish-scheduled-refresh (buffer generation)
-    "Refresh BUFFER at the current scale once GENERATION becomes idle."
-    (when (buffer-live-p buffer)
-      (with-current-buffer buffer
-        (setq fn/xenops-math-refresh-timer nil)
-        (cond
-         ((or (not fn/xenops-math-refresh-pending)
-              (not (bound-and-true-p xenops-mode))
-              (/= generation (fn/xenops-math-buffer-generation)))
-          (setq fn/xenops-math-refresh-pending nil))
-         ((fn/xenops-math-render-queue-idle-p)
-          (fn/xenops-math-render-current-scale))
-         (t
-          (setq fn/xenops-math-refresh-timer
-                (run-at-time
-                 fn/xenops-math-refresh-retry-delay nil
-                 #'fn/xenops-math-finish-scheduled-refresh
-                 buffer generation)))))))
-  (defun fn/xenops-math-schedule-current-scale-refresh ()
-    "Schedule a current-scale refresh for the current Xenops buffer."
-    (setq fn/xenops-math-refresh-pending t)
-    (unless (timerp fn/xenops-math-refresh-timer)
-      (setq fn/xenops-math-refresh-timer
-            (run-at-time
-             0 nil #'fn/xenops-math-finish-scheduled-refresh
-             (current-buffer)
-             (fn/xenops-math-buffer-generation)))))
-  (defun fn/xenops-refresh-rendered-buffers ()
-    "Schedule rendered Xenops buffers to refresh after a scale change.
-An active render queue is allowed to finish first.  This prevents
-hundreds of old promises and waiting overlays from being orphaned
-when a large document is refreshed."
-    (when (featurep 'xenops)
-      (dolist (buffer (buffer-list))
-        (with-current-buffer buffer
-          (when (and (bound-and-true-p xenops-mode)
-                     (fn/xenops-math-buffer-has-overlays-p))
-            (fn/xenops-math-schedule-current-scale-refresh))))))
-  (defun fn/xenops-math-recover-stale-rendered-buffers ()
-    "Recover idle Xenops buffers that still contain waiting overlays."
-    (when (featurep 'xenops)
-      (dolist (buffer (buffer-list))
-        (with-current-buffer buffer
-          (when (and (bound-and-true-p xenops-mode)
-                     (fn/xenops-math-buffer-has-waiting-overlays-p)
-                     (fn/xenops-math-render-queue-idle-p))
-            (fn/xenops-math-schedule-current-scale-refresh))))))
-  (defun fn/xenops-math-sync-image-scale-after-cnfonts (&optional _fontsizes-list)
-    "Update rendered Xenops buffers after cnfonts changes the live font."
-    (fn/xenops-refresh-rendered-buffers))
-  (defun fn/xenops-math-sync-image-scale-before-render (&rest _)
-    "Ensure Xenops uses the current cnfonts size before rendering."
-    (fn/xenops-math-sync-image-scale))
-  (defun fn/xenops-math-cache-key-include-scale (orig-fn &rest args)
-    "Add scale and SVG baseline version to Xenops math cache keys."
-    (append (apply orig-fn args)
-            (list (list 'xenops-math-image-scale-factor
-                        xenops-math-image-scale-factor)
-                  (list 'fn/xenops-math-svg-baseline-cache-version
-                        fn/xenops-math-svg-baseline-cache-version))))
   (fn/xenops-math-sync-image-scale)
   (add-hook 'cnfonts-set-font-finish-hook
-            #'fn/xenops-math-sync-image-scale-after-cnfonts)
-  (unless (advice-member-p #'fn/xenops-math-sync-image-scale-before-render
-                           'xenops-math-render)
-    (advice-add 'xenops-math-render
-                :before #'fn/xenops-math-sync-image-scale-before-render))
-  (unless (advice-member-p #'fn/xenops-math-cache-key-include-scale
-                           'xenops-math-file-name-static-hash-data)
-    (advice-add 'xenops-math-file-name-static-hash-data
-                :around #'fn/xenops-math-cache-key-include-scale))
-  (defun fn/xenops-math-svg-numbers (value)
-    "Return the numeric components in SVG attribute VALUE."
-    (when (stringp value)
-      (mapcar #'string-to-number (split-string value "[, ]+" t))))
-  (defun fn/xenops-math-svg-baseline-ascent (file)
-    "Return FILE's TeX baseline as an Emacs image ascent percentage."
-    (when (and (stringp file)
-               (file-readable-p file)
-               (fboundp 'libxml-parse-xml-region))
-      (condition-case nil
-          (with-temp-buffer
-            (insert-file-contents-literally file)
-            (let* ((document
-                    (libxml-parse-xml-region (point-min) (point-max)))
-                   (svg (car (dom-by-tag document 'svg)))
-                   (page (dom-by-id document "page1"))
-                   (marker (dom-by-id document "xenops-baseline"))
-                   (view-box
-                    (fn/xenops-math-svg-numbers
-                     (dom-attr svg 'viewBox)))
-                   (transform (and page (dom-attr page 'transform)))
-                   (matrix
-                    (if (and transform
-                             (string-match "\\`matrix(\\(.*\\))\\'" transform))
-                        (fn/xenops-math-svg-numbers
-                         (match-string 1 transform))
-                      '(1.0 0.0 0.0 1.0 0.0 0.0)))
-                   (x (and marker
-                           (string-to-number (dom-attr marker 'data-x))))
-                   (y (and marker
-                           (string-to-number (dom-attr marker 'data-y)))))
-              (when (and (= (length view-box) 4)
-                         (= (length matrix) 6)
-                         x y
-                         (> (nth 3 view-box) 0))
-                (let* ((top (nth 1 view-box))
-                       (height (nth 3 view-box))
-                       (baseline-y (+ (* (nth 1 matrix) x)
-                                      (* (nth 3 matrix) y)
-                                      (nth 5 matrix)))
-                       (ascent
-                        (round (* 100.0 (/ (- baseline-y top) height)))))
-                  (max 0 (min 100 ascent))))))
-        (error nil))))
-  (defun fn/xenops-math-display-image-set-svg-foreground (element &rest _)
-    "Set SVG foreground and align inline math to its TeX baseline."
-    (let ((beg (plist-get element :begin))
-          (end (plist-get element :end)))
-      (when (and beg end)
-        (dolist (ov (overlays-in beg end))
-          (let ((display (overlay-get ov 'display)))
-            (when (and (eq (overlay-get ov 'xenops-overlay-type) 'xenops-overlay)
-                       (consp display)
-                       (eq (car display) 'image)
-                       (eq (plist-get (cdr display) :type) 'svg))
-              (let* ((properties (copy-sequence (cdr display)))
-                     (file (plist-get properties :file))
-                     (ascent
-                      (and (eq (plist-get element :type) 'inline-math)
-                           (fn/xenops-math-svg-baseline-ascent file))))
-                (setq properties
-                      (plist-put properties :foreground "black"))
-                (when ascent
-                  (setq properties (plist-put properties :ascent ascent)))
-                (overlay-put ov 'display (cons 'image properties)))))))))
-  (unless (advice-member-p #'fn/xenops-math-display-image-set-svg-foreground
-                           'xenops-math-display-image)
-    (advice-add 'xenops-math-display-image
-                :after #'fn/xenops-math-display-image-set-svg-foreground))
+            #'fn/xenops-refresh-rendered-buffers)
+  (advice-add 'xenops-math-render
+              :before #'fn/xenops-math-sync-image-scale)
+  (advice-add 'xenops-math-file-name-static-hash-data
+              :around #'fn/xenops-math-cache-key-include-scale)
+  (advice-add 'xenops-math-display-image
+              :after #'fn/xenops-math-display-image-set-svg-foreground)
   (add-hook 'xenops-mode-hook #'fn/xenops-math-mode-state-h)
   (add-hook 'org-mode-hook #'fn/xenops-math-setup-smartparens-suspension-h)
   (dolist (buffer (buffer-list))
     (with-current-buffer buffer
       (when (derived-mode-p 'org-mode)
         (fn/xenops-math-setup-smartparens-suspension-h))))
-  (unless (advice-member-p #'fn/xenops-math-ignore-repeated-reveal-a
-                           'xenops-math-handle-element-transgression)
-    (advice-add 'xenops-math-handle-element-transgression
-                :around #'fn/xenops-math-ignore-repeated-reveal-a))
+  (advice-add 'xenops-math-handle-element-transgression
+              :around #'fn/xenops-math-ignore-repeated-reveal-a)
   (fn/xenops-math-recover-stale-rendered-buffers)
   (defun fn/xenops-src-parse-at-point ()
-    (-if-let*
+    "Parse a source block using its temporary Org buffer's element cache."
+    (when-let*
         ((element (xenops-parse-element-at-point 'src))
          (org-babel-info
           (xenops-src-do-in-org-mode
@@ -551,14 +522,10 @@ when a large document is refreshed."
          :language (nth 0 org-babel-info)
          :org-babel-info org-babel-info)))
 
-  ;; NOTE error from xenops with org>9.7
-  ;; https://github.com/syl20bnr/spacemacs/issues/16577
-  ;; https://github.com/dandavison/xenops/pull/74/files
-  ;; https://github.com/dandavison/xenops/issues/73
-  (unless (advice-member-p #'fn/xenops-src-parse-at-point
-                           'xenops-src-parse-at-point)
-    (advice-add 'xenops-src-parse-at-point
-                :override #'fn/xenops-src-parse-at-point)))
+  ;; Org 9.7+ requires Babel lookup in the buffer that owns the element cache.
+  ;; https://github.com/dandavison/xenops/pull/74
+  (advice-add 'xenops-src-parse-at-point
+              :override #'fn/xenops-src-parse-at-point))
 
 (provide 'init-config-xenops)
 ;;; init-config-xenops.el ends here
