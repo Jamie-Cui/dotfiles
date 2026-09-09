@@ -963,5 +963,102 @@ Return bounded display metadata without image data or document contents."
                         :cursor-sensor (overlay-get ov 'cursor-sensor-functions))))
               (overlays-in beg end)))))))))
 
+(defun agent-skills/passphrase-input-state ()
+  "Report password input metadata and stack function names, never secrets.
+Do not return minibuffer text, input events, stack arguments, or process
+command arguments.  Anonymous functions are represented by their type."
+  (let ((window (active-minibuffer-window))
+        stack)
+    (mapbacktrace
+     (lambda (_evaluated function _arguments _flags)
+       (push (if (symbolp function) function (type-of function)) stack)))
+    (list
+     :minibuffer-depth (minibuffer-depth)
+     :recursion-depth (recursion-depth)
+     :stack-functions (nreverse stack)
+     :minibuffer
+     (when (window-live-p window)
+       (with-current-buffer (window-buffer window)
+         (list
+          :selected (eq window (selected-window))
+          :mode major-mode
+          :read-only buffer-read-only
+          :password-mode (bound-and-true-p read-passwd-mode)
+          :evil-state (bound-and-true-p evil-state)
+          :overriding-local-map (not (null overriding-local-map))
+          :overriding-terminal-local-map
+          (not (null overriding-terminal-local-map))
+          :global-map-matches (eq global-map (current-global-map))
+          :bindings
+          (mapcar
+           (lambda (key)
+             (let* ((sequence (kbd key))
+                    (binding (key-binding sequence)))
+               (list key
+                     :effective (if (symbolp binding)
+                                    binding (type-of binding))
+                     :global (lookup-key (current-global-map) sequence)
+                     :standard (lookup-key global-map sequence))))
+           '("a" "RET" "C-g" "C-]"))
+          :setup-hooks
+          (agent-skills--symbol-hook-members 'minibuffer-setup-hook)
+          :post-command-hooks
+          (agent-skills--symbol-hook-members 'post-command-hook))))
+     :pinentry-mode (bound-and-true-p epg-pinentry-mode)
+     :gpg-processes
+     (cl-loop for process in (process-list)
+              when (string-match-p "\\(?:epg\\|gpg\\)" (process-name process))
+              collect (list :name (process-name process)
+                            :pid (process-id process)
+                            :status (process-status process))))))
+
+(declare-function org-project-caldav--cancel-timers "org-project-caldav" ())
+(declare-function org-project-caldav-mode "org-project-caldav" (&optional arg))
+
+(defun agent-skills--finish-caldav-input-recovery ()
+  "Release the outer mouse reader after the CalDAV prompt was cancelled."
+  (let ((stack (plist-get (agent-skills/passphrase-input-state)
+                         :stack-functions)))
+    (when (and (zerop (minibuffer-depth))
+               (memq 'read-key stack)
+               (memq 'evil-mouse-drag-track stack))
+      (top-level))))
+
+(defun agent-skills/finish-caldav-input-recovery ()
+  "Pause automatic CalDAV sync and release a remaining Evil mouse reader."
+  (org-project-caldav-mode -1)
+  (run-at-time 0.1 nil #'agent-skills--finish-caldav-input-recovery)
+  'mouse-reader-release-scheduled)
+
+(defun agent-skills--abort-caldav-passphrase (window depth)
+  "Abort the stuck password prompt in WINDOW at minibuffer DEPTH.
+Recheck the stack so a later, unrelated prompt cannot be interrupted."
+  (let ((state (agent-skills/passphrase-input-state)))
+    (when (and (eq window (active-minibuffer-window))
+               (= depth (minibuffer-depth))
+               (memq 'read-passwd (plist-get state :stack-functions))
+               (memq 'org-project-caldav--credentials
+                     (plist-get state :stack-functions)))
+      (abort-recursive-edit))))
+
+(defun agent-skills/recover-caldav-passphrase ()
+  "Restore input and cancel a CalDAV password prompt nested in `read-key'.
+Pause CalDAV timers for this session before scheduling the prompt abort."
+  (let* ((state (agent-skills/passphrase-input-state))
+         (stack (plist-get state :stack-functions))
+         (window (active-minibuffer-window)))
+    (unless (and (window-live-p window)
+                 (memq 'read-passwd stack)
+                 (memq 'read-key stack)
+                 (memq 'org-project-caldav--credentials stack))
+      (user-error "No CalDAV password prompt is blocking read-key"))
+    (org-project-caldav-mode -1)
+    (use-global-map global-map)
+    (setq overriding-local-map
+          (buffer-local-value 'read-passwd-map (window-buffer window)))
+    (run-at-time 0.1 nil #'agent-skills--abort-caldav-passphrase
+                 window (minibuffer-depth))
+    'input-restored-password-abort-scheduled))
+
 (provide 'agent-skills/emacs)
 ;;; agent-skills-emacs.el ends here
