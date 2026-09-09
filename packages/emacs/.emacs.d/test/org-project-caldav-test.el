@@ -512,6 +512,51 @@
                           "discover" "test_pair")))))
       (delete-file config))))
 
+(ert-deftest org-project-caldav-process-starts-from-missing-buffer-directory ()
+  "Start every sync stage in the vdir despite a stale buffer directory."
+  (let* ((root (make-temp-file "org-project-caldav-process-" t))
+         (org-project-caldav-vdir-directory (expand-file-name "vdir" root))
+         (missing (file-name-as-directory (expand-file-name "removed" root)))
+         (pwd-program (executable-find "pwd"))
+         (buffer (generate-new-buffer " *org-project-caldav-test*"))
+         (org-project-caldav--log-buffer (buffer-name buffer))
+         (org-project-caldav--process nil))
+    (unwind-protect
+        (progn
+          (should pwd-program)
+          (make-directory org-project-caldav-vdir-directory)
+          (with-current-buffer buffer
+            (setq default-directory missing))
+          (cl-letf (((symbol-function 'org-project-caldav--credentials)
+                     (lambda () (cons "test-user" (copy-sequence "test-secret"))))
+                    ((symbol-function 'org-project-caldav--command)
+                     (lambda (_stage) (list pwd-program)))
+                    ((symbol-function 'org-project-caldav--sentinel) #'ignore))
+            (dolist (stage '(pre-sync discover post-sync))
+              (with-current-buffer buffer
+                (erase-buffer))
+              (let ((default-directory missing))
+                (org-project-caldav--start-vdirsyncer stage)
+                (should (equal default-directory missing)))
+              (with-timeout (5 (ert-fail "CalDAV test process timed out"))
+                (while (process-live-p org-project-caldav--process)
+                  (accept-process-output org-project-caldav--process 0.1)))
+              (should (= (process-exit-status org-project-caldav--process) 0))
+              (should (eq (process-get org-project-caldav--process
+                                       'org-project-caldav-stage)
+                          stage))
+              (with-current-buffer buffer
+                (goto-char (point-max))
+                (forward-line -1)
+                (should (file-equal-p
+                         (string-trim
+                          (buffer-substring-no-properties (point) (point-max)))
+                         org-project-caldav-vdir-directory))))))
+      (when (process-live-p org-project-caldav--process)
+        (delete-process org-project-caldav--process))
+      (kill-buffer buffer)
+      (delete-directory root t))))
+
 (ert-deftest org-project-caldav-empty-projects-asks-before-creating-default ()
   (let* ((root (make-temp-file "org-project-caldav-empty-" t))
          (+org-project-root-dir root)

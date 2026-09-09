@@ -1418,7 +1418,11 @@ With NEEDS-CONFIRMATION, report pending user action without a warning popup."
 
 (defun org-project-caldav--start-vdirsyncer (stage)
   "Start asynchronous vdirsyncer STAGE using auth-source credentials."
-  (let* ((credentials (org-project-caldav--credentials))
+  ;; Timers can run in buffers whose project directory was moved or deleted.
+  (let* ((default-directory
+          (file-name-as-directory
+           (expand-file-name org-project-caldav-vdir-directory)))
+         (credentials (org-project-caldav--credentials))
          (username (car credentials))
          (password (cdr credentials))
          (process-environment (copy-sequence process-environment))
