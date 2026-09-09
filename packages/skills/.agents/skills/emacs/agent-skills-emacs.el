@@ -1060,5 +1060,83 @@ Pause CalDAV timers for this session before scheduling the prompt abort."
                  window (minibuffer-depth))
     'input-restored-password-abort-scheduled))
 
+(declare-function +notes/denote-menu-sort-by-modified-h "modules/notes" ())
+(declare-function +notes/denote-menu-modified-date "modules/notes" (path))
+(declare-function +emacs/read-passwd-with-input-maps-a "core-startup"
+                  (function &rest args))
+
+(defun agent-skills/reload-password-and-denote-input ()
+  "Reload only the managed password and Denote date functions.
+Refresh existing Denote menus without replaying startup or enabling timers.
+Only the three fixed function definitions below are evaluated."
+  (unless (zerop (minibuffer-depth))
+    (user-error "Finish the active minibuffer before reloading input settings"))
+  (let (definitions menus)
+    (dolist (entry '(("lisp/core/core-startup.el"
+                      +emacs/read-passwd-with-input-maps-a)
+                     ("lisp/modules/notes.el"
+                      +notes/denote-menu-modified-date
+                      +notes/denote-menu-sort-by-modified-h)))
+      (let* ((file (expand-file-name (car entry) +emacs/repo-directory))
+             (buffer (find-buffer-visiting file))
+             (remaining (copy-sequence (cdr entry))))
+        (when (and buffer (buffer-modified-p buffer))
+          (user-error "Configuration has unsaved edits: %s" file))
+        (with-temp-buffer
+          (insert-file-contents file)
+          (emacs-lisp-mode)
+          (goto-char (point-min))
+          (while (progn (forward-comment (point-max)) (not (eobp)))
+            (let ((form (read (current-buffer))))
+              (when (and (eq (car-safe form) 'defun)
+                         (memq (cadr form) remaining))
+                (push form definitions)
+                (setq remaining (delq (cadr form) remaining)))))
+          (when remaining
+            (user-error "Missing managed definitions: %S" remaining)))))
+    (dolist (form (nreverse definitions))
+      (eval form t))
+    (advice-add 'read-passwd :around #'+emacs/read-passwd-with-input-maps-a)
+    (advice-add 'denote-menu-date :override #'+notes/denote-menu-modified-date)
+    (add-hook 'denote-menu-mode-hook #'+notes/denote-menu-sort-by-modified-h)
+    (save-selected-window
+      (dolist (buffer (buffer-list))
+        (with-current-buffer buffer
+          (when (derived-mode-p 'denote-menu-mode)
+            (+notes/denote-menu-sort-by-modified-h)
+            (tabulated-list-print t)
+            (push (list :buffer (buffer-name)
+                        :sort-key tabulated-list-sort-key
+                        :date-column (aref tabulated-list-format 0))
+                  menus)))))
+    (list :password-advice
+          (not (null (advice-member-p
+                      #'+emacs/read-passwd-with-input-maps-a 'read-passwd)))
+          :denote-menus (nreverse menus)
+          :caldav-auto-sync (bound-and-true-p org-project-caldav-mode))))
+
+(defun agent-skills/denote-menu-order-state ()
+  "Verify rendered Denote date order without reading note contents."
+  (cl-loop
+   for buffer in (buffer-list)
+   when (with-current-buffer buffer (derived-mode-p 'denote-menu-mode))
+   collect
+   (with-current-buffer buffer
+     (save-excursion
+       (goto-char (point-min))
+       (let ((rows 0) (newest-first t) previous first-date last-date)
+         (while (not (eobp))
+           (when-let* ((entry (tabulated-list-get-entry)))
+             (let ((date (substring-no-properties (car (aref entry 0)))))
+               (unless first-date (setq first-date date))
+               (when (and previous (string-lessp previous date))
+                 (setq newest-first nil))
+               (setq previous date last-date date)
+               (cl-incf rows)))
+           (forward-line 1))
+         (list :buffer (buffer-name) :sort-key tabulated-list-sort-key
+               :rows rows :newest-first newest-first
+               :first-date first-date :last-date last-date))))))
+
 (provide 'agent-skills/emacs)
 ;;; agent-skills-emacs.el ends here

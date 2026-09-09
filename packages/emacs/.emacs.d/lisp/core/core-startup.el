@@ -27,6 +27,23 @@
 (require 'auth-source)
 (setopt auth-sources '("~/.authinfo.gpg"))
 
+(defun +emacs/read-passwd-with-input-maps-a (function &rest args)
+  "Call password reader FUNCTION with ARGS using normal input bindings.
+Timers can request a password inside `read-key', which temporarily empties
+the active keymaps.  Keep password editing and cancellation usable there,
+and restore the caller's maps on success, cancellation, or error."
+  (let ((previous-global-map (current-global-map))
+        (overriding-local-map nil)
+        (overriding-terminal-local-map read-passwd-map)
+        (inhibit-quit nil))
+    (unwind-protect
+        (progn
+          (use-global-map global-map)
+          (apply function args))
+      (use-global-map previous-global-map))))
+
+(advice-add 'read-passwd :around #'+emacs/read-passwd-with-input-maps-a)
+
 ;; Quiet down development-time warning noise.
 (setopt warning-suppress-log-types '((files)))
 (setq byte-compile-warnings '(not lexical))

@@ -119,6 +119,20 @@
 (declare-function denote-menu-get-path-by-id "denote-menu" (id file-type))
 (declare-function denote-menu-update-entries "denote-menu" ())
 
+(defun +notes/denote-menu-modified-date (path)
+  "Return the last modification time of PATH for its Denote menu row."
+  (let ((attributes (file-attributes path)))
+    (unless attributes
+      (signal 'file-missing (list "Cannot stat Denote file" path)))
+    (format-time-string "%F %T"
+                        (file-attribute-modification-time attributes))))
+
+(defun +notes/denote-menu-sort-by-modified-h ()
+  "Show modification dates and sort the Denote menu newest first."
+  (aset tabulated-list-format 0 '("Modified" 19 t))
+  (setq tabulated-list-sort-key '("Modified" . t))
+  (tabulated-list-init-header))
+
 (defun +notes/denote-filter-files-a (files)
   "Keep only note and document FILES with approved extensions."
   (seq-filter
@@ -272,6 +286,7 @@
   :custom
   (denote-menu-title-column-width 50)
   :commands (denote-menu-list-notes list-denotes)
+  :hook (denote-menu-mode . +notes/denote-menu-sort-by-modified-h)
   :bind
   (:map denote-menu-mode-map
         ("C-c C-r" . +notes/denote-menu-rename-title)
@@ -279,6 +294,7 @@
         ("C-c C-a" . +notes/denote-menu-archive)
         ("C-c C-d" . +notes/denote-menu-delete))
   :config
+  (advice-add 'denote-menu-date :override #'+notes/denote-menu-modified-date)
   (evil-define-key* 'normal denote-menu-mode-map
     (kbd "R") #'+notes/denote-menu-rename-title
     (kbd "N") #'+notes/denote-menu-new

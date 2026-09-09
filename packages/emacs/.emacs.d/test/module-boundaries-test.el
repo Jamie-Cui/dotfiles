@@ -206,5 +206,95 @@
           (module-boundaries-test--load "pdf")))
       (should-not (featurep 'pdf-tools)))))
 
+(ert-deftest module-boundaries-password-input-survives-empty-reader-maps ()
+  (module-boundaries-test--run
+   '(progn
+      (require 'ert-x)
+      (require 'core-startup)
+      (let* ((original-map (current-global-map))
+             (empty-map (make-sparse-keymap))
+             (overriding-local-map empty-map)
+             (overriding-terminal-local-map empty-map)
+             (inhibit-quit t))
+        (unwind-protect
+            (progn
+              ;; Reproduce read-key's maps and a timer's inhibited quitting.
+              (use-global-map empty-map)
+              (should (equal (ert-simulate-keys (kbd "test RET")
+                               (read-passwd "Test input: "))
+                             "test"))
+              (should (eq (current-global-map) empty-map))
+              (should (eq overriding-local-map empty-map))
+              (should (eq overriding-terminal-local-map empty-map))
+              (should inhibit-quit)
+              (should
+               (eq (condition-case nil
+                       (ert-simulate-keys (kbd "C-g")
+                         (read-passwd "Test cancellation: "))
+                     (quit :cancelled))
+                   :cancelled))
+              (should (zerop (minibuffer-depth)))
+              (should (eq (current-global-map) empty-map))
+              (should (eq overriding-local-map empty-map))
+              (should (eq overriding-terminal-local-map empty-map)))
+          (use-global-map original-map))))))
+
+(ert-deftest module-boundaries-password-error-restores-reader-maps ()
+  (module-boundaries-test--run
+   '(progn
+      (require 'core-startup)
+      (let* ((original-map (current-global-map))
+             (empty-map (make-sparse-keymap))
+             (overriding-local-map empty-map)
+             (overriding-terminal-local-map empty-map)
+             (inhibit-quit t))
+        (unwind-protect
+            (progn
+              (use-global-map empty-map)
+              (should-error
+               (+emacs/read-passwd-with-input-maps-a
+                (lambda (&rest _) (error "Test reader failure")) "Test: "))
+              (should (eq (current-global-map) empty-map))
+              (should (eq overriding-local-map empty-map))
+              (should (eq overriding-terminal-local-map empty-map))
+              (should inhibit-quit))
+          (use-global-map original-map))))))
+
+(ert-deftest module-boundaries-password-timer-cancellation-stops-gpg-process ()
+  (module-boundaries-test--run
+   '(progn
+      (require 'ert-x)
+      (require 'core-startup)
+      (let* ((original-map (current-global-map))
+             (context (epg-make-context))
+             (epg-key-id "test-key")
+             ;; A pipe suffices to exercise EasyPG's process cancellation.
+             (process (make-pipe-process :name "password-test" :noquery t))
+             (timer
+              (run-at-time
+               3600 nil
+               (lambda ()
+                 (ert-simulate-keys (kbd "C-g")
+                   (epg--status-GET_HIDDEN context "passphrase.enter"))))))
+        (unwind-protect
+            (progn
+              (setf (epg-context-process context) process
+                    (epg-context-passphrase-callback context)
+                    (cons (lambda (&rest _) (read-passwd "Test GPG: ")) nil))
+              ;; Dispatch the real timer handler inside read-key's map scope.
+              (cl-letf (((symbol-function 'read-key-sequence-vector)
+                         (lambda (&rest _)
+                           (should-not (eq (current-global-map) original-map))
+                           (timer-event-handler timer)
+                           [?x])))
+                (should (eq (read-key) ?x)))
+              (should (memq 'quit
+                            (mapcar #'car (epg-context-result-for context 'error))))
+              (should-not (process-live-p process))
+              (should (zerop (minibuffer-depth)))
+              (should (eq (current-global-map) original-map)))
+          (cancel-timer timer)
+          (when (process-live-p process) (delete-process process)))))))
+
 (provide 'module-boundaries-test)
 ;;; module-boundaries-test.el ends here
