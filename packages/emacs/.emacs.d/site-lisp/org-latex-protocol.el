@@ -3,7 +3,7 @@
 ;;; Commentary:
 ;; Write raw LaTeX inside #+begin_protocol / #+end_protocol.  The shared
 ;; `protocol' environment supplies the frame; no Babel headers are needed.
-;; C-c C-c renders an SVG below the block without inserting result text.
+;; C-c C-c renders an SVG and inserts or updates a standard RESULTS file link.
 ;; LaTeX export embeds the source; other exports render an image link.
 ;; Rendering uses the existing ob-latex compiler, preamble and white background.
 ;; Protocol bodies use Org's native LaTeX source fontification and theme faces.
@@ -98,40 +98,63 @@ Only replace an existing image after rendering succeeds."
         (when (file-exists-p temporary)
           (delete-file temporary))))))
 
-(defun +org/protocol-preview-changed-h (overlay &rest _)
-  "Remove OVERLAY when its protocol source changes."
-  (delete-overlay overlay))
+(defun +org/protocol-end (block)
+  "Return the position immediately after BLOCK's closing delimiter."
+  (save-excursion
+    (goto-char (org-element-property :contents-end block))
+    (forward-line)
+    (point)))
+
+(defun +org/protocol-result-bounds (block)
+  "Return bounds of BLOCK's adjacent RESULTS file link, or nil.
+Refuse unexpected result contents rather than overwriting document text."
+  (save-excursion
+    (goto-char (org-element-property :end block))
+    (let ((case-fold-search t) (begin (point)))
+      (when (looking-at-p "[ \t]*#\\+RESULTS:.*$")
+        (forward-line)
+        (unless (looking-at-p "[ \t]*\\[\\[file:[^]\n]+\\]\\][ \t]*$")
+          (user-error "Protocol results must contain a single file link"))
+        (forward-line)
+        (cons begin (point))))))
 
 (defun +org/protocol-preview ()
-  "Render the protocol at point and display its SVG below the source.
-Keep buffer text, point and narrowing unchanged.  Editing the block removes
-the old preview; use this command or `org-ctrl-c-ctrl-c' to render it again."
+  "Render the protocol at point and update its RESULTS file link.
+Preserve point and narrowing.  Save the buffer to persist the result, just
+as with Babel.  Use this command or `org-ctrl-c-ctrl-c' after source edits."
   (interactive)
+  (barf-if-buffer-read-only)
   (let ((block (+org/protocol-at-point)))
     (unless block (user-error "Point is not inside a protocol block"))
-    (unless (image-type-available-p 'svg)
-      (user-error "This Emacs cannot display SVG images"))
     (save-excursion
-      (let* ((file (+org/protocol-render block))
-             (absolute (expand-file-name file))
-             (begin (org-element-property :begin block))
-             (end (progn
-                    (goto-char (org-element-property :contents-end block))
-                    (forward-line)
-                    (point))))
-        (clear-image-cache absolute)
-        (dolist (overlay (overlays-in begin end))
+      (let* ((bounds (+org/protocol-result-bounds block))
+             (file (+org/protocol-render block))
+             (name (org-element-property :name block))
+             result-begin result-end)
+        ;; Remove previews created by the earlier overlay-only implementation.
+        (dolist (overlay (overlays-in (org-element-property :begin block)
+                                     (+org/protocol-end block)))
           (when (overlay-get overlay 'org-protocol-preview)
             (delete-overlay overlay)))
-        (let ((overlay (make-overlay begin end)))
-          (overlay-put overlay 'org-protocol-preview t)
-          (overlay-put overlay 'evaporate t)
-          (overlay-put overlay 'modification-hooks
-                       '(+org/protocol-preview-changed-h))
-          (overlay-put overlay 'after-string
-                       (concat (propertize " " 'display
-                                           (create-image absolute 'svg nil))
-                               "\n")))
+        (atomic-change-group
+          (if bounds
+              (progn
+                (goto-char (car bounds))
+                (delete-region (car bounds) (cdr bounds)))
+            (goto-char (+org/protocol-end block))
+            (unless (bolp) (insert "\n"))
+            (insert "\n"))
+          (setq result-begin (point))
+          (insert "#+RESULTS:" (if name (concat " " name) "")
+                  "\n[[file:" file "]]\n")
+          (setq result-end (point))
+          (unless (looking-at-p "[ \t]*$") (insert "\n")))
+        (when (image-type-available-p 'svg)
+          (clear-image-cache (expand-file-name file))
+          (funcall (if (fboundp 'org-link-preview-region)
+                       #'org-link-preview-region
+                     #'org-display-inline-images)
+                   nil t result-begin result-end))
         (message "Protocol preview: %s" file)
         file))))
 
@@ -159,10 +182,8 @@ Leave Org export unchanged so the protocol source remains editable."
                            "#+end_export\n")
                  (concat "[[file:" (+org/protocol-render block) "]]\n")))
               (begin (org-element-post-affiliated block))
-              (end (save-excursion
-                     (goto-char (org-element-property :contents-end block))
-                     (forward-line)
-                     (point))))
+              (end (or (cdr (+org/protocol-result-bounds block))
+                       (+org/protocol-end block))))
           (goto-char begin)
           (delete-region begin end)
           (insert replacement))))))

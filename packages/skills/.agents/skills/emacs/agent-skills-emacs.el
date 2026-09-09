@@ -1257,13 +1257,16 @@ Preserve protocol bodies, point and narrowing; never evaluate Babel headers."
 
 (defun agent-skills/preview-org-protocol-blocks (path names)
   "Render named protocol blocks NAMES in the live buffer visiting PATH.
-Return image metadata and lint counts without changing document text."
+Save their RESULTS file links and return image metadata and lint counts.
+Refuse unsaved edits before rendering."
   (require 'org-latex-protocol)
   (require 'org-lint)
   (let ((buffer (agent-skills--buffer-visiting-file path)))
     (unless (buffer-live-p buffer)
       (user-error "No live buffer is visiting: %s" path))
     (with-current-buffer buffer
+      (when (or (buffer-modified-p) (not (verify-visited-file-modtime buffer)))
+        (user-error "The buffer must match its saved file"))
       (save-excursion
         (save-restriction
           (widen)
@@ -1277,18 +1280,62 @@ Return image metadata and lint counts without changing document text."
                  images)
             (unless (= (length blocks) (length names))
               (user-error "The requested protocol blocks were not all found"))
-            (dolist (block blocks)
+            ;; Insertions must not move the positions of blocks yet to render.
+            (dolist (block (reverse blocks))
               (goto-char (org-element-post-affiliated block))
               (let ((file (+org/protocol-preview)))
                 (push (list :name (org-element-property :name block)
                             :file (expand-file-name file)
                             :bytes (file-attribute-size (file-attributes file)))
                       images)))
+            (save-buffer)
             (when (bound-and-true-p flycheck-mode)
               (flycheck-buffer))
-            (list :images (nreverse images)
-                  :header-warnings (length (org-lint-wrong-header-value tree))
+            (list :images images
+                  :header-warnings
+                  (length (org-lint-wrong-header-value (org-element-parse-buffer)))
                   :modified (buffer-modified-p))))))))
+
+(defun agent-skills/remove-latex-textbf (path)
+  "Remove LaTeX textbf wrappers in live file PATH, preserving their contents.
+Match balanced braces, including nested math commands and escaped braces.
+Refuse unsaved changes, then save the edit as one undoable change."
+  (let ((buffer (agent-skills--buffer-visiting-file path))
+        (table (make-syntax-table)))
+    (unless (buffer-live-p buffer)
+      (user-error "No live buffer is visiting: %s" path))
+    (dolist (character '(?\( ?\) ?\[ ?\] ?\"))
+      (modify-syntax-entry character "." table))
+    (modify-syntax-entry ?{ "(}" table)
+    (modify-syntax-entry ?} "){" table)
+    (modify-syntax-entry ?\\ "\\" table)
+    (modify-syntax-entry ?% "<" table)
+    (modify-syntax-entry ?\n ">" table)
+    (with-current-buffer buffer
+      (when (or (buffer-modified-p) (not (verify-visited-file-modtime buffer)))
+        (user-error "The buffer must match its saved file"))
+      (save-excursion
+        (save-restriction
+          (widen)
+          (with-syntax-table table
+            (let ((parse-sexp-lookup-properties nil) (count 0) deletions)
+              (goto-char (point-min))
+              (while (re-search-forward "\\\\textbf[ \t]*{" nil t)
+                (let* ((begin (match-beginning 0))
+                       (open (1- (point)))
+                       (end (scan-sexps open 1)))
+                  (unless end (user-error "Unbalanced textbf at %d" begin))
+                  (push (cons begin (1+ open)) deletions)
+                  (push (cons (1- end) end) deletions)
+                  (cl-incf count)))
+              (when deletions
+                (atomic-change-group
+                  (dolist (range (sort deletions
+                                       (lambda (a b) (> (car a) (car b)))))
+                    (delete-region (car range) (cdr range))))
+                (save-buffer))
+              (list :removed count :file path
+                    :modified (buffer-modified-p)))))))))
 
 (provide 'agent-skills/emacs)
 ;;; agent-skills-emacs.el ends here

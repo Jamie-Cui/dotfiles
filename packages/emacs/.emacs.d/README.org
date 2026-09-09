@@ -130,16 +130,26 @@ theme when =org-src-fontify-natively= is enabled.
 The configuration supplies the =protocol= environment,
 shared packages and white preview background.  Press =C-c C-c= inside the block
 or run =M-x +org/protocol-preview= to generate =img/example-protocol.svg= and
-display it below the source.  The preview does not insert a =RESULTS= section;
-editing the block clears it until the next render.  Unnamed blocks use a
-content hash for the image filename.
+insert or update its result below the source:
+
+#+begin_example
+#+RESULTS: example-protocol
+[[file:img/example-protocol.svg]]
+#+end_example
+
+Save the buffer to keep this link; Org can display it again when reopening the
+file.  After editing the protocol, render it again to update the saved image.
+Repeated rendering replaces the existing result.  Unnamed blocks use a content
+hash for the image filename and an anonymous =#+RESULTS:= line.
 
 LaTeX/PDF export embeds the protocol source directly.  Other backends render
-an SVG and export its link; Org export preserves the editable block.  SVG
+an SVG and export its link.  Both omit the saved result to avoid duplicate
+output; Org export preserves the editable block and result.  SVG
 rendering uses the same XeLaTeX and =pdftocairo= setup as LaTeX Babel blocks.
 For migration, remove the old Babel headers, outer =\begin{protocol}= /
-=\end{protocol}=, and generated =RESULTS= link, then replace the source block
-delimiters with =#+begin_protocol= / =#+end_protocol=.
+=\end{protocol}=, then replace the source block delimiters with
+=#+begin_protocol= / =#+end_protocol=.  The existing adjacent =RESULTS= file
+link can remain.
 
 * Getting started
 
