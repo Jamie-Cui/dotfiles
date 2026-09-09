@@ -81,6 +81,11 @@ pre-date the external-operation helper API."
   (dired-du-size-format t))
 
 (use-package dired
+  :preface
+  (defun +dired/home ()
+    "Open the home directory on the current local or remote host."
+    (interactive)
+    (dired (concat (file-remote-p default-directory) "~/")))
   :custom
   (dired-listing-switches
    (purecopy "-ahl -v --group-directories-first"))
@@ -93,6 +98,7 @@ pre-date the external-operation helper API."
    :keymaps 'dired-mode-map
    "h"   #'dired-up-directory
    "l"   #'dired-find-file
+   "~"   #'+dired/home
    "T"   #'dired-create-empty-file
    "TAB" #'dired-subtree-toggle
    )

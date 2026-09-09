@@ -526,6 +526,21 @@ general editing, VC, package startup and after-init hooks are not replayed."
         (+lang-cmake/auto-mode-setup-h)))
     (agent-skills/pdf-language-state)))
 
+(defun agent-skills/reload-files-module ()
+  "Reload the managed files module and report the Dired home binding."
+  (unless (and (boundp '+emacs/repo-directory)
+               (stringp +emacs/repo-directory))
+    (user-error "The managed Emacs configuration root is unavailable"))
+  (let ((file (expand-file-name "lisp/modules/files.el"
+                                +emacs/repo-directory)))
+    (when-let* ((buffer (get-file-buffer file)))
+      (when (buffer-modified-p buffer)
+        (user-error "Module has unsaved edits: %s" file)))
+    (save-window-excursion
+      (save-excursion
+        (load file nil t t))))
+  (agent-skills/key-binding-state "~"))
+
 (cl-defun agent-skills/feature-state (feature-name)
   "Report whether FEATURE-NAME is loaded."
   (let* ((sym (intern-soft feature-name))
