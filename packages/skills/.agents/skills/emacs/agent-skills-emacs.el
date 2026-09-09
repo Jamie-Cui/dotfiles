@@ -834,5 +834,77 @@ changes."
         (when mode-was-enabled
           (org-project-caldav-mode 1))))))
 
+(defun agent-skills/org-babel-latex-state ()
+  "Report the live LaTeX Babel configuration and required executables."
+  (require 'ob-latex)
+  (require 'ox-latex)
+  (list :compiler org-latex-compiler
+        :pdf-process org-latex-pdf-process
+        :svg-process org-babel-latex-pdf-svg-process
+        :protocol-defined
+        (cl-some (lambda (entry)
+                   (and (stringp entry)
+                        (string-match-p
+                         (regexp-quote "\\newenvironment{protocol}") entry)))
+                 org-latex-packages-alist)
+        :programs
+        (mapcar (lambda (name) (cons name (executable-find name)))
+                '("xelatex" "latexmk" "pdftocairo" "convert"))
+        :svg-supported (image-type-available-p 'svg)))
+
+(defun agent-skills/reload-org-latex-config ()
+  "Reload only the managed Org LaTeX configuration section.
+Refuse unsaved edits and leave the remaining Org module untouched."
+  (unless (and (boundp '+emacs/repo-directory)
+               (stringp +emacs/repo-directory))
+    (user-error "The managed Emacs configuration root is unavailable"))
+  (let ((file (expand-file-name "lisp/modules/lang/org.el"
+                                +emacs/repo-directory)))
+    (when-let* ((buffer (find-buffer-visiting file)))
+      (when (buffer-modified-p buffer)
+        (user-error "Org module has unsaved edits: %s" file)))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (unless (re-search-forward "^;;; org-latex$" nil t)
+        (error "The Org LaTeX section is missing"))
+      (let ((start (point)))
+        (unless (re-search-forward "^;;; org-babel$" nil t)
+          (error "The end of the Org LaTeX section is missing"))
+        (eval-region start (match-beginning 0)))))
+  (agent-skills/org-babel-latex-state))
+
+(defun agent-skills/render-org-latex-block (path name)
+  "Execute the named LaTeX block NAME in the live Org buffer visiting PATH.
+Run the normal Org C-c C-c command and save the inserted result link.
+Refuse unsaved edits and preserve point, narrowing, and window selection."
+  (let ((buffer (agent-skills--buffer-visiting-file path)))
+    (unless (buffer-live-p buffer)
+      (user-error "No live buffer is visiting: %s" path))
+    (with-current-buffer buffer
+      (unless (derived-mode-p 'org-mode)
+        (user-error "The target buffer is not in Org mode"))
+      (when (buffer-modified-p)
+        (user-error "The Org buffer has unsaved edits"))
+      (save-window-excursion
+        (save-excursion
+          (save-restriction
+            (widen)
+            (goto-char (point-min))
+            (org-babel-goto-named-src-block name)
+            (let* ((info (org-babel-get-src-block-info))
+                   (file (cdr (assq :file (nth 2 info)))))
+              (unless (and (equal (car info) "latex")
+                           (equal (nth 4 info) name)
+                           (stringp file)
+                           (member (file-name-extension file) '("svg" "png" "pdf")))
+                (user-error "The named block must produce a LaTeX image"))
+              (org-ctrl-c-ctrl-c)
+              (unless (file-exists-p file)
+                (error "LaTeX did not create the expected file: %s" file))
+              (save-buffer)
+              (list :block name :file (expand-file-name file)
+                    :bytes (file-attribute-size (file-attributes file))))))))))
+
 (provide 'agent-skills/emacs)
 ;;; agent-skills-emacs.el ends here

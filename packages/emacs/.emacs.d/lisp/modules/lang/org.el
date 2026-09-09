@@ -202,6 +202,28 @@ following, and export continue to use their configured processors."
           )
         )
 
+
+(defun +org/babel-latex-preamble (_params)
+  "Build a cropped Babel document using the shared LaTeX packages."
+  (require 'ox-latex)
+  (org-latex-make-preamble
+   (org-export-get-environment (org-export-get-backend 'latex))
+   "\\documentclass[preview,border=2pt]{standalone}
+[DEFAULT-PACKAGES]
+[PACKAGES]
+[EXTRA]
+"
+   t))
+
+(with-eval-after-load 'ob-latex
+  (setopt org-babel-latex-preamble #'+org/babel-latex-preamble
+          org-babel-latex-pdf-svg-process "pdftocairo -svg %f %O"))
+
+(add-hook 'org-babel-after-execute-hook
+          (if (fboundp 'org-link-preview-refresh)
+              #'org-link-preview-refresh
+            #'org-display-inline-images))
+
 ;;; org-babel
 (setopt org-confirm-babel-evaluate nil) ; do not confirm, just run
 
