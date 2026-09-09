@@ -4,6 +4,7 @@
 ;; agenda hygiene and consult integration.
 ;;; Code:
 
+(require 'seq)
 
 (use-package org-project
   :load-path (lambda () +emacs/site-lisp-directory)
@@ -117,6 +118,14 @@
 
 (declare-function denote-menu-get-path-by-id "denote-menu" (id file-type))
 (declare-function denote-menu-update-entries "denote-menu" ())
+
+(defun +notes/denote-filter-files-a (files)
+  "Keep only note and document FILES with approved extensions."
+  (seq-filter
+   (lambda (file)
+     (member (downcase (or (file-name-extension file) ""))
+             '("org" "bib" "pdf" "tex" "txt")))
+   files))
 
 (defun +notes/denote-sync-file-name-after-save-h ()
   "Synchronize the current Denote file name with its front matter."
@@ -254,6 +263,7 @@
   :hook
   (dired-mode . denote-dired-mode-in-directories)
   :config
+  (advice-add 'denote-directory-files :filter-return #'+notes/denote-filter-files-a)
   (denote-rename-buffer-mode +1)
   (add-hook 'after-save-hook #'+notes/denote-sync-file-name-after-save-h))
 
