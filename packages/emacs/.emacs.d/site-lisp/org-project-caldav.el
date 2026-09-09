@@ -48,6 +48,8 @@
                   (&optional filter bucket))
 (declare-function +org-project-file-p "org-project" (&optional file))
 (declare-function +org-project-sync-agenda-files "org-project" ())
+(declare-function +org-project-known-files "org-project" ())
+(declare-function +org-project-ensure-default "org-project" ())
 
 (defvar +org-project-root-dir)
 (defvar +org-projects-dir)
@@ -64,6 +66,9 @@
 
 (define-error 'org-project-caldav-state-error
   "Invalid org-project-caldav state")
+
+(define-error 'org-project-caldav-confirmation-required
+  "CalDAV sync needs confirmation" 'user-error)
 
 (defconst org-project-caldav--state-version 1
   "Current on-disk synchronization state version.")
@@ -142,6 +147,9 @@ matching local-vdir-wins policy."
 
 (defvar org-project-caldav--pending nil
   "Non-nil when another synchronization was requested during a cycle.")
+
+(defvar org-project-caldav--approved-removals nil
+  "Exact missing source paths and task UIDs approved for the current cycle.")
 
 (defvar org-project-caldav--discovery-attempted nil
   "Non-nil after automatic discovery in the current cycle.")
@@ -239,7 +247,7 @@ Signal an error instead of silently omitting a discovered source file."
     (sort (delete-dups (mapcar #'expand-file-name files)) #'string<)))
 
 (defun org-project-caldav--modified-source-buffers ()
-  "Return modified buffers visiting synchronized Org files."
+  "Return modified source buffers, including Org files not yet on disk."
   (let ((files (mapcar #'expand-file-name
                        (org-project-caldav--source-files))))
     (seq-filter
@@ -247,7 +255,12 @@ Signal an error instead of silently omitting a discovered source file."
        (with-current-buffer buffer
          (and buffer-file-name
               (buffer-modified-p)
-              (member (expand-file-name buffer-file-name) files))))
+              (or (member (expand-file-name buffer-file-name) files)
+                  (and (string-suffix-p ".org" buffer-file-name)
+                       (equal (file-remote-p buffer-file-name)
+                              (file-remote-p +org-project-root-dir))
+                       (file-in-directory-p buffer-file-name
+                                            +org-project-root-dir))))))
      (buffer-list))))
 
 (defun org-project-caldav--assert-saved ()
@@ -284,8 +297,9 @@ When BELL is non-nil, report whether the file changed."
     (when (and bell modified)
       (message "CalDAV IDs created for leaf tasks in %s" file))))
 
-(defun org-project-caldav--active-task-index (files)
-  "Return validated active task UID and source pairs from FILES."
+(defun org-project-caldav--active-task-index (files &optional allow-unassigned)
+  "Return validated active task UID and source pairs from FILES.
+With ALLOW-UNASSIGNED, omit tasks without IDs during read-only preflight."
   (let ((seen (make-hash-table :test #'equal))
         index)
     (dolist (file files (nreverse index))
@@ -298,14 +312,16 @@ When BELL is non-nil, report whether the file changed."
               (goto-char (match-beginning 0))
               (when (org-project-caldav--leaf-action-item-p)
                 (let ((uid (org-entry-get nil "ID")))
-                  (unless (and (stringp uid) (not (string-empty-p uid)))
+                  (unless (or allow-unassigned
+                              (and (stringp uid) (not (string-empty-p uid))))
                     (error "Active task has no UID in %s:%d"
                            file (line-number-at-pos)))
-                  (when-let* ((previous (gethash uid seen)))
-                    (error "Duplicate active task UID %s in %s and %s"
-                           uid previous file))
-                  (puthash uid file seen)
-                  (push (cons uid file) index)))
+                  (when (and uid (not (string-empty-p uid)))
+                    (when-let* ((previous (gethash uid seen)))
+                      (error "Duplicate active task UID %s in %s and %s"
+                             uid previous file))
+                    (puthash uid file seen)
+                    (push (cons uid file) index))))
               (org-back-to-heading t)
               (forward-line 1))))))))
 
@@ -956,9 +972,9 @@ INDEX is the current vdir index.  PREVIOUS-SEQUENCE is used after deletion."
            (save-buffer)))
       (set-marker marker nil))))
 
-(defun org-project-caldav--assert-source-removal-safe
-    (state source-files org-index)
-  "Reject ambiguous source-file removal using STATE and current indexes."
+(defun org-project-caldav--source-removals (state source-files org-index)
+  "Return missing files and UIDs from STATE, SOURCE-FILES and ORG-INDEX.
+Return nil unless both source files and previously synchronized tasks vanished."
   (let ((missing-files
          (cl-set-difference (plist-get state :source-files) source-files
                             :test #'file-equal-p))
@@ -968,9 +984,54 @@ INDEX is the current vdir index.  PREVIOUS-SEQUENCE is used after deletion."
       (unless (member (car entry) current-uids)
         (push (car entry) missing-uids)))
     (when (and missing-files missing-uids)
-      (user-error
-       "Refusing CalDAV sync: missing source files %S also removed UIDs %S"
-       missing-files missing-uids))))
+      (list :files (sort (mapcar #'substring-no-properties missing-files)
+                         #'string<)
+            :uids (sort (mapcar #'substring-no-properties missing-uids)
+                        #'string<)))))
+
+(defun org-project-caldav--assert-source-removal-safe
+    (state source-files org-index)
+  "Reject unapproved removal using STATE, SOURCE-FILES and ORG-INDEX."
+  (when-let* ((removals (org-project-caldav--source-removals
+                        state source-files org-index)))
+    (unless (equal removals org-project-caldav--approved-removals)
+      (signal 'org-project-caldav-confirmation-required
+              (list (format
+                     (concat "%d missing source files and %d removed task UIDs; "
+                             "run M-x org-project-caldav-sync to confirm")
+                     (length (plist-get removals :files))
+                     (length (plist-get removals :uids))))))))
+
+(defun org-project-caldav--prepare-sources (interactivep approved-removals)
+  "Check sources before sync, returning this cycle's approved removals.
+INTERACTIVEP allows minibuffer confirmation.  APPROVED-REMOVALS may supply
+an exact, previously reviewed `org-project-caldav--source-removals' result."
+  (unless (+org-project-known-files)
+    (unless (and interactivep
+                 (y-or-n-p
+                  (format "No project Org files in %s; create default.org? "
+                          (abbreviate-file-name +org-projects-dir))))
+      (signal 'org-project-caldav-confirmation-required
+              '("No project Org files; run M-x org-project-caldav-sync to create default.org")))
+    (+org-project-ensure-default))
+  (org-project-caldav--assert-saved)
+  (let* ((files (org-project-caldav--source-files))
+         (removals (org-project-caldav--source-removals
+                    (org-project-caldav--load-state) files
+                    (org-project-caldav--active-task-index files t))))
+    (when removals
+      (unless (or (equal removals approved-removals)
+                  (and interactivep
+                       (yes-or-no-p
+                        (format
+                         (concat "Sources missing: %s; accept removal of %d "
+                                 "task UIDs (also deletes any matching CalDAV tasks)? ")
+                         (mapconcat #'abbreviate-file-name
+                                    (plist-get removals :files) ", ")
+                         (length (plist-get removals :uids))))))
+        (signal 'org-project-caldav-confirmation-required
+                '("Source removals not approved; run M-x org-project-caldav-sync to confirm")))
+      removals)))
 
 (defun org-project-caldav--state-entry (uid state)
   "Return UID entry from STATE, or nil."
@@ -1274,15 +1335,19 @@ Return the new native state, using PREVIOUS-STATE for sequence recovery."
       (goto-char (point-max))
       (insert (apply #'format format-string arguments)))))
 
-(defun org-project-caldav--record-failure (message)
-  "Finish the current cycle with failure MESSAGE."
+(defun org-project-caldav--record-failure (message &optional needs-confirmation)
+  "Finish the current cycle with failure MESSAGE.
+With NEEDS-CONFIRMATION, report pending user action without a warning popup."
   (setq org-project-caldav--process nil
         org-project-caldav--running nil
         org-project-caldav--pending nil
-        org-project-caldav--discovery-attempted nil)
+        org-project-caldav--discovery-attempted nil
+        org-project-caldav--approved-removals nil)
   (org-project-caldav--append-log "\n%s\n" message)
   (unless (equal message org-project-caldav--last-error)
-    (display-warning 'org-project-caldav message :warning))
+    (if needs-confirmation
+        (message "CalDAV waiting: %s" message)
+      (display-warning 'org-project-caldav message :warning)))
   (setq org-project-caldav--last-error message))
 
 (defun org-project-caldav--finish-success ()
@@ -1292,6 +1357,7 @@ Return the new native state, using PREVIOUS-STATE for sequence recovery."
           org-project-caldav--running nil
           org-project-caldav--pending nil
           org-project-caldav--discovery-attempted nil
+          org-project-caldav--approved-removals nil
           org-project-caldav--last-success (current-time)
           org-project-caldav--last-error nil)
     (org-project-caldav--append-log
@@ -1322,6 +1388,9 @@ Return the new native state, using PREVIOUS-STATE for sequence recovery."
                  (setq org-project-caldav--last-result
                        (org-project-caldav--reconcile))
                  (org-project-caldav--start-vdirsyncer 'post-sync))
+             (org-project-caldav-confirmation-required
+              (org-project-caldav--record-failure
+               (error-message-string err) t))
              (error
               (org-project-caldav--record-failure
                (format "Local CalDAV reconciliation failed: %s"
@@ -1378,8 +1447,13 @@ Return the new native state, using PREVIOUS-STATE for sequence recovery."
       (clear-string password))))
 
 ;;;###autoload
-(defun org-project-caldav-sync ()
-  "Request an asynchronous CalDAV synchronization cycle."
+(defun org-project-caldav-sync (&optional approved-removals)
+  "Request an asynchronous CalDAV synchronization cycle.
+Interactively, confirm creating a default project when no project files exist,
+and confirm missing sources that also removed task UIDs.  Background requests
+wait for manual confirmation without opening the minibuffer or a warning.
+Programmatic APPROVED-REMOVALS must be the exact reviewed result from
+`org-project-caldav--source-removals'; approval expires with this cycle."
   (interactive)
   (if org-project-caldav--running
       (progn
@@ -1397,12 +1471,21 @@ Return the new native state, using PREVIOUS-STATE for sequence recovery."
                                 (mapconcat #'buffer-name modified ", ")))
                   (when (called-interactively-p 'interactive)
                     (user-error "%s" org-project-caldav--last-error)))
+              ;; Reserve the cycle before a prompt can dispatch other timers.
               (setq org-project-caldav--running t
                     org-project-caldav--pending nil
-                    org-project-caldav--discovery-attempted nil)
+                    org-project-caldav--discovery-attempted nil
+                    org-project-caldav--approved-removals nil)
+              (setq org-project-caldav--approved-removals
+                    (org-project-caldav--prepare-sources
+                     (called-interactively-p 'interactive) approved-removals))
               (org-project-caldav--start-vdirsyncer 'pre-sync)
               (when (called-interactively-p 'interactive)
                 (message "CalDAV sync started in the background")))))
+      (org-project-caldav-confirmation-required
+       (org-project-caldav--record-failure (error-message-string err) t))
+      (quit
+       (org-project-caldav--record-failure "Synchronization cancelled" t))
       (error
        (org-project-caldav--record-failure
         (format "Could not start CalDAV sync: %s"

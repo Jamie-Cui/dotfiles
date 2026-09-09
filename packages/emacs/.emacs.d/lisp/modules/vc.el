@@ -1,6 +1,6 @@
 ;;; vc.el --- version control -*- lexical-binding: t -*-
 ;;; Commentary:
-;; Version control: magit and diff-hl.
+;; Version control: Magit, diff-hl, Forge and Git/Overleaf integrations.
 ;;; Code:
 
 
@@ -104,6 +104,23 @@ Do not overwrite an existing non-empty global `github.user' value."
 ;; (use-package magit-gh
 ;;   :ensure t
 ;;   :after magit)
+
+;; git-overleaf integrates with Magit and loads in any session.
+;; NOTE install this first
+;; https://github.com/mozilla/geckodriver/releases
+;; cargo install geckodriver
+(use-package git-overleaf
+  :vc (:url "https://github.com/Jamie-Cui/git-overleaf.el"
+            :rev "main")
+  :ensure t
+  :demand t
+  :custom
+  (git-overleaf-auth-backend 'firefox-cookies)
+  (git-overleaf-cookie-storage 'authinfo)
+  :config
+  (with-eval-after-load 'magit
+    (when (require 'git-overleaf-magit nil t)
+      (git-overleaf-magit-setup))))
 
 (provide 'init-vc)
 ;;; vc.el ends here

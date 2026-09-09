@@ -23,7 +23,7 @@ full picture and the module-boundary table):
   `"foo"` to the manifest list in `init.el` at the right position.
 - **Adding a language**: create `lisp/modules/lang/foo.el` with `(provide 'init-lang-foo)`
   and add `"lang/foo"` to the manifest.
-- `lisp/modules/` is **not** on `load-path` (basenames like `project`, `vc`, `org`,
+- `lisp/modules/` is **not** on `load-path` (basenames like `project`, `vc`,
   `files` would shadow built-in libraries); the loader loads modules by absolute path.
 - `lisp/init-config-*.el` are helper sub-files for local/forked `site-lisp/` packages,
   `require`d by the owning module; they stay in `lisp/` (which is on `load-path`).

@@ -210,5 +210,37 @@ The identifier is an Emacs Lisp `get-buffer' form, so an agent with
   (keyfreq-autosave-mode 1))
 
 
+;; Text diagnostics belong to editing, even when programming modules are off.
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs
+               '(text-mode . ("harper-ls" "--stdio"))) ;; add harper-ls
+
+  ;; default setup for harper-ls
+  ;; see: https://writewithharper.com/docs/integrations/emacs
+  (setq-default eglot-workspace-configuration
+                '(:harper-ls
+                  (:userDictPath ""
+                                 :workspaceDictPath ""
+                                 :fileDictPath ""
+                                 :linters (:SpellCheck t
+                                                       :SpelledNumbers :json-false
+                                                       :AnA t
+                                                       :SentenceCapitalization t
+                                                       :UnclosedQuotes t
+                                                       :WrongQuotes :json-false
+                                                       :LongSentences t
+                                                       :RepeatedWords t
+                                                       :Spaces :json-false ;; no space!
+                                                       :Matcher t
+                                                       :CorrectNumberSuffix t)
+                                 :codeActions (:ForceStable :json-false)
+                                 :markdown (:IgnoreLinkTitle :json-false)
+                                 :diagnosticSeverity "hint"
+                                 :isolateEnglish :json-false
+                                 :dialect "American"
+                                 :maxFileLength 120000
+                                 :ignoredLintsPath ""
+                                 :excludePatterns []))))
+
 (provide 'init-editor)
 ;;; editor.el ends here

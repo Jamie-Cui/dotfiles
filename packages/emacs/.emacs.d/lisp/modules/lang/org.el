@@ -349,5 +349,5 @@ following, and export continue to use their configured processors."
 ;;    )
 ;;   )
 
-(provide 'init-org)
+(provide 'init-lang-org)
 ;;; org.el ends here

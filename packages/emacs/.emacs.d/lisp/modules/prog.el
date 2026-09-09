@@ -32,11 +32,6 @@
 (use-package flycheck
   :ensure t
   :preface
-  (defun +prog/flycheck-c++20-h ()
-    "Use C++20 for Flycheck's standalone C++ checkers."
-    (setq-local flycheck-clang-language-standard "c++20"
-                flycheck-cppcheck-standards '("c++20")))
-
   (defun +prog/flycheck-skip-remote-revert-h ()
     "Skip Flycheck's automatic post-revert check in remote buffers."
     (when (file-remote-p default-directory)
@@ -44,8 +39,6 @@
 
   :config
   (add-hook 'after-init-hook #'global-flycheck-mode)
-  (add-hook 'c++-mode-hook #'+prog/flycheck-c++20-h)
-  (add-hook 'c++-ts-mode-hook #'+prog/flycheck-c++20-h)
   (add-hook 'flycheck-mode-hook #'+prog/flycheck-skip-remote-revert-h)
   ;; Flycheck registers its built-in `flycheck-eldoc-function' buffer-locally.
   ;; It composes Eglot and chained-checker diagnostics in the same Eldoc view.
@@ -79,42 +72,7 @@
   (setq eglot-ignored-server-capabilities '(:documentHighlightProvider ; no highlight
                                             :semanticTokensProvider))
   (setq eglot-watch-files-outside-project-root nil)
-  (setq eglot-confirm-server-edits nil)
-
-  (add-to-list 'eglot-server-programs
-               '((python-mode python-ts-mode)
-                 . ("uvx" "--from" "pyright" "pyright-langserver" "--stdio")))
-
-  (add-to-list 'eglot-server-programs
-               '(text-mode . ("harper-ls" "--stdio"))) ;; add harper-ls
-
-  ;; default setup for harper-ls
-  ;; see: https://writewithharper.com/docs/integrations/emacs
-  (setq-default eglot-workspace-configuration
-                '(:harper-ls
-                  (:userDictPath ""
-                                 :workspaceDictPath ""
-                                 :fileDictPath ""
-                                 :linters (:SpellCheck t
-                                                       :SpelledNumbers :json-false
-                                                       :AnA t
-                                                       :SentenceCapitalization t
-                                                       :UnclosedQuotes t
-                                                       :WrongQuotes :json-false
-                                                       :LongSentences t
-                                                       :RepeatedWords t
-                                                       :Spaces :json-false ;; no space!
-                                                       :Matcher t
-                                                       :CorrectNumberSuffix t)
-                                 :codeActions (:ForceStable :json-false)
-                                 :markdown (:IgnoreLinkTitle :json-false)
-                                 :diagnosticSeverity "hint"
-                                 :isolateEnglish :json-false
-                                 :dialect "American"
-                                 :maxFileLength 120000
-                                 :ignoredLintsPath ""
-                                 :excludePatterns [])))
-  )
+  (setq eglot-confirm-server-edits nil))
 
 (use-package eldoc-box
   :ensure t
@@ -177,71 +135,15 @@
 ;;                (reusable-frames . visible)
 ;;                (inhibit-switch-frames . nil)))
 
-;; rust, see: https://github.com/brotzeit/rustic/blob/1f4d6a315824487c88b5e1f6c0ad8a984def2c3d/rustic-compile.el
-(defvar +prog/rust-compilation-error
-  (let ((err "^error[^:]*:[^\n]*\n\s*-->\s")
-        (file "\\([^\n]+\\)")
-        (start-line "\\([0-9]+\\)")
-        (start-col  "\\([0-9]+\\)"))
-    (let ((re (concat err file ":" start-line ":" start-col)))
-      (cons re '(1 2 3))))
-  "Create hyperlink in compilation buffers for rust errors.")
-
-(defvar +prog/rust-compilation-warning
-  (let ((warning "^warning:[^\n]*\n\s*-->\s")
-        (file "\\([^\n]+\\)")
-        (start-line "\\([0-9]+\\)")
-        (start-col  "\\([0-9]+\\)"))
-    (let ((re (concat warning file ":" start-line ":" start-col)))
-      (cons re '(1 2 3 1)))) ;; 1 for warning
-  "Create hyperlink in compilation buffers for rust warnings.")
-
-(defvar +prog/rust-compilation-info
-  (let ((file "\\([^\n]+\\)")
-        (start-line "\\([0-9]+\\)")
-        (start-col  "\\([0-9]+\\)"))
-    (let ((re (concat "^ *::: " file ":" start-line ":" start-col)))
-      (cons re '(1 2 3 0)))) ;; 0 for info type
-  "Create hyperlink in compilation buffers for file paths preceded by ':::'.")
-
-(defvar +prog/rust-compilation-panic
-  (let ((panic "thread '[^']+' panicked at '[^']+', ")
-        (file "\\([^\n]+\\)")
-        (start-line "\\([0-9]+\\)")
-        (start-col  "\\([0-9]+\\)"))
-    (let ((re (concat panic file ":" start-line ":" start-col)))
-      (cons re '(1 2 3))))
-  "Match thread panics.")
-
-(add-to-list 'compilation-error-regexp-alist-alist
-             (cons 'rustic-error +prog/rust-compilation-error))
-(add-to-list 'compilation-error-regexp-alist-alist
-             (cons 'rustic-warning +prog/rust-compilation-warning))
-(add-to-list 'compilation-error-regexp-alist-alist
-             (cons 'rustic-info +prog/rust-compilation-info))
-(add-to-list 'compilation-error-regexp-alist-alist
-             (cons 'rustic-panic +prog/rust-compilation-panic))
-
-(add-to-list 'compilation-error-regexp-alist 'rustic-error)
-(add-to-list 'compilation-error-regexp-alist 'rustic-warning)
-(add-to-list 'compilation-error-regexp-alist 'rustic-info)
-(add-to-list 'compilation-error-regexp-alist 'rustic-panic)
-
-;; sibling files (for c/c++)
-(add-to-list 'find-sibling-rules
-             '("/\\([^/]+\\)\\.c\\(c\\|pp\\)?\\'" "\\1.h\\(h\\|pp\\)?\\'"))
-(add-to-list 'find-sibling-rules
-             '("/\\([^/]+\\)\\.h\\(h\\|pp\\)?\\'" "\\1.c\\(c\\|pp\\)?\\'"))
-
-(setopt gdb-show-main t)
-
 ;; compile
 (defun +prog/compile-with-no-preset ()
+  "Prompt for a compile command, initially using the active region if any."
   (interactive)
   (let* ((compile-command (if (use-region-p) (buffer-substring-no-properties (region-beginning) (region-end)) "")))
     (call-interactively 'compile)))
 
 (defun +prog/compile-with-comint ()
+  "Prompt for a compile command and run it with Comint interaction."
   (interactive)
   (let* ((compile-command (if (use-region-p) (buffer-substring-no-properties (region-beginning) (region-end)) ""))
          (current-prefix-arg '(4)))
@@ -249,36 +151,6 @@
 
 ;; Use full tree-sitter fontification by default.
 (setopt treesit-font-lock-level 4)
-
-(use-package flycheck-rust
-  :ensure t
-  :config
-  (add-hook 'flycheck-mode-hook #'flycheck-rust-setup))
-
-;;; -----------------------------------------------------------
-;;; flycheck-google-cpplint
-;;; -----------------------------------------------------------
-
-(use-package flycheck-google-cpplint
-  :ensure t
-  :after flycheck-eglot
-  :custom
-  (flycheck-c/c++-googlelint-executable "cpplint")
-  (flycheck-googlelint-verbose "0")
-  (flycheck-googlelint-linelength "80")
-  (flycheck-googlelint-filter
-   (concat
-    "-whitespace,"
-    "-whitespace/braces,"
-    "-whitespace/indent,"
-    "-build/include_order,"
-    "-build/header_guard,"
-    "-runtime/reference,"
-    ))
-  :config
-  (flycheck-add-next-checker 'eglot-check
-                             '(warning . c/c++-googlelint))
-  )
 
 ;;; -----------------------------------------------------------
 ;;; apheleia - Deferred Loading
@@ -322,20 +194,12 @@
   :ensure t
   :custom
   (treesit-auto-install 'prompt)
-  :hook (after-init . (lambda ()
-                        (treesit-auto-add-to-auto-mode-alist 'all)
-                        ;; Configure tree-sitter modes
-                        (dolist (mode '(c++-mode c-mode c-or-c++-mode))
-                          (setq auto-mode-alist
-                                (rassq-delete-all mode auto-mode-alist)))
-                        (add-to-list 'auto-mode-alist '("\\.h\\'" . c++-ts-mode))
-                        (add-to-list 'auto-mode-alist '("\\.hpp\\'" . c++-ts-mode))
-                        (add-to-list 'auto-mode-alist '("\\.cc\\'" . c++-ts-mode))
-                        (add-to-list 'auto-mode-alist '("\\.cpp\\'" . c++-ts-mode))
-                        (add-to-list 'auto-mode-alist '("CMakeLists\\.txt\\'" . cmake-ts-mode))
-                        ;; Auto-enable global-treesit-auto-mode
-                        ;; (global-treesit-auto-mode 1)
-                        ))
+  :preface
+  (defun +prog/treesit-auto-setup-h ()
+    "Register generic tree-sitter associations before language overrides."
+    (require 'treesit-auto)
+    (treesit-auto-add-to-auto-mode-alist 'all))
+  :hook (after-init . +prog/treesit-auto-setup-h)
   :config
   ;; NOTE toggle mode automatically
   (defun +prog/treesit-auto-toggle ()

@@ -84,5 +84,12 @@
   :ensure t
   :hook (cmake-ts-mode . eldoc-cmake-enable))
 
+(defun +lang-cmake/auto-mode-setup-h ()
+  "Apply the CMakeLists association after generic tree-sitter associations."
+  (add-to-list 'auto-mode-alist '("CMakeLists\\.txt\\'" . cmake-ts-mode)))
+
+;; Match the depth of the other language-specific association overrides.
+(add-hook 'after-init-hook #'+lang-cmake/auto-mode-setup-h 90)
+
 (provide 'init-lang-cmake)
 ;;; cmake.el ends here

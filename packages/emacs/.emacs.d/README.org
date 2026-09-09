@@ -51,17 +51,18 @@ order are the contract.
 |------------------------+-----------------------------------------------------------|
 | ~os~                     | OS-specific tweaks (Linux/macOS/Windows/WSL), shell env   |
 | ~ui~                     | frames, fonts, cnfonts, modeline, dashboard, themes, TTY  |
-| ~editor~                 | editing defaults, smartparens, yasnippet, text commands   |
+| ~editor~                 | editing defaults, smartparens, yasnippet, Harper, text commands |
 | ~completion~             | vertico/corfu/consult/orderless/marginalia, embark        |
 | ~files~                  | dired, tramp, eshell, eat, backups, auto-save, proced     |
 | ~project~                | projectile, envrc                                         |
-| ~vc~                     | magit, diff-hl, git-foreign-magit                         |
+| ~vc~                     | magit, diff-hl, git-foreign-magit, git-overleaf            |
 | ~prog~                   | eglot, flycheck, citre, compilation, treesit              |
-| ~lang/*~                 | per-language config (cmake, bazel, markdown, lean, ...)   |
-| ~org~                    | Org core, babel, export, plantuml                         |
+| ~lang/*~                 | language-specific config: C/C++, Rust, Python, CMake, ... |
+| ~lang/org~               | Org core, babel, export, plantuml                         |
 | ~notes~                  | org-project, background CalDAV, journal, roam, denote      |
 | ~bibliography~           | citar, ebib, bibtex                                       |
-| ~latex~                  | auctex, pdf-tools, xenops, git-overleaf (GUI)             |
+| ~lang/latex~             | AUCTeX, RefTeX, Xenops, engrave-faces, SyncTeX (GUI)        |
+| ~pdf~                    | PDF Tools, continuous scrolling, prefetch, viewer keys (GUI) |
 | ~reading~                | elfeed                                                    |
 | ~llm~                    | gptel, agent-shell, magent, Action status, magent-magit   |
 | ~llm-config~             | GPTel backends, model discovery/cache, defaults           |
@@ -70,6 +71,14 @@ order are the contract.
 
 Local and forked packages live in ~site-lisp/~ and keep their own ~init-config-*~
 helper files in ~lisp/~.
+
+~prog~ owns shared programming infrastructure; language-specific server and
+checker policies live in ~lang/*~.  Language association hooks run after the
+generic treesit-auto registration.  ~editor~ registers Harper lazily with Eglot.
+~pdf~ can be enabled without LaTeX; ~lang/latex~ adds SyncTeX once both TeX and
+PDF Tools are loaded.  The existing ~+prog/rust-*~ and ~+latex/roll-*~ names are
+retained for compatibility.  Overleaf integration loads with ~vc~ in both
+graphical and terminal sessions.
 
 ~org-project-caldav~ extends ~org-project~ without depending on the standalone
 ~org-caldav~ package.  Project files, the CalDAV inbox, and synchronization
@@ -91,6 +100,12 @@ active-task projection.
 The only non-Emacs dependency is ~vdirsyncer~.  Use
 ~M-x org-project-caldav-sync~ for an immediate run and
 ~M-x org-project-caldav-status~ to inspect its state.
+If no project Org files remain, manual synchronization asks in the minibuffer
+before recreating =project-files/default.org=.  If missing source files also
+remove previously synchronized task IDs, it asks before accepting those
+removals (including deletion of matching CalDAV tasks).  Approval applies only
+to the reviewed paths and IDs in that cycle.  Background synchronization waits
+for manual confirmation without a warning popup.
 
 * Getting started
 

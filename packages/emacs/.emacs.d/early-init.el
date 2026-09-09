@@ -31,37 +31,4 @@
 ;; undecorated frame
 (add-to-list 'default-frame-alist '(undecorated . t))
 
-;; Native compilation can start while package.el bootstraps, before the OS
-;; module imports the login-shell environment.  Give GUI Emacs access to the
-;; Homebrew GCC driver early enough for libgccjit to invoke it.
-(when (eq system-type 'darwin)
-  (let ((homebrew-bin
-         (cond
-          ((file-directory-p "/opt/homebrew/bin") "/opt/homebrew/bin")
-          ((file-directory-p "/usr/local/bin") "/usr/local/bin"))))
-    (when homebrew-bin
-      (unless (member homebrew-bin exec-path)
-        (push homebrew-bin exec-path))
-      (let ((path (getenv "PATH")))
-        (unless (member homebrew-bin
-                        (split-string (or path "") path-separator t))
-          (setenv "PATH"
-                  (if (and path (> (length path) 0))
-                      (concat homebrew-bin path-separator path)
-                    homebrew-bin)))))))
-
-;; Apple Silicon macOS with Homebrew: help libgccjit find GCC's private
-;; runtime libraries when Emacs is launched from Finder or Spotlight.
-;; (let* ((gcc-bin-dir "/opt/homebrew/opt/gcc/bin")
-;;        (gcc (and (file-directory-p gcc-bin-dir)
-;;                  (car (directory-files
-;;                        gcc-bin-dir t "\\`gcc-[0-9]+\\'"))))
-;;        (libemutls (and gcc
-;;                       (car (process-lines
-;;                             gcc "-print-file-name=libemutls_w.a")))))
-;;   (when (and libemutls (file-readable-p libemutls))
-;;     (setq native-comp-driver-options
-;;           (list "-Wl,-w"
-;;                 (concat "-L" (file-name-directory libemutls))))))
-
 ;;; early-init.el ends here

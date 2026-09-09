@@ -17,7 +17,7 @@
 
 ;; NOTE: `+emacs/modules-directory' is deliberately NOT added to `load-path'.
 ;; Modules are loaded by absolute path via `+emacs/load-modules', and several
-;; module basenames (project, vc, org, files) would otherwise shadow built-in
+;; module basenames (project, vc, files) would otherwise shadow built-in
 ;; Emacs libraries of the same name.
 (dolist (dir (list +emacs/lisp-directory
                    +emacs/core-directory
