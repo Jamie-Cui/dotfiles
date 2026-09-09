@@ -1,5 +1,7 @@
 ;;; init-config-citar.el --- Citar configuration -*- lexical-binding: t -*-
 ;;; Commentary:
+;; Share bibliography paths and extend Citar's resource menu with field copying
+;; and Ebib entry access.
 ;;; Code:
 
 (require 'org)
@@ -67,34 +69,29 @@
     "Inject per-field copy and open-in-ebib candidates into `citar--get-resource-candidates'.
 Also simplifies create-note candidates to show only the note filename."
     (let* ((orig-result (apply orig citekeys args))
-           ;; Cache entries - citar-get-entry is otherwise called twice per key.
-           (entry-cache (let ((tbl (make-hash-table :test #'equal :size (length citekeys))))
-                          (dolist (k citekeys tbl) (puthash k (citar-get-entry k) tbl))))
            ;; Replace create-note candidates' verbose display with just the note filename.
-           (result (when orig-result
-                     (cons (car orig-result)
-                           (mapcar (lambda (cand)
-                                     (let* ((mc    (get-text-property 0 'multi-category cand))
-                                            (inner (and mc (cdr mc)))
-                                            (rtype (and inner (get-text-property 0 'citar--resource inner))))
-                                       (if (eq rtype 'create-note)
-                                           (let* ((key  (substring-no-properties inner))
-                                                  (name (when-let* (((fboundp 'citar-file--get-note-filename))
-                                                                    (path (citar-file--get-note-filename key)))
-                                                          (file-name-nondirectory path)))
-                                                  (name (or name key))
-                                                  ;; Keep the hidden citekey prefix and outer resource
-                                                  ;; type so `citar--select-resource' and Embark can
-                                                  ;; still dispatch create-note correctly.
-                                                  (display (citar--prepend-candidate-citekey key name)))
-                                             (propertize display
-                                                         'citar--resource rtype
-                                                         'multi-category mc))
-                                         cand)))
-                                   (cdr orig-result)))))
+           (result (mapcar (lambda (cand)
+                             (let* ((mc    (get-text-property 0 'multi-category cand))
+                                    (inner (and mc (cdr mc)))
+                                    (rtype (and inner (get-text-property 0 'citar--resource inner))))
+                               (if (eq rtype 'create-note)
+                                   (let* ((key  (substring-no-properties inner))
+                                          (name (when-let* (((fboundp 'citar-file--get-note-filename))
+                                                            (path (citar-file--get-note-filename key)))
+                                                  (file-name-nondirectory path)))
+                                          (name (or name key))
+                                          ;; Keep the hidden citekey prefix and outer resource
+                                          ;; type so `citar--select-resource' and Embark can
+                                          ;; still dispatch create-note correctly.
+                                          (display (citar--prepend-candidate-citekey key name)))
+                                     (propertize display
+                                                 'citar--resource rtype
+                                                 'multi-category mc))
+                                 cand)))
+                           (cdr orig-result)))
            (extra-cands
             (mapcan (lambda (key)
-                      (let* ((entry   (gethash key entry-cache))
+                      (let* ((entry   (citar-get-entry key))
                              (fields  (seq-remove (lambda (c) (string-prefix-p "=" (car c))) entry))
                              (max-len (apply #'max (length "key")
                                              (mapcar (lambda (c) (length (car c))) fields)))
@@ -108,7 +105,7 @@ Also simplifies create-note candidates to show only the note filename."
                         (append (list key-cand) copy-cands
                                 (list (propertize key 'citar--resource 'open-in-ebib)))))
                     citekeys)))
-      (cons 'multi-category (append (when result (cdr result)) extra-cands))))
+      (cons 'multi-category (append result extra-cands))))
 
   (defun +citar--open-resource-extras-a (orig resource &optional type)
     "Handle copy-field and open-in-ebib in `citar--open-resource'."

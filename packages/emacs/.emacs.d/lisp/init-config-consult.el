@@ -1,32 +1,29 @@
 ;;; init-config-consult.el --- Consult extensions -*- lexical-binding: t -*-
 ;;; Commentary:
+;; Group agenda headings by TODO state and annotate their scheduling dates.
 ;;; Code:
 
 (require 'org)
 (require 'org-agenda)
-(require 'subr-x)
 
 (defun consult-org--get-heading-time-info (marker)
-  "Extract time info (SCHEDULED, DEADLINE, or timestamp) from heading at MARKER."
+  "Return the scheduled date or deadline of the heading at MARKER."
   (with-current-buffer (marker-buffer marker)
     (save-excursion
       (goto-char marker)
       (let ((scheduled (org-entry-get (point) "SCHEDULED"))
-            (deadline (org-entry-get (point) "DEADLINE"))
-            (ts (org-get-scheduled-time (point))))
+            (deadline (org-entry-get (point) "DEADLINE")))
         (cond
          (scheduled (concat " SCH: " (substring scheduled 1 -1)))
          (deadline (concat " DDL: " (substring deadline 1 -1)))
-         (ts (format-time-string " 🗓 %Y-%m-%d" ts))
          (t ""))))))
 
-(defun consult-org-agenda-by-todo-status-with-time (orig-fun &optional match)
-  "Around advice for `consult-org-agenda' to group by TODO and show time info,
-with aligned time columns by using fixed-width priority placeholder."
+(defun consult-org-agenda-by-todo-status-with-time (&optional match)
+  "Select an agenda heading matching MATCH, grouped by TODO state.
+Annotate dates and align priorities with a fixed-width placeholder."
   (unless org-agenda-files
     (user-error "No agenda files"))
-  (let* ((prefix t)
-         (cands (consult--slow-operation "Collecting agenda headings..."
+  (let* ((cands (consult--slow-operation "Collecting agenda headings..."
                   (or (consult-org--headings t match 'agenda)
                       (user-error "No agenda headings"))))
          (my-annotate
@@ -42,8 +39,7 @@ with aligned time columns by using fixed-width priority placeholder."
                      (time-info (consult-org--get-heading-time-info marker)))
                 (consult--annotate-align
                  cand
-                 (concat base-annot
-                         (and (not (string-empty-p time-info)) time-info))))))))
+                 (concat base-annot time-info)))))))
     (consult--read
      cands
      :prompt "Go to agenda heading (by TODO): "
@@ -64,7 +60,7 @@ with aligned time columns by using fixed-width priority placeholder."
 
 (with-eval-after-load 'consult
   (advice-add 'consult-org-agenda
-              :around #'consult-org-agenda-by-todo-status-with-time))
+              :override #'consult-org-agenda-by-todo-status-with-time))
 
 (provide 'init-config-consult)
 ;;; init-config-consult.el ends here

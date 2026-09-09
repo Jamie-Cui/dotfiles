@@ -191,10 +191,14 @@ following, and export continue to use their configured processors."
           ("" "xeCJK" t)
           ("" "booktabs" t)
           ("" "amssymb" t)
+          ("" "framed" t)
           ("margin=1.5cm" "geometry" t)
           ("lambda, advantage, operators, sets, adversary, landau,\
     probability, notions, logic, ff, mm, primitives, events, complexity, oracles,\
     asymptotics, keys" "cryptocode" t)
+          "\\newenvironment{protocol}
+{\\begin{framed}\\setlength{\\parindent}{0pt}\\begin{minipage}{0.97\\linewidth}}
+{\\end{minipage}\\end{framed}}"
           )
         )
 
@@ -241,8 +245,8 @@ following, and export continue to use their configured processors."
   (with-silent-modifications
     (remove-text-properties beg end '(syntax-table nil))))
 
-(defun +org/plantuml-clear-src-syntax-table-at-point ()
-  "Remove syntax-table properties from the PlantUML source block at point."
+(defun +org/plantuml-clear-src-syntax-table-before-babel-a (&rest _)
+  "Remove PlantUML syntax-table properties before Babel reads block info."
   (when (derived-mode-p 'org-mode)
     (let ((bounds (+org/plantuml-src-block-bounds-at-point)))
       (when bounds
@@ -254,20 +258,11 @@ following, and export continue to use their configured processors."
   (when (string-equal lang "plantuml")
     (+org/plantuml-clear-src-syntax-table-properties start end)))
 
-(unless (advice-member-p #'+org/plantuml-clear-src-syntax-table-after-fontify-a
-                         'org-src-font-lock-fontify-block)
-  (advice-add 'org-src-font-lock-fontify-block
-              :after #'+org/plantuml-clear-src-syntax-table-after-fontify-a))
+(advice-add 'org-src-font-lock-fontify-block
+            :after #'+org/plantuml-clear-src-syntax-table-after-fontify-a)
 
-(defun +org/plantuml-clear-src-syntax-table-before-babel-a (fn &rest args)
-  "Clean PlantUML syntax-table properties before Babel reads block info."
-  (+org/plantuml-clear-src-syntax-table-at-point)
-  (apply fn args))
-
-(unless (advice-member-p #'+org/plantuml-clear-src-syntax-table-before-babel-a
-                         'org-babel-get-src-block-info)
-  (advice-add 'org-babel-get-src-block-info
-              :around #'+org/plantuml-clear-src-syntax-table-before-babel-a))
+(advice-add 'org-babel-get-src-block-info
+            :before #'+org/plantuml-clear-src-syntax-table-before-babel-a)
 
 ;; HACK from doom-emacs
 (defun +org-fix-newline-and-indent-in-src-blocks-a

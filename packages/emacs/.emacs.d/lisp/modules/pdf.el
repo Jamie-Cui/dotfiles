@@ -35,10 +35,9 @@
   (defvar-local +latex/roll-prefetch-pending nil
     "In-flight PDF roll prefetch keys for the current buffer.")
 
-  (defun +latex/roll-pre-redisplay-a (fn window)
+  (defun +latex/roll-pre-redisplay-a (window)
     "Prefetch nearby pages after `pdf-roll-pre-redisplay'."
-    (prog1 (funcall fn window)
-      (+latex/roll-prefetch-nearby window)))
+    (+latex/roll-prefetch-nearby window))
 
   (defun +latex/roll-event-window (event)
     "Return the live window associated with wheel EVENT."
@@ -91,16 +90,12 @@
             (push (- page offset) pages))))
       (nreverse pages)))
 
-  (defun +latex/roll-prefetch-key (page width max-width)
-    "Return the cache key used for prefetching PAGE at WIDTH/MAX-WIDTH."
-    (list page width max-width))
-
   (defun +latex/roll-prefetch-page (page window)
     "Asynchronously prefetch PAGE for PDF roll WINDOW."
     (let* ((size (pdf-view-desired-image-size page window))
            (width (car size))
            (max-width (if pdf-view-use-scaling (* 2 width) width))
-           (key (+latex/roll-prefetch-key page width max-width)))
+           (key (list page width max-width)))
       (unless (or (pdf-cache-lookup-image page width max-width)
                   (member key +latex/roll-prefetch-pending)
                   (>= (length +latex/roll-prefetch-pending)
@@ -156,26 +151,14 @@
     (pdf-tools-install)
     :config
     (with-eval-after-load 'pdf-roll
-      (when (advice-member-p #'+latex/roll-ultra-scroll-a
-                             'pdf-roll-pre-redisplay)
-        (advice-remove 'pdf-roll-pre-redisplay
-                       #'+latex/roll-ultra-scroll-a))
-      (unless (advice-member-p #'+latex/roll-pre-redisplay-a
-                               'pdf-roll-pre-redisplay)
-        (advice-add 'pdf-roll-pre-redisplay :around
-                    #'+latex/roll-pre-redisplay-a)))
+      (advice-remove 'pdf-roll-pre-redisplay #'+latex/roll-ultra-scroll-a)
+      (advice-add 'pdf-roll-pre-redisplay :after #'+latex/roll-pre-redisplay-a))
 
     (with-eval-after-load 'ultra-scroll
       (when (fboundp 'ultra-scroll)
-        (unless (advice-member-p #'+latex/roll-ultra-scroll-a
-                                 'ultra-scroll)
-          (advice-add 'ultra-scroll :around
-                      #'+latex/roll-ultra-scroll-a)))
+        (advice-add 'ultra-scroll :around #'+latex/roll-ultra-scroll-a))
       (when (fboundp 'ultra-scroll-mac)
-        (unless (advice-member-p #'+latex/roll-ultra-scroll-a
-                                 'ultra-scroll-mac)
-          (advice-add 'ultra-scroll-mac :around
-                      #'+latex/roll-ultra-scroll-a))))
+        (advice-add 'ultra-scroll-mac :around #'+latex/roll-ultra-scroll-a)))
 
     (general-define-key
      :keymaps 'pdf-view-mode-map

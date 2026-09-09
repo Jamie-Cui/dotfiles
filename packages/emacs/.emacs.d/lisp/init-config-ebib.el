@@ -1,5 +1,6 @@
 ;;; init-config-ebib.el --- Ebib configuration -*- lexical-binding: t -*-
 ;;; Commentary:
+;; Configure the shared bibliography and import entries without opening Ebib.
 ;;; Code:
 
 (require 'bibtex)
@@ -11,15 +12,10 @@
   :type 'directory
   :group 'ebib)
 
-(defun +ebib/ensure-directory (dir)
-  "Ensure DIR exists and return it."
-  (make-directory dir t)
-  dir)
-
 (defun +ebib/all-ref-file ()
   "Return the path of the main bibliography file."
-  (expand-file-name "all-ref.bib"
-                    (+ebib/ensure-directory +ebib/org-root-dir)))
+  (make-directory +ebib/org-root-dir t)
+  (expand-file-name "all-ref.bib" +ebib/org-root-dir))
 
 (use-package ebib
   :ensure t
