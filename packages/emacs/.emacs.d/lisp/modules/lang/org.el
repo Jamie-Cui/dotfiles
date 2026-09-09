@@ -237,6 +237,8 @@ following, and export continue to use their configured processors."
               #'org-link-preview-refresh
             #'org-display-inline-images))
 
+(require 'org-latex-protocol)
+
 ;;; org-babel
 (setopt org-confirm-babel-evaluate nil) ; do not confirm, just run
 

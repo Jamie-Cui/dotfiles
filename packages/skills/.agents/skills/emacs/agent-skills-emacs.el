@@ -1138,5 +1138,157 @@ Only the three fixed function definitions below are evaluated."
                :rows rows :newest-first newest-first
                :first-date first-date :last-date last-date))))))
 
+(declare-function +org/protocol-block-p "org-latex-protocol" (element))
+(declare-function +org/protocol-preview "org-latex-protocol" ())
+(declare-function yas-load-directory "yasnippet" (top-level-dir &optional use-jit))
+
+(defun agent-skills/reload-org-protocol-config ()
+  "Reload protocol definitions and refresh fontification in live Org buffers."
+  (unless (and (boundp '+emacs/repo-directory)
+               (stringp +emacs/repo-directory))
+    (user-error "The managed Emacs configuration root is unavailable"))
+  (load (expand-file-name "site-lisp/org-latex-protocol.el"
+                          +emacs/repo-directory) nil t t)
+  (when (fboundp 'yas-load-directory)
+    (yas-load-directory (expand-file-name "snippets" +emacs/repo-directory)))
+  (dolist (buffer (buffer-list))
+    (with-current-buffer buffer
+      (when (derived-mode-p 'org-mode)
+        (org-set-font-lock-defaults)
+        (font-lock-refresh-defaults))))
+  (list :loaded (featurep 'org-latex-protocol)
+        :preview-command (commandp '+org/protocol-preview)))
+
+(defun agent-skills/org-protocol-fontification-state (path)
+  "Report protocol face metadata in the live Org buffer visiting PATH."
+  (let ((buffer (agent-skills--buffer-visiting-file path)))
+    (unless (buffer-live-p buffer)
+      (user-error "No live buffer is visiting: %s" path))
+    (with-current-buffer buffer
+      (save-excursion
+        (save-restriction
+          (widen)
+          (list :native-mode (org-src-get-lang-mode-if-bound "latex")
+                :blocks
+                (org-element-map (org-element-parse-buffer) 'special-block
+                  (lambda (block)
+                    (when (+org/protocol-block-p block)
+                      (let ((begin (org-element-property :contents-begin block))
+                            (end (org-element-property :contents-end block)))
+                        (font-lock-ensure (org-element-property :begin block)
+                                          (org-element-property :end block))
+                        (list :name (org-element-property :name block)
+                              :first-face (and begin (get-text-property begin 'face))
+                              :command-face
+                              (when (and begin end)
+                                (goto-char begin)
+                                (when (search-forward "\\textbf" end t)
+                                  (get-text-property (1- (point)) 'face)))
+                              :delimiter-syntax
+                              (and end (get-text-property end 'syntax-table)))))))
+                :modified (buffer-modified-p)))))))
+
+(defun agent-skills/convert-latex-protocol-blocks (path names &optional apply)
+  "Plan conversion of named LaTeX protocol blocks NAMES in live file PATH.
+With APPLY, back up the saved buffer to a temporary file, convert and save it.
+Refuse unsaved edits, unexpected wrappers or nonstandard result contents.
+Preserve protocol bodies, point and narrowing; never evaluate Babel headers."
+  (require 'org)
+  (require 'ob-core)
+  (let ((buffer (agent-skills--buffer-visiting-file path)))
+    (unless (buffer-live-p buffer)
+      (user-error "No live buffer is visiting: %s" path))
+    (with-current-buffer buffer
+      (unless (derived-mode-p 'org-mode)
+        (user-error "The target buffer is not in Org mode"))
+      (when (or (buffer-modified-p) (not (verify-visited-file-modtime buffer)))
+        (user-error "The Org buffer must match its saved file"))
+      (save-excursion
+        (save-restriction
+          (widen)
+          (let (changes backup)
+            (dolist (name names)
+              (goto-char (point-min))
+              (org-babel-goto-named-src-block name)
+              (let* ((block (org-element-at-point))
+                     (body (org-element-property :value block))
+                     (begin (org-element-property :begin block))
+                     (end (org-element-property :end block))
+                     (prefix "\\begin{protocol}\n")
+                     (suffix "\\end{protocol}\n")
+                     (result (org-babel-where-is-src-block-result)))
+                (unless (and (org-element-type-p block 'src-block)
+                             (equal (org-element-property :language block) "latex")
+                             (string-prefix-p prefix body)
+                             (string-suffix-p suffix body))
+                  (user-error "Unexpected LaTeX protocol wrapper: %s" name))
+                (when result
+                  (unless (and (>= result end)
+                               (string-blank-p
+                                (buffer-substring-no-properties end result)))
+                    (user-error "Results are not adjacent to protocol: %s" name))
+                  (goto-char result)
+                  (forward-line 2)
+                  (unless (equal
+                           (string-trim
+                            (buffer-substring-no-properties result (point)))
+                           (format "#+RESULTS: %s\n[[file:img/%s.svg]]" name name))
+                    (user-error "Unexpected protocol results: %s" name))
+                  (setq end (point)))
+                (push (list begin end
+                            (concat "#+name: " name "\n#+begin_protocol\n"
+                                    (substring body (length prefix)
+                                               (- (length suffix)))
+                                    "#+end_protocol\n")
+                            name)
+                      changes)))
+            (when apply
+              (setq backup (make-temp-file "org-protocol-before-" nil ".org"))
+              (write-region (point-min) (point-max) backup nil 'silent)
+              (setq changes (sort changes (lambda (a b) (> (car a) (car b)))))
+              (atomic-change-group
+                (dolist (change changes)
+                  (goto-char (nth 0 change))
+                  (delete-region (nth 0 change) (nth 1 change))
+                  (insert (nth 2 change))))
+              (save-buffer))
+            (list :blocks names :count (length changes)
+                  :applied (and apply t) :backup backup)))))))
+
+(defun agent-skills/preview-org-protocol-blocks (path names)
+  "Render named protocol blocks NAMES in the live buffer visiting PATH.
+Return image metadata and lint counts without changing document text."
+  (require 'org-latex-protocol)
+  (require 'org-lint)
+  (let ((buffer (agent-skills--buffer-visiting-file path)))
+    (unless (buffer-live-p buffer)
+      (user-error "No live buffer is visiting: %s" path))
+    (with-current-buffer buffer
+      (save-excursion
+        (save-restriction
+          (widen)
+          (let* ((tree (org-element-parse-buffer))
+                 (blocks (org-element-map tree 'special-block
+                           (lambda (element)
+                             (when (and (+org/protocol-block-p element)
+                                        (member (org-element-property :name element)
+                                                names))
+                               element))))
+                 images)
+            (unless (= (length blocks) (length names))
+              (user-error "The requested protocol blocks were not all found"))
+            (dolist (block blocks)
+              (goto-char (org-element-post-affiliated block))
+              (let ((file (+org/protocol-preview)))
+                (push (list :name (org-element-property :name block)
+                            :file (expand-file-name file)
+                            :bytes (file-attribute-size (file-attributes file)))
+                      images)))
+            (when (bound-and-true-p flycheck-mode)
+              (flycheck-buffer))
+            (list :images (nreverse images)
+                  :header-warnings (length (org-lint-wrong-header-value tree))
+                  :modified (buffer-modified-p))))))))
+
 (provide 'agent-skills/emacs)
 ;;; agent-skills-emacs.el ends here

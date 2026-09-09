@@ -107,6 +107,40 @@ removals (including deletion of matching CalDAV tasks).  Approval applies only
 to the reviewed paths and IDs in that cycle.  Background synchronization waits
 for manual confirmation without a warning popup.
 
+* Protocol blocks
+
+Use =protocol= followed by snippet expansion to insert a LaTeX protocol:
+
+#+begin_example
+#+name: example-protocol
+#+begin_protocol
+\small
+\textbf{Example protocol}
+\begin{enumerate}
+\setlength{\itemsep}{3pt}
+\setlength{\parsep}{0pt}
+\item The client sends a request.
+\item The server returns a response.
+\end{enumerate}
+#+end_protocol
+#+end_example
+
+The body is raw LaTeX, highlighted like a =latex= source block using the current
+theme when =org-src-fontify-natively= is enabled.
+The configuration supplies the =protocol= environment,
+shared packages and white preview background.  Press =C-c C-c= inside the block
+or run =M-x +org/protocol-preview= to generate =img/example-protocol.svg= and
+display it below the source.  The preview does not insert a =RESULTS= section;
+editing the block clears it until the next render.  Unnamed blocks use a
+content hash for the image filename.
+
+LaTeX/PDF export embeds the protocol source directly.  Other backends render
+an SVG and export its link; Org export preserves the editable block.  SVG
+rendering uses the same XeLaTeX and =pdftocairo= setup as LaTeX Babel blocks.
+For migration, remove the old Babel headers, outer =\begin{protocol}= /
+=\end{protocol}=, and generated =RESULTS= link, then replace the source block
+delimiters with =#+begin_protocol= / =#+end_protocol=.
+
 * Getting started
 
 Ubuntu:

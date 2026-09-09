@@ -1,0 +1,14 @@
+# -*- mode: snippet -*-
+# name: protocol
+# key: protocol
+# --
+#+name: ${1:protocol-name}
+#+begin_protocol
+\small
+\textbf{${2:协议标题}}
+\begin{enumerate}
+\setlength{\itemsep}{3pt}
+\setlength{\parsep}{0pt}
+\item $0
+\end{enumerate}
+#+end_protocol
