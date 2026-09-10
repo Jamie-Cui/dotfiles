@@ -26,7 +26,7 @@
         +emacs/org-project-caldav-dir
         (expand-file-name "org-project-caldav" user-emacs-directory)
         +emacs/proxy "127.0.0.1:10808"
-        +emacs/theme 'nil)
+        +emacs/theme 'zenburn)
 
 ;; Mail identity; the mu4e path is auto-detected from the mu binary.
 (setopt +emacs/email-address "jamie.cui@outlook.com"
