@@ -16,16 +16,18 @@
 
 (defconst agent-skills--allowed-special-buffers
   '("*Messages*" "*Warnings*" "*Backtrace*" "*Compile-Log*" "*ERT*"
-    "*magent*" "*magent-log*")
+    "*magent*" "*magent-log*" "*org-project-caldav*")
   "Special buffers that may be inspected through `agent-skills/special-buffer'.")
 
-(defun agent-skills--readable-buffer-string (buffer limit)
-  "Return up to LIMIT characters from BUFFER, capped at 4000."
+(defun agent-skills--readable-buffer-string (buffer limit &optional tail)
+  "Return up to LIMIT characters from BUFFER, capped at 4000.
+With TAIL non-nil, return the last characters instead of the first."
   (with-current-buffer buffer
     (let ((max-chars (min (or limit 3000) 4000)))
       (buffer-substring-no-properties
-       (point-min)
-       (min (point-max) (+ (point-min) max-chars))))))
+       (if tail (max (point-min) (- (point-max) max-chars)) (point-min))
+       (if tail (point-max)
+         (min (point-max) (+ (point-min) max-chars)))))))
 
 (cl-defun agent-skills/list-functions (prefix)
   "Return a list of interactive function names matching PREFIX."
@@ -370,16 +372,19 @@ so the new setting is used on the next redisplay."
   "Return the number of live buffers without exposing their contents."
   (length (buffer-list)))
 
-(cl-defun agent-skills/special-buffer (name &optional limit)
-  "Return a bounded excerpt of an allowlisted special buffer NAME."
+(cl-defun agent-skills/special-buffer (name &optional limit tail)
+  "Return up to LIMIT characters from an allowlisted special buffer NAME.
+With TAIL non-nil, read the end of the buffer.  LIMIT defaults to 3000 and
+is capped at 4000; use zero to inspect only the name and size."
   (unless (member name agent-skills--allowed-special-buffers)
     (error "Buffer is not in the special-buffer allowlist: %s" name))
   (let ((buffer (get-buffer name)))
     (if (not (buffer-live-p buffer))
         (format "Buffer not found: %s" name)
-      (format "Buffer: %s\n---\n%s"
+      (format "Buffer: %s\nSize: %d characters\n---\n%s"
               name
-              (agent-skills--readable-buffer-string buffer limit)))))
+              (with-current-buffer buffer (buffer-size))
+              (agent-skills--readable-buffer-string buffer limit tail)))))
 
 (cl-defun agent-skills/toggle-debug-on-error (&optional value)
   "Set `debug-on-error' to VALUE and report the result."

@@ -181,6 +181,9 @@ matching local-vdir-wins policy."
 (defconst org-project-caldav--log-buffer "*org-project-caldav*"
   "Buffer containing vdirsyncer output and local reconciliation errors.")
 
+(defconst org-project-caldav--log-history-limit 65536
+  "Maximum characters of previous output retained when starting pre-sync.")
+
 (defun org-project-caldav--inbox-file ()
   "Return the Org file receiving tasks created by CalDAV clients."
   (expand-file-name "inbox.org" +org-project-root-dir))
@@ -1336,18 +1339,15 @@ Return the new native state, using PREVIOUS-STATE for sequence recovery."
       (insert (apply #'format format-string arguments)))))
 
 (defun org-project-caldav--record-failure (message &optional needs-confirmation)
-  "Finish the current cycle with failure MESSAGE.
-With NEEDS-CONFIRMATION, report pending user action without a warning popup."
+  "Log failure MESSAGE and finish the current cycle without a notification.
+With NEEDS-CONFIRMATION, mark the log entry as waiting for user action."
   (setq org-project-caldav--process nil
         org-project-caldav--running nil
         org-project-caldav--pending nil
         org-project-caldav--discovery-attempted nil
         org-project-caldav--approved-removals nil)
-  (org-project-caldav--append-log "\n%s\n" message)
-  (unless (equal message org-project-caldav--last-error)
-    (if needs-confirmation
-        (message "CalDAV waiting: %s" message)
-      (display-warning 'org-project-caldav message :warning)))
+  (org-project-caldav--append-log
+   "\n%s%s\n" (if needs-confirmation "CalDAV waiting: " "") message)
   (setq org-project-caldav--last-error message))
 
 (defun org-project-caldav--finish-success ()
@@ -1365,14 +1365,18 @@ With NEEDS-CONFIRMATION, report pending user action without a warning popup."
     (when rerun
       (run-at-time 0 nil #'org-project-caldav-sync))))
 
-(defun org-project-caldav--discovery-required-p ()
-  "Return non-nil when the current log requests vdirsyncer discovery."
-  (with-current-buffer (get-buffer-create org-project-caldav--log-buffer)
-    (save-excursion
-      (goto-char (point-min))
-      (re-search-forward
-       "\\(?:Please run.*vdirsyncer discover\\|Detected change in config\\)"
-       nil t))))
+(defun org-project-caldav--discovery-required-p (process)
+  "Return non-nil when PROCESS output requests vdirsyncer discovery."
+  (let ((buffer (process-buffer process)))
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (save-excursion
+          ;; A process started before this library was reloaded has no boundary.
+          (goto-char (or (process-get process 'org-project-caldav-log-start)
+                         (point-min)))
+          (re-search-forward
+           "\\(?:Please run.*vdirsyncer discover\\|Detected change in config\\)"
+           nil t))))))
 
 (defun org-project-caldav--handle-process-exit (process stage)
   "Handle completion of vdirsyncer PROCESS for STAGE."
@@ -1400,7 +1404,7 @@ With NEEDS-CONFIRMATION, report pending user action without a warning popup."
               (format "Unknown CalDAV process stage: %S" stage))))
       (if (and (eq stage 'pre-sync)
                (not org-project-caldav--discovery-attempted)
-               (org-project-caldav--discovery-required-p))
+               (org-project-caldav--discovery-required-p process))
           (progn
             (setq org-project-caldav--discovery-attempted t)
             (org-project-caldav--start-vdirsyncer 'discover))
@@ -1426,7 +1430,8 @@ With NEEDS-CONFIRMATION, report pending user action without a warning popup."
          (username (car credentials))
          (password (cdr credentials))
          (process-environment (copy-sequence process-environment))
-         (buffer (get-buffer-create org-project-caldav--log-buffer)))
+         (buffer (get-buffer-create org-project-caldav--log-buffer))
+         log-start)
     (unwind-protect
         (progn
           (setenv "ORG_PROJECT_CALDAV_USERNAME" username)
@@ -1434,7 +1439,11 @@ With NEEDS-CONFIRMATION, report pending user action without a warning popup."
           (when (eq stage 'pre-sync)
             (with-current-buffer buffer
               (let ((inhibit-read-only t))
-                (erase-buffer))))
+                (delete-region
+                 (point-min)
+                 (max (point-min)
+                      (- (point-max) org-project-caldav--log-history-limit))))))
+          (setq log-start (with-current-buffer buffer (point-max)))
           (org-project-caldav--append-log
            "%s vdirsyncer %s\n"
            (format-time-string "%F %T") stage)
@@ -1447,6 +1456,7 @@ With NEEDS-CONFIRMATION, report pending user action without a warning popup."
                   :noquery t
                   :sentinel #'org-project-caldav--sentinel)))
             (process-put process 'org-project-caldav-stage stage)
+            (process-put process 'org-project-caldav-log-start log-start)
             (setq org-project-caldav--process process)))
       (clear-string password))))
 

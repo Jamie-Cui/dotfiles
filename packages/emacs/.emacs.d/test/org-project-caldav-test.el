@@ -534,7 +534,9 @@
                     ((symbol-function 'org-project-caldav--sentinel) #'ignore))
             (dolist (stage '(pre-sync discover post-sync))
               (with-current-buffer buffer
-                (erase-buffer))
+                (erase-buffer)
+                (insert (make-string org-project-caldav--log-history-limit ?x)
+                        "\nOld failure: Please run vdirsyncer discover\n"))
               (let ((default-directory missing))
                 (org-project-caldav--start-vdirsyncer stage)
                 (should (equal default-directory missing)))
@@ -545,13 +547,27 @@
               (should (eq (process-get org-project-caldav--process
                                        'org-project-caldav-stage)
                           stage))
+              ;; Keep the previous failure for diagnosis without letting it
+              ;; request discovery for the new process.
+              (should-not (org-project-caldav--discovery-required-p
+                           org-project-caldav--process))
               (with-current-buffer buffer
+                (when (eq stage 'pre-sync)
+                  (should (= (1- (process-get org-project-caldav--process
+                                             'org-project-caldav-log-start))
+                             org-project-caldav--log-history-limit)))
+                (goto-char (point-min))
+                (should (search-forward "Old failure:" nil t))
                 (goto-char (point-max))
                 (forward-line -1)
                 (should (file-equal-p
                          (string-trim
                           (buffer-substring-no-properties (point) (point-max)))
-                         org-project-caldav-vdir-directory))))))
+                         org-project-caldav-vdir-directory))
+                (goto-char (point-max))
+                (insert "Detected change in config\n"))
+              (should (org-project-caldav--discovery-required-p
+                       org-project-caldav--process)))))
       (when (process-live-p org-project-caldav--process)
         (delete-process org-project-caldav--process))
       (kill-buffer buffer)
