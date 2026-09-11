@@ -9,7 +9,7 @@ conflict_resolution = "b wins"
 
 [storage org_project_caldav_remote]
 type = "caldav"
-url = "https://caldav.gw-api.xyz/jamie/org-tasks/"
+url = "https://caldav.jamie-cui.com/jamie/org-tasks/"
 username.fetch = ["command", "printenv", "ORG_PROJECT_CALDAV_USERNAME"]
 password.fetch = ["command", "printenv", "ORG_PROJECT_CALDAV_PASSWORD"]
 item_types = ["VTODO"]

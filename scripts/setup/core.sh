@@ -8,7 +8,7 @@ setup_repo_https=https://github.com/Jamie-Cui/dotfiles.git
 setup_repo_ssh=git@github.com:Jamie-Cui/dotfiles.git
 setup_repo_branch=master
 setup_ctags_repo=https://github.com/universal-ctags/ctags.git
-setup_org_root_repo=ssh://git@git.gw-api.xyz:2222/jamie/org-root.git
+setup_org_root_repo=ssh://git@git.jamie-cui.com:2222/jamie/org-root.git
 setup_git_overleaf_repo=git@github.com:Jamie-Cui/git-overleaf.git
 setup_tdlib_repo=https://github.com/tdlib/td.git
 

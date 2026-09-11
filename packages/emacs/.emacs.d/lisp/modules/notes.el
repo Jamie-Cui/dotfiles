@@ -29,7 +29,7 @@
   (org-project-caldav-vdir-directory
    (expand-file-name "org-project-caldav/org-tasks"
                      (or (getenv "XDG_DATA_HOME") "~/.local/share")))
-  (org-project-caldav-auth-host "caldav.gw-api.xyz")
+  (org-project-caldav-auth-host "caldav.jamie-cui.com")
   (org-project-caldav-calendar-id "caldav-tasks")
   (org-project-caldav-sync-interval 300)
   (org-project-caldav-initial-delay 20)

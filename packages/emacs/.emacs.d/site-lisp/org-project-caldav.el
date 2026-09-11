@@ -100,7 +100,7 @@
   :type 'directory
   :group 'org-project-caldav)
 
-(defcustom org-project-caldav-auth-host "caldav.gw-api.xyz"
+(defcustom org-project-caldav-auth-host "caldav.jamie-cui.com"
   "Host whose credentials are read through `auth-source'."
   :type 'string
   :group 'org-project-caldav)
