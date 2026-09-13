@@ -19,6 +19,9 @@ dist/
 # Backup files
 *~
 
+# Flycheck temporary files
+flycheck_*
+
 # Undo-tree save-files
 *.~undo-tree
 

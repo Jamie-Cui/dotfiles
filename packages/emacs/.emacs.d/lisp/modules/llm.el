@@ -144,6 +144,13 @@
   :after (agent-shell agent-shell-permission-transient)
   :demand t)
 
+;; Patch agent-shell's Markdown emphasis passes so `**bold**' / `*italic*'
+;; render when adjacent to CJK characters (site-lisp/agent-shell-markdown-cjk.el).
+(use-package agent-shell-markdown-cjk
+  :load-path (lambda () +emacs/site-lisp-directory)
+  :after agent-shell
+  :demand t)
+
 (use-package gptel
   :ensure t
   :custom
