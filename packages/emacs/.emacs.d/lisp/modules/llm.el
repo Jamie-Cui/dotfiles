@@ -245,7 +245,7 @@
   :custom
   ;; (magent-bypass-permission t)
   (magent-default-effort 'xhigh)
-  (magent-include-reasoning 'ignore)
+  (magent-include-reasoning t)
   (magent-action-mode-line-mode t)
   :config
   (add-to-list 'magent-skill-directories

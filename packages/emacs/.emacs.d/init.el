@@ -29,10 +29,10 @@
         +emacs/theme 'gruvbox)
 
 ;; Mail identity; the mu4e path is auto-detected from the mu binary.
-(setopt +emacs/email-address "jamie.cui@outlook.com"
-        +emacs/email-full-name "Jamie Cui"
-        +emacs/email-maildir (expand-file-name "~/.local/share/mail/outlook")
-        +emacs/mu4e-load-path (+emacs/detect-mu4e-load-path))
+;; (setopt +emacs/email-address "jamie.cui@outlook.com"
+;;         +emacs/email-full-name "Jamie Cui"
+;;         +emacs/email-maildir (expand-file-name "~/.local/share/mail/outlook")
+;;         +emacs/mu4e-load-path (+emacs/detect-mu4e-load-path))
 
 ;; If you use an Apple keyboard, map the Super key to Meta.
 ;; (setq x-super-keysym 'meta)
