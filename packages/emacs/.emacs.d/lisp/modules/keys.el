@@ -321,8 +321,10 @@
    "rx"     #'consult-tramp-remove-location ; remove item from consult-tramp
    ;; find
    "f" '(:ignore t :which-key "find")
+   "fa"     #'consult-agent-shell
    "fr"     #'consult-recent-file ; find recent file (globally)
-   "fR"     #'ff-find-related-file ; find related file
+   "fR"     #'consult-tramp ;
+   ;; "fR"     #'ff-find-related-file ; find related file
    "fb"     #'consult-buffer
    "fB"     #'consult-bookmark ; find recent file (globally)
    ;; FIXME consult-fd is a better alternative, but it seems consult-fd only finds the

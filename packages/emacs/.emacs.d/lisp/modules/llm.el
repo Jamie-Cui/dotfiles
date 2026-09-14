@@ -128,6 +128,11 @@
   ;;           "-c" "preferred_auth_method=\"apikey\"")))
   )
 
+(use-package consult-agent-shell
+  :load-path (lambda () +emacs/site-lisp-directory)
+  :after (consult agent-shell)
+  :demand t)
+
 (use-package agent-shell-permission-transient
   :vc (:url "https://github.com/Jamie-Cui/agent-shell-permission-transient"
             :rev "main")
