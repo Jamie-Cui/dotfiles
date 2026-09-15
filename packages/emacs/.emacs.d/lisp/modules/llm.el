@@ -122,6 +122,12 @@
   ;;           "-c" "preferred_auth_method=\"apikey\"")))
   )
 
+(use-package agent-shell-dense
+  :ensure nil
+  :after agent-shell
+  :hook ((agent-shell-mode . agent-shell-dense-mode)
+         (agent-shell-viewport-view-mode . agent-shell-dense-mode)))
+
 (use-package consult-agent-shell
   :load-path (lambda () +emacs/site-lisp-directory)
   :after (consult agent-shell)
