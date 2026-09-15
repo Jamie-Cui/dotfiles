@@ -19,7 +19,7 @@
   ;; DO NOT enable cache
   (projectile-enable-caching nil)
   ;; each project has a separate compilation buffer
-  (projectile-per-project-compilation-buffer t)
+  (projectile-compilation-buffer-scope '(project))
   ;; remote cache is avaliable for 5 min
   (projectile-file-exists-remote-cache-expire (* 5 60))
   ;; only git as project identifier

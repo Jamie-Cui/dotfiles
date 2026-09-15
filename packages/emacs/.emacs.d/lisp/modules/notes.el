@@ -133,14 +133,6 @@
   (setq tabulated-list-sort-key '("Modified" . t))
   (tabulated-list-init-header))
 
-(defun +notes/denote-filter-files-a (files)
-  "Keep only note and document FILES with approved extensions."
-  (seq-filter
-   (lambda (file)
-     (member (downcase (or (file-name-extension file) ""))
-             '("org" "bib" "pdf" "tex" "txt")))
-   files))
-
 (defun +notes/denote-sync-file-name-after-save-h ()
   "Synchronize the current Denote file name with its front matter."
   (when (and (not +notes/denote--syncing-file-name)
@@ -270,14 +262,11 @@
    "\\`\\(?:archive\\|img\\|sty\\)\\'")
   (denote-excluded-files-regexp
    "\\(?:\\.sync-conflict-[^/]*\\.org\\'\\|/[^/]+-beorg\\.org\\'\\)")
-  (denote-dired-directories
-   (list (+emacs/org-subdir "denote")
-         +org-projects-dir))
+  (denote-dired-directories denote-directory)
   (denote-dired-directories-include-subdirectories t)
   :hook
   (dired-mode . denote-dired-mode-in-directories)
   :config
-  (advice-add 'denote-directory-files :filter-return #'+notes/denote-filter-files-a)
   (denote-rename-buffer-mode +1)
   (add-hook 'after-save-hook #'+notes/denote-sync-file-name-after-save-h))
 
