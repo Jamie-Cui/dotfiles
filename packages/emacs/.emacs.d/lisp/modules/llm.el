@@ -47,13 +47,6 @@
                           'repl-submit #'shell-maker-submit
                           'repl-newline #'newline))
 
-  (defun +agent-shell/bind-return-in-action-keymap-a (map)
-    "Bind GUI <return> in agent-shell action keymaps."
-    (when (keymapp map)
-      (when-let* ((action (lookup-key map (kbd "RET"))))
-        (define-key map (kbd "<return>") action)))
-    map)
-
   (defun +agent-shell/focus-input (shell-buffer)
     "Move point in visible SHELL-BUFFER to the current input's beginning."
     (when-let* ((window (get-buffer-window shell-buffer t)))
@@ -105,10 +98,11 @@
             #'+agent-shell/focus-input-when-initialized-h)
 
   (with-eval-after-load 'agent-shell-ui
-    (advice-remove 'agent-shell-ui-make-action-keymap
-                   #'+agent-shell/bind-return-in-action-keymap-a)
-    (advice-add 'agent-shell-ui-make-action-keymap
-                :filter-return #'+agent-shell/bind-return-in-action-keymap-a))
+    ;; Evil Collection binds GUI <return> explicitly, preventing fallback to
+    ;; RET on fragment labels.  Update the shared map in place so existing
+    ;; fragments also get the GUI binding.
+    (define-key agent-shell-ui-fragment-map (kbd "<return>")
+                #'agent-shell-ui-toggle-fragment))
 
   ;; HACK using sssaicode api key
 
