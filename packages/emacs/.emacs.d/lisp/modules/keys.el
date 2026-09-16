@@ -226,7 +226,7 @@
    "jx"     #'bookmark-delete
    ;; open-related key bindings
    "o" '(:ignore t :which-key "open")
-   "oo"     #'crux-open-with
+   "oo"     #'+editor/open-with
    "oE"     #'ielm ; elisp repl
    "ob"     #'citar-open
    "og"     #'+keys/magit-status-quick
