@@ -4,6 +4,27 @@
 ;; environment import.
 ;;; Code:
 
+;; Install the dependecy first
+;; brew tap laishulu/homebrew
+;; brew trust laishulu/homebrew
+;; brew install macism
+;; run macism in terminal shows the im name
+(use-package sis
+  :ensure t
+  :if (eq system-type 'darwin)
+  :config
+  (sis-ism-lazyman-config
+   "com.apple.keylayout.ABC"
+   "com.apple.inputmethod.SCIM.ITABC")
+  ;; 启用 /光标颜色/ 模式
+  ;; (sis-global-cursor-color-mode t)
+  ;; 启用 /respect/ 模式
+  (sis-global-respect-mode t)
+  ;; 为所有缓冲区启用 /context/ 模式
+  (sis-global-context-mode t)
+  ;; 为所有缓冲区启用 /inline english/ 模式
+  (sis-global-inline-mode t)
+  )
 
 (unless (eq system-type 'windows-nt)
   (use-package exec-path-from-shell
