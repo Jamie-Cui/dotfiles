@@ -122,6 +122,17 @@
   ;;           "-c" "preferred_auth_method=\"apikey\"")))
   )
 
+(use-package agent-shell-tramp
+  :vc (:url "https://github.com/junyi-hou/agent-shell-tramp"
+            :rev "main")
+  :ensure t
+  :after agent-shell
+  :demand t
+  :config
+  (agent-shell-tramp-mode +1)
+  ;; Enabling TRAMP support installs a transcript writer; keep transcripts off.
+  (setq agent-shell-transcript-file-path-function nil))
+
 (use-package agent-shell-dense
   :ensure nil
   :after agent-shell
