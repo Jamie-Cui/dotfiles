@@ -110,6 +110,18 @@
 (use-package crux
   :ensure t)
 
+(defun +editor/open-with (arg)
+  "Open the Org file link at point in the system's default application.
+Elsewhere, call `crux-open-with', passing through prefix ARG."
+  (interactive "P")
+  (let ((link (and (derived-mode-p 'org-mode)
+                   (org-element-context))))
+    (if (and link
+             (eq (org-element-type link) 'link)
+             (equal (org-element-property :type link) "file"))
+        (org-open-at-point '(16))
+      (crux-open-with arg))))
+
 (defun +editor/save-all-buffers ()
   (interactive)
   (let* ((current-prefix-arg '(4)))
