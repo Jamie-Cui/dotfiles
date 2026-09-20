@@ -105,6 +105,7 @@
    ;; HACK change default toggle input method (this may has conflict with system-wide kbd)
    "C-SPC"   #'toggle-input-method ; alternative
    ;; more-frequent commands
+   "C-M-x"   #'magent-action
    "M-y"     #'yas-expand
    "M-p"     #'+prog/compile-with-no-preset ; just like vscode
    "M-w"     #'evil-avy-goto-char-timer ; quick find edit (point)?

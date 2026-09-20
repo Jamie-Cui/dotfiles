@@ -122,16 +122,16 @@
   ;;           "-c" "preferred_auth_method=\"apikey\"")))
   )
 
-(use-package agent-shell-tramp
-  :vc (:url "https://github.com/junyi-hou/agent-shell-tramp"
-            :rev "main")
-  :ensure t
-  :after agent-shell
-  :demand t
-  :config
-  (agent-shell-tramp-mode +1)
-  ;; Enabling TRAMP support installs a transcript writer; keep transcripts off.
-  (setq agent-shell-transcript-file-path-function nil))
+;; (use-package agent-shell-tramp
+;;   :vc (:url "https://github.com/junyi-hou/agent-shell-tramp"
+;;             :rev "main")
+;;   :ensure t
+;;   :after agent-shell
+;;   :demand t
+;;   :config
+;;   (agent-shell-tramp-mode +1)
+;;   ;; Enabling TRAMP support installs a transcript writer; keep transcripts off.
+;;   (setq agent-shell-transcript-file-path-function nil))
 
 (use-package agent-shell-dense
   :ensure nil
@@ -275,13 +275,6 @@
   :config
   (magent-magit-register)
   (magent-magit-install))
-
-(use-package magent-profile-memory
-  :load-path (lambda () (concat +emacs/repo-directory "/site-lisp/"))
-  :after magent
-  :demand t
-  :config
-  (magent-profile-memory-register))
 
 (use-package magent-submit-pr
   :load-path (lambda () (concat +emacs/repo-directory "/site-lisp/"))
