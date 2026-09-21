@@ -276,6 +276,13 @@
   (magent-magit-register)
   (magent-magit-install))
 
+(use-package magent-forge
+  :load-path (lambda () (concat +emacs/repo-directory "/site-lisp/"))
+  :after (magent forge)
+  :demand t
+  :config
+  (magent-forge-install))
+
 (use-package magent-submit-pr
   :load-path (lambda () (concat +emacs/repo-directory "/site-lisp/"))
   :after magent

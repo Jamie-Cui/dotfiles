@@ -64,13 +64,25 @@ order are the contract.
 | ~lang/latex~             | AUCTeX, RefTeX, Xenops, engrave-faces, SyncTeX (GUI)        |
 | ~pdf~                    | PDF Tools, continuous scrolling, prefetch, viewer keys (GUI) |
 | ~reading~                | elfeed                                                    |
-| ~llm~                    | gptel, agent-shell, magent, Action status, magent-magit   |
+| ~llm~                    | gptel, agent-shell, magent, Action status, magent-magit, magent-forge |
 | ~llm-config~             | GPTel backends, model discovery/cache, defaults           |
 | ~input~                  | PDF/text zoom, pinch and mouse-wheel handlers             |
 | ~keys~                   | which-key, general.el, the SPC leader map (loaded last)   |
 
 Local and forked packages live in ~site-lisp/~ and keep their own ~init-config-*~
 helper files in ~lisp/~.
+
+~magent-forge~ fills new Forge PR drafts with an English conventional title
+(~type(scope): description~, with optional ~!~ for breaking changes) and a
+Markdown body.  It uses the selected local ~base...head~ refs and includes
+Forge's template.  Fetch/push first if those refs need updating.  Review and
+submit normally with ~C-c C-c~; invalid conventional titles are rejected.
+Use ~C-c C-g~ to regenerate and ~C-c M-k~ to cancel.  Saved drafts require
+explicit regeneration.  If text or refs change while generation runs, the
+result opens separately for review.  Set ~magent-forge-auto-generate~ to ~nil~
+for manual generation, or customize ~magent-forge-model~ (default
+~deepseek-v4-flash~).  Generation does not run tests; the prompt requires it
+to report missing test evidence explicitly.
 
 ~prog~ owns shared programming infrastructure; language-specific server and
 checker policies live in ~lang/*~.  Language association hooks run after the
