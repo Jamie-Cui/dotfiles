@@ -146,7 +146,7 @@
     :hook
     (pdf-view-mode . +latex/roll-setup)
     :custom
-    (pdf-view-use-scaling nil)
+    (pdf-view-use-scaling t)
     :init
     (pdf-tools-install)
     :config
