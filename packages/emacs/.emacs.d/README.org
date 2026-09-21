@@ -59,11 +59,13 @@ order are the contract.
 | ~prog~                   | eglot, flycheck, citre, compilation, treesit              |
 | ~lang/*~                 | language-specific config: C/C++, Rust, Python, CMake, ... |
 | ~lang/org~               | Org core, babel, export, plantuml                         |
-| ~notes~                  | org-project, background CalDAV, journal, roam, denote      |
+| ~notes~                  | org-project, journal, roam, denote                        |
+| ~caldav~                 | optional background CalDAV sync (disabled by default)     |
 | ~bibliography~           | citar, ebib, bibtex                                       |
 | ~lang/latex~             | AUCTeX, RefTeX, Xenops, engrave-faces, SyncTeX (GUI)        |
 | ~pdf~                    | PDF Tools, continuous scrolling, prefetch, viewer keys (GUI) |
 | ~reading~                | elfeed                                                    |
+| ~email~                  | optional mu4e mail (disabled by default)                   |
 | ~llm~                    | gptel, agent-shell, magent, Action status, magent-magit, magent-forge |
 | ~llm-config~             | GPTel backends, model discovery/cache, defaults           |
 | ~input~                  | PDF/text zoom, pinch and mouse-wheel handlers             |
@@ -90,13 +92,19 @@ generic treesit-auto registration.  ~editor~ registers Harper lazily with Eglot.
 ~pdf~ can be enabled without LaTeX; ~lang/latex~ adds SyncTeX once both TeX and
 PDF Tools are loaded.  The existing ~+prog/rust-*~ and ~+latex/roll-*~ names are
 retained for compatibility.  Overleaf integration loads with ~vc~ in both
-graphical and terminal sessions.
+graphical and terminal sessions, with
+~git-overleaf-magit-auto-refresh-remote~ set to ~nil~ by default.
+
+The ~caldav~ and ~email~ modules are disabled by default.  Uncomment their
+entries in the ~init.el~ manifest to enable them, or comment them out to disable
+them, then restart Emacs.  Keep ~caldav~ after ~notes~: ~notes~ owns local project
+tasks, while ~caldav~ owns synchronization setup and background timers.
 
 ~org-project-caldav~ extends ~org-project~ without depending on the standalone
 ~org-caldav~ package.  Project files, the CalDAV inbox, and synchronization
 state live below =~/.emacs.d/org-project-caldav/=, separately from the knowledge
 base in =~/opt/org-root/=.  A =project-files/default.org= project is created
-during setup so manual captures always have a CalDAV-backed fallback.  Every
+during setup so manual captures always have a local fallback.  Every
 Org file below the task root is checked, but only active leaf tasks are
 represented as CalDAV ~VTODO~ items.
 
@@ -104,8 +112,8 @@ Org journal files live below =~/opt/org-root/journal/= and are deliberately
 excluded from ~org-agenda-files~, so TODO-like journal text is local history
 rather than a CalDAV task.  Project capture and task-state events may still be
 appended there as immutable records.
-Synchronization runs every five minutes and shortly after an Org save.  Network
-work runs in a background ~vdirsyncer~ process; credentials come from Emacs
+When the ~caldav~ module is enabled, synchronization runs every five minutes
+and shortly after an Org save.  Network work runs in a background ~vdirsyncer~ process; credentials come from Emacs
 ~auth-source~ and are passed only in that process's environment.  Reconciliation
 runs against a staging vdir, and a coverage check prevents committing a partial
 active-task projection.

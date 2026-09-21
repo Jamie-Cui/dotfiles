@@ -84,11 +84,12 @@
    "lang/markdown"
    "lang/org"
    "notes"
+   ;; "caldav"  ; Optional background sync; uncomment to enable after notes.
    "bibliography"
    "lang/latex"
    "pdf"
    "reading"
-   ;; "email"
+   ;; "email"   ; Optional mail; uncomment to enable.
    "llm"
    "llm-config"
    "input"

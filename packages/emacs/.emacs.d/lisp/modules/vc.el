@@ -111,6 +111,7 @@ Do not overwrite an existing non-empty global `github.user' value."
   :custom
   (git-overleaf-auth-backend 'firefox-cookies)
   (git-overleaf-cookie-storage 'authinfo)
+  (git-overleaf-magit-auto-refresh-remote nil)
   :config
   (with-eval-after-load 'magit
     (when (require 'git-overleaf-magit nil t)
