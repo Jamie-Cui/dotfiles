@@ -604,6 +604,7 @@ REPO-ROOT is included in any fallback preview."
     :description "Generate a message for the current staged changes."
     :title "Generate Magit commit message"
     :exposure '(interactive)
+    :modes '(minor git-commit-mode)
     :session-policy 'isolated
     :workflow #'magent-magit--commit-message-workflow
     :source-layer 'user
@@ -613,6 +614,7 @@ REPO-ROOT is included in any fallback preview."
     :description "Explain the diff section at point in a Magit buffer."
     :title "Explain Magit diff"
     :exposure '(interactive)
+    :modes '(major magit-mode)
     :session-policy 'isolated
     :workflow #'magent-magit--diff-explain-workflow
     :source-layer 'user

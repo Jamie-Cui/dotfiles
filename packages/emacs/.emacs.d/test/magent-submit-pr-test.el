@@ -227,6 +227,8 @@
       (should (equal (magent-action-spec-name spec) "submit-pr"))
       (should (eq (magent-action-spec-workflow spec)
                   #'magent-submit-pr--workflow))
+      (should (eq (magent-action-get "submit-pr" 'global 'interactive) spec))
+      (should (equal (magent-action-spec-exposure spec) '(slash interactive)))
       (should (eq (magent-action-spec-session-policy spec) 'isolated))
       (should (eq (magent-action-spec-source-layer spec) 'user))
       (should (equal (magent-action-spec-requires spec) '(subr-x))))))

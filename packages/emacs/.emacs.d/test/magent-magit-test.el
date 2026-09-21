@@ -262,6 +262,26 @@
           (should (equal (magent-action-spec-exposure spec)
                          '(interactive))))))))
 
+(ert-deftest magent-magit-actions-match-their-buffer-modes ()
+  "Magit integrations appear only in their supported buffer contexts."
+  (let ((magent-action--registry nil)
+        (magent-action-registry-changed-hook nil))
+    (cl-letf (((symbol-function 'magent-agent-registry-ensure-initialized) #'ignore)
+              ((symbol-function 'magent-agent-registry-register) #'identity))
+      (magent-magit-register))
+    (let ((commit (magent-action-get "magit-commit-message" 'global 'interactive))
+          (diff (magent-action-get "magit-diff-explain" 'global 'interactive)))
+      (with-temp-buffer
+        (should-not (magent-action-applicable-p commit))
+        (should-not (magent-action-applicable-p diff))
+        (setq major-mode 'magit-status-mode)
+        (should (magent-action-applicable-p diff))
+        (should-not (magent-action-applicable-p commit))
+        (text-mode)
+        (setq-local git-commit-mode t)
+        (should (magent-action-applicable-p commit))
+        (should-not (magent-action-applicable-p diff))))))
+
 (ert-deftest magent-magit-prompt-includes-classification-guardrails ()
   (should
    (string-match-p

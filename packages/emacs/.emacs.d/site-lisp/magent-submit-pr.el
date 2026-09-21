@@ -200,6 +200,7 @@
    "submit-pr"
    :description "Create a branch, commit and push all changes, then open a PR."
    :title "Finish work as a pull request"
+   :exposure '(slash interactive)
    :session-policy 'isolated
    :workflow #'magent-submit-pr--workflow
    :source-layer 'user
