@@ -1,6 +1,6 @@
 ;;; files.el --- files, dired, terminals and remote access -*- lexical-binding: t -*-
 ;;; Commentary:
-;; Files, dired, terminals and remote access: dired, tramp, eshell, eat,
+;; Files, dired, terminals and remote access: dired, tramp, eshell, vterm,
 ;; docker, backups, auto-save and proced.
 ;;; Code:
 
@@ -135,31 +135,37 @@ pre-date the external-operation helper API."
   (docker-show-messages nil)
   (docker-container-shell-file-name "/bin/bash"))
 
-(use-package eat
+;; (use-package eat
+;;   :ensure t
+;;   :custom
+;;   (eat-term-name "xterm-256color")
+;;   (eat-kill-buffer-on-exit t)
+;;   (eat-enable-yank-to-terminal t)
+;;   (eat-eshell-fallback-if-stty-not-available t)
+;;   :config
+;;   ;; For `eat-eshell-mode'.
+;;   (add-hook 'eshell-load-hook #'eat-eshell-mode)
+;;   ;; For `eat-eshell-visual-command-mode'.
+;;   (add-hook 'eshell-load-hook #'eat-eshell-visual-command-mode)
+
+;;   (defun +eat/evil-keep-terminal-cursor-h ()
+;;     "Keep Evil from moving EAT's terminal cursor."
+;;     (setq-local evil-move-cursor-back nil
+;;                 evil-move-beyond-eol t))
+
+;;   (add-hook 'eat-mode-hook #'+eat/evil-keep-terminal-cursor-h)
+
+;;   (defun +eat/new ()
+;;     (interactive)
+;;     (let ((current-prefix-arg ""))
+;;       (call-interactively 'eat)))
+;;   )
+
+(use-package vterm
   :ensure t
+  :commands vterm
   :custom
-  (eat-term-name "xterm-256color")
-  (eat-kill-buffer-on-exit t)
-  (eat-enable-yank-to-terminal t)
-  (eat-eshell-fallback-if-stty-not-available t)
-  :config
-  ;; For `eat-eshell-mode'.
-  (add-hook 'eshell-load-hook #'eat-eshell-mode)
-  ;; For `eat-eshell-visual-command-mode'.
-  (add-hook 'eshell-load-hook #'eat-eshell-visual-command-mode)
-
-  (defun +eat/evil-keep-terminal-cursor-h ()
-    "Keep Evil from moving EAT's terminal cursor."
-    (setq-local evil-move-cursor-back nil
-                evil-move-beyond-eol t))
-
-  (add-hook 'eat-mode-hook #'+eat/evil-keep-terminal-cursor-h)
-
-  (defun +eat/new ()
-    (interactive)
-    (let ((current-prefix-arg ""))
-      (call-interactively 'eat)))
-  )
+  (vterm-kill-buffer-on-exit t))
 
 ;; Don't generate backups or lockfiles. While auto-save maintains a copy so long
 ;; as a buffer is unsaved, backups create copies once, when the file is first

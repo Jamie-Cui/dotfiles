@@ -53,7 +53,7 @@ order are the contract.
 | ~ui~                     | frames, fonts, cnfonts, modeline, dashboard, themes, TTY  |
 | ~editor~                 | editing defaults, smartparens, yasnippet, Harper, text commands |
 | ~completion~             | vertico/corfu/consult/orderless/marginalia, embark        |
-| ~files~                  | dired, tramp, eshell, eat, backups, auto-save, proced     |
+| ~files~                  | dired, tramp, eshell, vterm, backups, auto-save, proced   |
 | ~project~                | projectile, envrc                                         |
 | ~vc~                     | magit, diff-hl, git-foreign-magit, git-overleaf            |
 | ~prog~                   | eglot, flycheck, citre, compilation, treesit              |

@@ -235,7 +235,7 @@
    "od"     #'dired-jump
    "oD"     #'+os/explorer-dwim
    "ot"     #'+eshell/new
-   "oT"     #'+eat/new
+   "oT"     #'vterm
    "ox"     #'scratch-buffer
    "om"     #'popwin:messages
    ;; project-related key bindings
