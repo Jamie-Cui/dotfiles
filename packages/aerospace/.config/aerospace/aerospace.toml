@@ -76,6 +76,7 @@ cmd-shift-8 = 'move-node-to-workspace 8'
 cmd-shift-9 = 'move-node-to-workspace 9'
 cmd-shift-0 = 'move-node-to-workspace 0'
 
+alt-tab = 'focus dfs-next --wrap-around'
 alt-shift-enter = 'layout floating tiling'
 
 [workspace-to-monitor-force-assignment]

@@ -97,13 +97,6 @@
   (add-hook 'agent-shell-mode-hook
             #'+agent-shell/focus-input-when-initialized-h)
 
-  (with-eval-after-load 'agent-shell-ui
-    ;; Evil Collection binds GUI <return> explicitly, preventing fallback to
-    ;; RET on fragment labels.  Update the shared map in place so existing
-    ;; fragments also get the GUI binding.
-    (define-key agent-shell-ui-fragment-map (kbd "<return>")
-                #'agent-shell-ui-toggle-fragment))
-
   ;; HACK using sssaicode api key
 
   ;; (defun +agent-shell/sss-api-key ()
