@@ -18,12 +18,13 @@
    "com.apple.inputmethod.SCIM.ITABC")
   ;; 启用 /光标颜色/ 模式
   ;; (sis-global-cursor-color-mode t)
-  ;; 启用 /respect/ 模式
+  ;; 启用 /respect/ 模式：离开 insert 状态时切回英文，并接管 evil 的
+  ;; 输入法切换；insert 状态保持英文，中文靠手动切换。
   (sis-global-respect-mode t)
   ;; 为所有缓冲区启用 /context/ 模式
-  (sis-global-context-mode t)
+  ;; (sis-global-context-mode t)
   ;; 为所有缓冲区启用 /inline english/ 模式
-  (sis-global-inline-mode t)
+  ;; (sis-global-inline-mode t)
   )
 
 (unless (eq system-type 'windows-nt)
