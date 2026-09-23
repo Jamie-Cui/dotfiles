@@ -240,6 +240,7 @@
    "om"     #'popwin:messages
    ;; project-related key bindings
    "p" '(:ignore t :which-key "project")
+   "po"     #'find-sibling-file
    "pp"     #'projectile-switch-project
    "pa"     #'projectile-add-known-project
    "px"     #'projectile-remove-known-project
