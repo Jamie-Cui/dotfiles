@@ -248,13 +248,17 @@ The optional exclamation mark denotes a breaking change.")
           (setq response
                 (magent-workflow-agent-turn "Write conventional PR"
                     (concat magent-forge--prompt "\n\n"
-                            (json-serialize
-                             (list :source (plist-get snapshot :source)
-                                   :base (plist-get snapshot :base)
-                                   :draft (magent-forge--bounded-text (plist-get snapshot :text))
-                                   :commits (magent-forge--bounded-text commits)
-                                   :summary (magent-forge--bounded-text summary)
-                                   :patch (magent-forge--bounded-text patch))))
+                            ;; `json-serialize' returns UTF-8 bytes, while
+                            ;; gptel requires prompt text to be multibyte.
+                            (decode-coding-string
+                             (json-serialize
+                              (list :source (plist-get snapshot :source)
+                                    :base (plist-get snapshot :base)
+                                    :draft (magent-forge--bounded-text (plist-get snapshot :text))
+                                    :commits (magent-forge--bounded-text commits)
+                                    :summary (magent-forge--bounded-text summary)
+                                    :patch (magent-forge--bounded-text patch)))
+                             'utf-8 t))
                   :agent "magent-forge" :tools nil :effort 'auto :thinking 'disabled))
           (magent-workflow-callback "Insert PR draft"
               (lambda (done)
