@@ -90,6 +90,13 @@
   (+org-project-sync-agenda-files)
   (+org-agenda-prune-files))
 
+(use-package org-done-journal
+  :load-path (lambda () +emacs/site-lisp-directory)
+  :demand t
+  :config
+  (add-hook '+org-done-journal-exclude-functions #'+org-project-file-p)
+  (+org-done-journal-mode 1))
+
 (defvar-local +notes/denote--syncing-file-name nil
   "Non-nil while synchronizing a Denote file name after saving.")
 
