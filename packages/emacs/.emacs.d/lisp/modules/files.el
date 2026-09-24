@@ -164,6 +164,11 @@ pre-date the external-operation helper API."
 (use-package vterm
   :ensure t
   :commands vterm
+  :init
+  (defun +vterm/new ()
+    "Create a new Vterm session unconditionally."
+    (interactive)
+    (vterm t))
   :custom
   (vterm-kill-buffer-on-exit t))
 
