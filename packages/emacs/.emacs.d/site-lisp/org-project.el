@@ -172,6 +172,12 @@
 (defvar-local org-project-todo-list--rendering nil
   "Non-nil while `org-project-todo-list' is rendering.")
 
+(defvar-local org-project-todo-list--columns nil
+  "Columns currently rendered by `org-project-todo-list'.")
+
+(defvar-local org-project-todo-list--pinned-count 0
+  "Number of pinned rows in the current todo list.")
+
 (defface org-project-todo-list-project-face
   '((t (:inherit font-lock-doc-face)))
   "Face used for the project column."
@@ -216,6 +222,18 @@
   '((t (:inherit error :weight bold)))
   "Face used for overdue deadlines."
   :group '+org-project)
+
+(defface org-project-todo-list-pinned-row-face
+  '((t (:inherit secondary-selection :extend t)))
+  "Background face appended to pinned todo-list rows."
+  :group '+org-project)
+
+(defconst +org-project--todo-list-layouts
+  '((project hierarchy state action tags time)
+    (project state action tags time)
+    (project state action time)
+    (project state action))
+  "Todo-list layouts from most to least detailed.")
 
 (defun +org-project--save-buffer-no-hooks ()
   "Save the current buffer without org-heavy save hooks."
@@ -542,56 +560,100 @@ Pin the current project's central file to the front when available."
   "Return the horizontal padding used by `tabulated-list' for COLUMN-COUNT."
   (+ 2 (* column-count tabulated-list-padding)))
 
-(defun +org-project--todo-list-format ()
-  "Return the column format for `org-project-todo-list'."
-  (let* ((total-width (+org-project--todo-list-window-width))
-         (project-width 22)
-         (hierarchy-width 28)
-         (state-width 8)
-         (compact-project-width
-          (max 1
-               (min 18
-                    (- total-width
-                       state-width
-                       (+org-project--todo-list-padding-width 3)
-                       1))))
-         (tag-width 18)
-         (time-width 24)
-         (full-column-count 6)
-         (compact-column-count 3)
-         (full-fixed-width (+ project-width
-                              hierarchy-width
-                              state-width
-                              tag-width
-                              time-width))
-         (full-min-width (+ full-fixed-width
-                            28
-                            (+org-project--todo-list-padding-width
-                             full-column-count))))
-    (if (< total-width full-min-width)
-        (let ((compact-action-width
-               (max 1
-                    (- total-width
-                       compact-project-width
-                       state-width
-                       (+org-project--todo-list-padding-width
-                        compact-column-count)))))
-          (vector
-           `("Project" ,compact-project-width t)
-           `("State" ,state-width t)
-           `("Items" ,compact-action-width t)))
-      (let ((action-width
-             (- total-width
-                full-fixed-width
-                (+org-project--todo-list-padding-width
-                 full-column-count))))
-        (vector
-         `("Project" ,project-width t)
-         `("Hierarchy" ,hierarchy-width t)
-         `("State" ,state-width t)
-         `("Items" ,action-width t)
-         `("Tag" ,tag-width t)
-         `("Time" ,time-width t))))))
+(defun +org-project--todo-list-column-spec (column)
+  "Return the display specification for COLUMN.
+The result is (HEADER ITEM-KEY MINIMUM-WIDTH PREFERRED-WIDTH)."
+  (pcase column
+    ('project '("Project" :project 8 22))
+    ('hierarchy '("Hierarchy" :hierarchy 12 28))
+    ('state '("State" :state 5 8))
+    ('action '("Items" :action 20 28))
+    ('tags '("Tag" :tags 8 18))
+    ('time '("Time" :time 12 24))
+    (_ (error "Unknown todo-list column: %S" column))))
+
+(defun +org-project--todo-list-column-width (column items)
+  "Return the preferred width of COLUMN for ITEMS."
+  (pcase-let* ((`(,header ,key ,minimum ,preferred)
+                 (+org-project--todo-list-column-spec column))
+                (content-width
+                 (cl-loop for item in items
+                          maximize (string-width
+                                    (or (plist-get item key) "")) into width
+                          finally return (or width 0))))
+    (max minimum
+         (min preferred
+              (max (string-width header) content-width)))))
+
+(defun +org-project--todo-list-layout-width (columns items)
+  "Return the preferred total width of COLUMNS for ITEMS."
+  (+ (+org-project--todo-list-padding-width (length columns))
+     (cl-loop for column in columns
+              sum (+org-project--todo-list-column-width column items))))
+
+(defun +org-project--todo-list-select-layout (items total-width)
+  "Return the most detailed layout fitting ITEMS within TOTAL-WIDTH."
+  (or (cl-find-if
+       (lambda (columns)
+         (<= (+org-project--todo-list-layout-width columns items)
+             total-width))
+      +org-project--todo-list-layouts)
+      (car (last +org-project--todo-list-layouts))))
+
+(defun +org-project--todo-list-pinned-columns-p (columns)
+  "Return non-nil when tabulated-list COLUMNS represent a pinned item."
+  (cl-some
+   (lambda (column)
+     (and (stringp column)
+          (text-property-any
+           0 (length column) 'org-project-todo-list-pinned t column)))
+   (append columns nil)))
+
+(defun +org-project--todo-list-column-sorter (left right)
+  "Sort tabulated entries LEFT and RIGHT while keeping pinned rows first."
+  (let* ((descending (cdr tabulated-list-sort-key))
+         (left-pinned (+org-project--todo-list-pinned-columns-p (cadr left)))
+         (right-pinned (+org-project--todo-list-pinned-columns-p (cadr right)))
+         (left-rank (if left-pinned 0 1))
+         (right-rank (if right-pinned 0 1))
+         (column-index
+          (cl-position (car tabulated-list-sort-key)
+                       tabulated-list-format :key #'car :test #'equal)))
+    (cond
+     ((/= left-rank right-rank)
+      (if descending
+          (> left-rank right-rank)
+        (< left-rank right-rank)))
+     ((not column-index) nil)
+     (t
+      (string< (substring-no-properties
+                (aref (cadr left) column-index))
+               (substring-no-properties
+                (aref (cadr right) column-index)))))))
+
+(defun +org-project--todo-list-format (&optional items)
+  "Return a responsive column format for todo-list ITEMS."
+  (let* ((items (or items nil))
+         (total-width (+org-project--todo-list-window-width))
+         (columns (+org-project--todo-list-select-layout items total-width))
+         (padding (+org-project--todo-list-padding-width (length columns)))
+         (fixed-columns (delq 'action (copy-sequence columns)))
+         (fixed-width
+          (cl-loop for column in fixed-columns
+                   sum (+org-project--todo-list-column-width column items)))
+         (action-width (max 1 (- total-width padding fixed-width)))
+         format)
+    (setq-local org-project-todo-list--columns columns)
+    (dolist (column columns)
+      (pcase-let ((`(,header ,_key ,_minimum ,_preferred)
+                   (+org-project--todo-list-column-spec column)))
+        (push (list header
+                    (if (eq column 'action)
+                        action-width
+                      (+org-project--todo-list-column-width column items))
+                    #'+org-project--todo-list-column-sorter)
+              format)))
+    (vconcat (nreverse format))))
 
 (defun +org-project--resolve-todo-filter (arg)
   "Resolve prefix ARG into an `org-project-todo-list' keyword filter."
@@ -744,6 +806,10 @@ Optional FILTER limits the result to matching TODO keywords."
       "agent")
      (t ""))))
 
+(defun +org-project--entry-pinned-p ()
+  "Return non-nil when the current heading is locally pinned."
+  (equal (org-entry-get (point) "PINNED") "t"))
+
 (defun +org-project--scan-buffer-for-file (file)
   "Return a buffer for scanning FILE without interactive stale-file prompts.
 
@@ -789,6 +855,7 @@ never discards user edits."
                                       (org-get-todo-state))
                               :action (substring-no-properties
                                        (org-get-heading t t t t))
+                              :pinned (+org-project--entry-pinned-p)
                               :tags (+org-project--entry-tags)
                               :deadline (or (+org-project--entry-deadline) "")
                               :time (+org-project--entry-time))
@@ -798,17 +865,23 @@ never discards user edits."
 
 (defun +org-project--todo-entry< (left right)
   "Return non-nil when LEFT should sort before RIGHT."
-  (let ((left-rank (or (plist-get left :bucket-rank) 1))
+  (let ((left-pin-rank (if (plist-get left :pinned) 0 1))
+        (right-pin-rank (if (plist-get right :pinned) 0 1))
+        (left-rank (or (plist-get left :bucket-rank) 1))
         (right-rank (or (plist-get right :bucket-rank) 1)))
-    (if (/= left-rank right-rank)
-        (< left-rank right-rank)
+    (cond
+     ((/= left-pin-rank right-pin-rank)
+      (< left-pin-rank right-pin-rank))
+     ((/= left-rank right-rank)
+      (< left-rank right-rank))
+     (t
       (catch 'result
         (dolist (key '(:sort-project :sort-hierarchy :state :action :tags :time))
           (let ((left-value (or (plist-get left key) ""))
                 (right-value (or (plist-get right key) "")))
             (unless (string= left-value right-value)
               (throw 'result (string< left-value right-value)))))
-        nil))))
+        nil)))))
 
 (defun +org-project--action-face (state)
   "Return the face used for a leaf action item in STATE."
@@ -832,20 +905,25 @@ never discards user edits."
   "Return the face used for ITEM's time column."
   (+org-project--deadline-face (or (plist-get item :deadline) "")))
 
-(defun +org-project--tabulated-cell (text width &optional face prefix &rest properties)
-  "Return TEXT truncated to WIDTH, optionally propertized with FACE, PREFIX and PROPERTIES."
-  (let* ((raw (concat (or prefix "") (or text "")))
+(defun +org-project--tabulated-cell (text width &optional face help &rest properties)
+  "Return TEXT truncated to WIDTH and propertized with FACE and PROPERTIES.
+Use HELP as the tooltip, or the full untruncated text when HELP is nil."
+  (let* ((raw (or text ""))
          (cell (truncate-string-to-width raw width nil nil "…")))
     (apply #'propertize cell
            'face face
-           'help-echo raw
+           'help-echo (or help raw)
            properties)))
 
 (defun +org-project--todo-list-help-message ()
   "Return the current help string for `org-project-todo-list'."
   (if org-project-todo-list--edit-marker
       "Editing item: C-c C-c apply, C-c C-k cancel"
-    "RET open, o other-window, i edit, C-c C-t todo, C-c C-q tags, C-c C-a archive, g refresh"))
+    (format
+     (concat "Pinned: %d, RET open, o other-window, i edit, "
+             "C-c C-p pin/unpin, C-c C-t todo, C-c C-q tags, "
+             "C-c C-a archive, g refresh")
+     org-project-todo-list--pinned-count)))
 
 (defun +org-project--update-header-line ()
   "Refresh the header line for `org-project-todo-list'."
@@ -883,18 +961,13 @@ When OTHER-WINDOW is non-nil, display it in another window."
 
 (defun +org-project--tabulated-widths ()
   "Return the current column widths for `org-project-todo-list'."
-  (if (= (length tabulated-list-format) 3)
-      (list :compact t
-            :project (nth 1 (aref tabulated-list-format 0))
-            :state (nth 1 (aref tabulated-list-format 1))
-            :action (nth 1 (aref tabulated-list-format 2)))
-    (list :compact nil
-          :project (nth 1 (aref tabulated-list-format 0))
-          :hierarchy (nth 1 (aref tabulated-list-format 1))
-          :state (nth 1 (aref tabulated-list-format 2))
-          :action (nth 1 (aref tabulated-list-format 3))
-          :tags (nth 1 (aref tabulated-list-format 4))
-          :time (nth 1 (aref tabulated-list-format 5)))))
+  (cl-loop with widths
+           for column in org-project-todo-list--columns
+           for index from 0
+           do (setq widths
+                    (plist-put widths column
+                               (nth 1 (aref tabulated-list-format index))))
+           finally return widths))
 
 (defun +org-project--todo-list-maybe-rerender (&rest _)
   "Re-render the todo list when the display width changes."
@@ -1077,6 +1150,29 @@ With optional ARG, pass it through to `org-todo'."
       (goto-char (point-min)))
     (message "TODO state: %s" (or next-state "done"))))
 
+(defun org-project-todo-list-toggle-pin ()
+  "Toggle whether the current action item is pinned to the top."
+  (interactive)
+  (when org-project-todo-list--edit-marker
+    (user-error "Finish editing first with C-c C-c or C-c C-k"))
+  (let* ((marker (tabulated-list-get-id))
+         (source (+org-project--marker-source marker))
+         pinned)
+    (unless (markerp marker)
+      (user-error "No action item on this line"))
+    (org-with-point-at marker
+      (org-back-to-heading t)
+      (setq pinned (not (+org-project--entry-pinned-p)))
+      (if pinned
+          (org-entry-put (point) "PINNED" "t")
+        (org-entry-delete (point) "PINNED"))
+      (with-current-buffer (marker-buffer marker)
+        (+org-project--save-buffer-no-hooks)))
+    (+org-project--render-todo-list)
+    (unless (+org-project--goto-source source)
+      (goto-char (point-min)))
+    (message (if pinned "Pinned to top" "Unpinned"))))
+
 (defun org-project-todo-list-set-tags (&optional arg)
   "Set tags on the current action item using Org's tag UI.
 With optional ARG, pass it through as `current-prefix-arg'."
@@ -1131,77 +1227,94 @@ With optional ARG, pass it through as `current-prefix-arg'."
                           file filter 'project))))
     (sort items #'+org-project--todo-entry<)))
 
-(defun +org-project--todo-list-entries ()
-  "Return tabulated entries for `org-project-todo-list'."
-  (let* ((widths (+org-project--tabulated-widths))
-         (compact (plist-get widths :compact))
-         (project-width (plist-get widths :project))
-         (hierarchy-width (plist-get widths :hierarchy))
-         (state-width (plist-get widths :state))
-         (action-width (plist-get widths :action))
-         (tag-width (plist-get widths :tags))
-         (time-width (plist-get widths :time)))
+(defun +org-project--todo-list-item-help (item)
+  "Return a complete tooltip for todo-list ITEM."
+  (format (concat "Project: %s\nHierarchy: %s\nState: %s\n"
+                  "Item: %s\nTag: %s\nTime: %s\nPinned: %s")
+          (or (plist-get item :project) "")
+          (or (plist-get item :hierarchy) "")
+          (or (plist-get item :state) "")
+          (or (plist-get item :action) "")
+          (or (plist-get item :tags) "")
+          (or (plist-get item :time) "")
+          (if (plist-get item :pinned) "yes" "no")))
+
+(defun +org-project--todo-list-cell (item column width)
+  "Return the WIDTH-wide COLUMN cell for todo-list ITEM."
+  (let* ((state (plist-get item :state))
+         (help (+org-project--todo-list-item-help item))
+         (pinned (plist-get item :pinned))
+         text face properties)
+    (pcase column
+      ('project
+       (setq text (plist-get item :project)
+             face 'org-project-todo-list-project-face))
+      ('hierarchy
+       (setq text (plist-get item :hierarchy)
+             face 'org-project-todo-list-hierarchy-face))
+      ('state
+       (setq text state
+             face (org-get-todo-face state)))
+      ('action
+       (setq text (plist-get item :action)
+             face (+org-project--action-face state)
+             properties
+             (list 'org-project-todo-list-column 'action
+                   'org-project-todo-list-state state
+                   'org-project-todo-list-value text)))
+      ('tags
+       (setq text (plist-get item :tags)
+             face 'org-project-todo-list-tag-face))
+      ('time
+       (setq text (plist-get item :time)
+             face (+org-project--time-face item)))
+      (_ (error "Unknown todo-list column: %S" column)))
+    (apply #'+org-project--tabulated-cell
+           text width face help
+           'org-project-todo-list-pinned pinned
+           properties)))
+
+(defun +org-project--todo-list-entries (&optional items)
+  "Return tabulated entries for todo-list ITEMS.
+Collect the current filtered items when ITEMS is nil."
+  (let ((items (or items
+                   (+org-project--collect-action-items
+                    org-project-todo-list--keyword-filter)))
+        (widths (+org-project--tabulated-widths)))
     (mapcar
      (lambda (item)
-       (let ((state (plist-get item :state)))
-         (list
-          (plist-get item :marker)
-          (if compact
-              (vector
-               (+org-project--tabulated-cell
-                (plist-get item :project)
-                project-width
-                'org-project-todo-list-project-face)
-               (+org-project--tabulated-cell
-                state
-                state-width
-                (org-get-todo-face state))
-               (+org-project--tabulated-cell
-                (plist-get item :action)
-                action-width
-                (+org-project--action-face state)
-                "> "
-                'org-project-todo-list-column 'action
-                'org-project-todo-list-state state
-                'org-project-todo-list-value (plist-get item :action)))
-            (vector
-             (+org-project--tabulated-cell
-              (plist-get item :project)
-              project-width
-              'org-project-todo-list-project-face)
-             (+org-project--tabulated-cell
-              (plist-get item :hierarchy)
-              hierarchy-width
-              'org-project-todo-list-hierarchy-face)
-             (+org-project--tabulated-cell
-              state
-              state-width
-              (org-get-todo-face state))
-             (+org-project--tabulated-cell
-              (plist-get item :action)
-              action-width
-              (+org-project--action-face state)
-              "> "
-              'org-project-todo-list-column 'action
-              'org-project-todo-list-state state
-              'org-project-todo-list-value (plist-get item :action))
-             (+org-project--tabulated-cell
-              (plist-get item :tags)
-              tag-width
-              'org-project-todo-list-tag-face)
-             (+org-project--tabulated-cell
-              (plist-get item :time)
-              time-width
-              (+org-project--time-face item)))))))
-     (+org-project--collect-action-items org-project-todo-list--keyword-filter))))
+       (list
+        (plist-get item :marker)
+        (vconcat
+         (mapcar
+          (lambda (column)
+            (+org-project--todo-list-cell
+             item column (plist-get widths column)))
+          org-project-todo-list--columns))))
+     items)))
+
+(defun +org-project--todo-list-print-entry (id columns)
+  "Print todo-list entry ID with COLUMNS and apply its row styling."
+  (let ((begin (point))
+        (pinned (+org-project--todo-list-pinned-columns-p columns)))
+    (tabulated-list-print-entry id columns)
+    (when pinned
+      (add-face-text-property
+       begin (point) 'org-project-todo-list-pinned-row-face t))))
 
 (defun +org-project--render-todo-list (&optional _ignore-auto _noconfirm)
   "Render the current `org-project-todo-list' buffer."
   (unless org-project-todo-list--rendering
     (let ((org-project-todo-list--rendering t)
-          (inhibit-read-only t))
-      (setq tabulated-list-format (+org-project--todo-list-format))
-      (setq tabulated-list-entries (+org-project--todo-list-entries))
+          (inhibit-read-only t)
+          (items (+org-project--collect-action-items
+                  org-project-todo-list--keyword-filter)))
+      (setq-local org-project-todo-list--pinned-count
+                  (cl-count-if
+                   (lambda (item) (plist-get item :pinned)) items))
+      (setq-local tabulated-list-printer #'+org-project--todo-list-print-entry)
+      (setq tabulated-list-format (+org-project--todo-list-format items))
+      (setq tabulated-list-entries (+org-project--todo-list-entries items))
       (setq-local org-project-todo-list--render-width
                   (+org-project--todo-list-window-width))
       (tabulated-list-init-header)
@@ -1232,6 +1345,7 @@ With optional ARG, pass it through as `current-prefix-arg'."
   (setq tabulated-list-padding 2)
   (setq tabulated-list-format (+org-project--todo-list-format))
   (setq tabulated-list-entries nil)
+  (setq-local tabulated-list-printer #'+org-project--todo-list-print-entry)
   (setq-local revert-buffer-function #'+org-project--render-todo-list)
   (add-hook 'window-configuration-change-hook
             #'+org-project--todo-list-maybe-rerender nil t)
@@ -1244,6 +1358,7 @@ With optional ARG, pass it through as `current-prefix-arg'."
 (define-key org-project-todo-list-mode-map (kbd "C-c C-c") #'org-project-todo-list-commit-edit)
 (define-key org-project-todo-list-mode-map (kbd "C-c C-a") #'org-project-todo-list-archive)
 (define-key org-project-todo-list-mode-map (kbd "C-c C-k") #'org-project-todo-list-cancel-edit)
+(define-key org-project-todo-list-mode-map (kbd "C-c C-p") #'org-project-todo-list-toggle-pin)
 (define-key org-project-todo-list-mode-map (kbd "C-c C-q") #'org-project-todo-list-set-tags)
 (define-key org-project-todo-list-mode-map (kbd "C-c C-t") #'org-project-todo-list-toggle-state)
 
