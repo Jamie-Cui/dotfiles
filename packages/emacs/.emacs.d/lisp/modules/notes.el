@@ -102,6 +102,7 @@
 
 (declare-function denote-menu-get-path-by-id "denote-menu" (id file-type))
 (declare-function denote-menu-update-entries "denote-menu" ())
+(declare-function denote-menu-pin-install "denote-menu-pin" ())
 
 (defun +notes/denote-menu-modified-date (path)
   "Return the last modification time of PATH for its Denote menu row."
@@ -273,6 +274,16 @@
     (kbd "N") #'+notes/denote-menu-new
     (kbd "A") #'+notes/denote-menu-archive
     (kbd "D") #'+notes/denote-menu-delete))
+
+(use-package denote-menu-pin
+  :load-path (lambda () +emacs/site-lisp-directory)
+  :after denote-menu
+  :demand t
+  :bind
+  (:map denote-menu-mode-map
+        ("C-c C-p" . denote-menu-pin-toggle))
+  :config
+  (denote-menu-pin-install))
 
 (use-package consult-denote
   :ensure t
