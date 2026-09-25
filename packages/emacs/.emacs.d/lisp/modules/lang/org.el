@@ -352,6 +352,33 @@ following, and export continue to use their configured processors."
   (setq plantuml-default-exec-mode 'jar)
   (add-to-list 'org-src-lang-modes '("plantuml" . plantuml)))
 
+(use-package org-modern
+  :hook
+  (org-mode . org-modern-mode)
+  (org-agenda-finalize . org-modern-agenda)
+  :custom
+  ;; stars 不要成为主要视觉元素
+  (org-modern-star 'fold)
+  ;; 统一字形尺寸，并避开 Maple Mono 缺失的 ⯈/⯆。
+  (org-modern-fold-stars '(("▸" . "▾")))
+
+  ;; list 简单一点
+  (org-modern-list
+   '((?- . "•")
+     (?+ . "◦")
+     (?* . "▪")))
+
+  ;; 不要过度装饰
+  ;; (org-modern-tag nil)
+  (org-modern-table nil)
+  )
+
+(setq org-hide-emphasis-markers t
+      org-pretty-entities t
+      org-ellipsis "…"
+      org-auto-align-tags nil
+      org-tags-column 0)
+
 (use-package org-appear
   :ensure t
   :custom
