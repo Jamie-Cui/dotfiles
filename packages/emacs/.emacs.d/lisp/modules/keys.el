@@ -385,6 +385,7 @@
    "C-c C-a" #'org-project-todo-list-archive
    "C-c C-c" #'org-project-todo-list-commit-edit
    "C-c C-k" #'org-project-todo-list-cancel-edit
+   "C-c C-p" #'org-project-todo-list-toggle-pin
    "C-c C-q" #'org-project-todo-list-set-tags
    "C-c C-t" #'org-project-todo-list-toggle-state)
 
