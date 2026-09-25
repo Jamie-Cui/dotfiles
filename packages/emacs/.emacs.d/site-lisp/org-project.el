@@ -609,6 +609,15 @@ The result is (HEADER ITEM-KEY MINIMUM-WIDTH PREFERRED-WIDTH)."
            0 (length column) 'org-project-todo-list-pinned t column)))
    (append columns nil)))
 
+(defun +org-project--todo-list-pinned-face-spec ()
+  "Return a face spec that applies only the pinned-row background."
+  (let ((background
+         (face-background 'org-project-todo-list-pinned-row-face nil t)))
+    (if (and (stringp background)
+             (not (equal background "unspecified-bg")))
+        `(:background ,background :extend t)
+      '(:inverse-video t :extend t))))
+
 (defun +org-project--todo-list-column-sorter (left right)
   "Sort tabulated entries LEFT and RIGHT while keeping pinned rows first."
   (let* ((descending (cdr tabulated-list-sort-key))
@@ -890,6 +899,68 @@ never discards user edits."
     ("PROJ" 'org-project-todo-list-action-project-face)
     (_ 'org-project-todo-list-action-face)))
 
+(defun org-project-todo-list-open-link (&optional event)
+  "Open the Org link at point, or the link clicked by mouse EVENT."
+  (interactive
+   (list (and (mouse-event-p last-input-event) last-input-event)))
+  (when event
+    (posn-set-point (event-end event)))
+  (let ((link (or (get-text-property (point) 'org-project-todo-list-link)
+                  (and (> (point) (point-min))
+                       (get-text-property
+                        (1- (point)) 'org-project-todo-list-link)))))
+    (unless link
+      (user-error "No link at point"))
+    (org-link-open-from-string link)))
+
+(defvar-keymap org-project-todo-list-link-map
+  :doc "Keymap for links displayed in `org-project-todo-list'."
+  "RET" #'org-project-todo-list-open-link
+  "<mouse-1>" #'org-project-todo-list-open-link)
+
+(defun +org-project--action-display (text)
+  "Return TEXT with Org links displayed and made interactive."
+  (with-temp-buffer
+    (insert text)
+    (org-mode)
+    (goto-char (point-min))
+    (let ((cursor (point-min))
+          parts)
+      (while (re-search-forward org-link-any-re nil t)
+        (let* ((begin (match-beginning 0))
+               (end (match-end 0))
+               (link (save-excursion
+                       (goto-char begin)
+                       (org-element-link-parser))))
+          (if (not link)
+              (goto-char (1+ begin))
+            (let* ((source (buffer-substring-no-properties begin end))
+                   (contents-begin
+                    (org-element-property :contents-begin link))
+                   (contents-end
+                    (org-element-property :contents-end link))
+                   (display
+                    (if (string-prefix-p "[[" source)
+                        (if contents-begin
+                            (buffer-substring-no-properties
+                             contents-begin contents-end)
+                          (org-element-property :raw-link link))
+                      source)))
+              (push (buffer-substring-no-properties cursor begin) parts)
+              (push (propertize
+                     display
+                     'face 'org-link
+                     'mouse-face 'highlight
+                     'keymap org-project-todo-list-link-map
+                     'follow-link t
+                     'help-echo (format "LINK: %s" source)
+                     'org-project-todo-list-link source)
+                    parts)
+              (setq cursor end)
+              (goto-char end)))))
+      (push (buffer-substring-no-properties cursor (point-max)) parts)
+      (apply #'concat (nreverse parts)))))
+
 (defun +org-project--deadline-face (deadline)
   "Return the face used for DEADLINE."
   (if (string-empty-p deadline)
@@ -910,10 +981,13 @@ never discards user edits."
 Use HELP as the tooltip, or the full untruncated text when HELP is nil."
   (let* ((raw (or text ""))
          (cell (truncate-string-to-width raw width nil nil "…")))
-    (apply #'propertize cell
-           'face face
-           'help-echo (or help raw)
-           properties)))
+    (when face
+      (add-face-text-property 0 (length cell) face t cell))
+    (add-text-properties
+     0 (length cell)
+     (append (list 'help-echo (or help raw)) properties)
+     cell)
+    cell))
 
 (defun +org-project--todo-list-help-message ()
   "Return the current help string for `org-project-todo-list'."
@@ -927,11 +1001,7 @@ Use HELP as the tooltip, or the full untruncated text when HELP is nil."
 
 (defun +org-project--update-header-line ()
   "Refresh the header line for `org-project-todo-list'."
-  (setq header-line-format
-        (list org-project-todo-list--header-columns
-              (propertize
-               (concat "    " (+org-project--todo-list-help-message))
-               'face 'shadow))))
+  (setq header-line-format org-project-todo-list--header-columns))
 
 (defun +org-project--visit-marker (marker &optional other-window)
   "Visit MARKER in its original Org file.
@@ -1256,12 +1326,14 @@ With optional ARG, pass it through as `current-prefix-arg'."
        (setq text state
              face (org-get-todo-face state)))
       ('action
-       (setq text (plist-get item :action)
+       (setq text (+org-project--action-display
+                   (plist-get item :action))
              face (+org-project--action-face state)
              properties
              (list 'org-project-todo-list-column 'action
                    'org-project-todo-list-state state
-                   'org-project-todo-list-value text)))
+                   'org-project-todo-list-value
+                   (plist-get item :action))))
       ('tags
        (setq text (plist-get item :tags)
              face 'org-project-todo-list-tag-face))
@@ -1300,7 +1372,7 @@ Collect the current filtered items when ITEMS is nil."
     (tabulated-list-print-entry id columns)
     (when pinned
       (add-face-text-property
-       begin (point) 'org-project-todo-list-pinned-row-face t))))
+       begin (point) (+org-project--todo-list-pinned-face-spec)))))
 
 (defun +org-project--render-todo-list (&optional _ignore-auto _noconfirm)
   "Render the current `org-project-todo-list' buffer."
