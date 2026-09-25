@@ -357,6 +357,7 @@ following, and export continue to use their configured processors."
   (org-mode . org-modern-mode)
   (org-agenda-finalize . org-modern-agenda)
   :custom
+  (org-use-sub-superscripts '{})
   ;; stars 不要成为主要视觉元素
   (org-modern-star 'fold)
   ;; 统一字形尺寸，并避开 Maple Mono 缺失的 ⯈/⯆。
